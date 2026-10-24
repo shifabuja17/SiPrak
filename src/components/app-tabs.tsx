@@ -16,7 +16,7 @@ export default function AppTabs() {
         selected: { color: colors.text },
       }}
     >
-      <NativeTabs.Trigger name="index">
+      <NativeTabs.Trigger name="schedule">
         <NativeTabs.Trigger.Label>
           Jadwal
         </NativeTabs.Trigger.Label>

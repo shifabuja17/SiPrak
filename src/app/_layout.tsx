@@ -23,8 +23,13 @@ export default function RootLayout() {
         <AnimatedSplashOverlay />
 
         <Stack screenOptions={{ headerShown: false }}>
+          {/* Layar awal: pilih peran dan identitas */}
+          <Stack.Screen name="index" />
+
+          {/* Navigasi utama aplikasi */}
           <Stack.Screen name="(tabs)" />
 
+          {/* Halaman pendukung */}
           <Stack.Screen
             name="role-switcher"
             options={{ presentation: 'modal' }}

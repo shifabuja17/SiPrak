@@ -2,12 +2,12 @@ import { router } from 'expo-router';
 import {
   FlatList,
   Pressable,
-  SafeAreaView,
   StatusBar,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import HeaderProfileBar from '@/components/common/HeaderProfileBar';
 import StatusBadge from '@/components/common/StatusBadge';
