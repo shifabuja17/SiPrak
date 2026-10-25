@@ -7,8 +7,8 @@ import {
 import * as SplashScreen from 'expo-splash-screen';
 import { useColorScheme } from 'react-native';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { PracticumProvider } from '@/context/PracticumContext';
+import { AssistantSessionsProvider } from '@/features/assistant/state/assistant-sessions-context';
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -20,23 +20,25 @@ export default function RootLayout() {
       value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}
     >
       <PracticumProvider>
-        <AnimatedSplashOverlay />
+        <AssistantSessionsProvider>
+          <Stack screenOptions={{ headerShown: false }}>
+            {/* Layar awal: pilih peran dan identitas */}
+            <Stack.Screen name="index" />
 
-        <Stack screenOptions={{ headerShown: false }}>
-          {/* Layar awal: pilih peran dan identitas */}
-          <Stack.Screen name="index" />
+            {/* Navigasi utama aplikasi */}
+            <Stack.Screen name="(tabs)" />
 
-          {/* Navigasi utama aplikasi */}
-          <Stack.Screen name="(tabs)" />
+            {/* Halaman pendukung */}
+            <Stack.Screen
+              name="role-switcher"
+              options={{ presentation: 'modal' }}
+            />
 
-          {/* Halaman pendukung */}
-          <Stack.Screen
-            name="role-switcher"
-            options={{ presentation: 'modal' }}
-          />
-
-          <Stack.Screen name="session/[id]" />
-        </Stack>
+            <Stack.Screen name="session/[id]" />
+            <Stack.Screen name="assistant/index" />
+            <Stack.Screen name="assistant/session/[sessionId]" />
+          </Stack>
+        </AssistantSessionsProvider>
       </PracticumProvider>
     </ThemeProvider>
   );
