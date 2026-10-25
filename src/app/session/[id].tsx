@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import StatusBadge from '@/components/common/StatusBadge';
 import { usePracticum } from '@/context/PracticumContext';
+import PraktikanAttendanceSection from '@/features/praktikan/components/praktikan-attendance-section';
 
 export default function SessionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -169,33 +170,18 @@ export default function SessionDetailScreen() {
             </Pressable>
           )}
 
-        {session.status === 'CLOSED' && (
-          <View style={styles.notice}>
-            <Text style={styles.noticeText}>
-              Sesi ini sudah selesai.
-            </Text>
-          </View>
+        {currentUser.role === 'ASISTEN' &&
+          session.status === 'CLOSED' && (
+            <View style={styles.notice}>
+              <Text style={styles.noticeText}>
+                Sesi ini sudah selesai.
+              </Text>
+            </View>
+          )}
+
+        {currentUser.role === 'PRAKTIKAN' && (
+          <PraktikanAttendanceSection session={session} />
         )}
-
-        {currentUser.role === 'PRAKTIKAN' &&
-          session.status === 'UPCOMING' && (
-            <View style={styles.notice}>
-              <Text style={styles.noticeText}>
-                Sesi belum dibuka oleh Asisten.
-              </Text>
-            </View>
-          )}
-
-        {currentUser.role === 'PRAKTIKAN' &&
-          session.status === 'OPEN' && (
-            <View style={styles.notice}>
-              <Text style={styles.noticeText}>
-                Sesi sedang berlangsung. Fitur formulir
-                presensi akan diintegrasikan dengan modul
-                Praktikan.
-              </Text>
-            </View>
-          )}
 
         <View style={styles.summaryCard}>
           <Text style={styles.summaryLabel}>
