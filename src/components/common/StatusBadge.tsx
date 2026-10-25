@@ -16,13 +16,13 @@ const BADGE_CONFIG: Record<
   },
   OPEN: {
     label: 'BERLANGSUNG',
-    background: '#E5E5E5',
-    color: '#000000',
+    background: '#DCFCE7',
+    color: '#15803D',
   },
   CLOSED: {
     label: 'SELESAI',
-    background: '#D9D9D9',
-    color: '#000000',
+    background: '#FEE2E2',
+    color: '#B91C1C',
   },
 };
 

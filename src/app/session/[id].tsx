@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import StatusBadge from '@/components/common/StatusBadge';
 import { usePracticum } from '@/context/PracticumContext';
+import { AttendanceSummary } from '@/features/assistant/components/attendance-summary';
 import PraktikanAttendanceSection from '@/features/praktikan/components/praktikan-attendance-section';
 
 export default function SessionDetailScreen() {
@@ -60,37 +61,37 @@ export default function SessionDetailScreen() {
 
   function handleConfirmAction() {
     const actionLabel =
-        currentSessionStatus === 'UPCOMING'
+      currentSessionStatus === 'UPCOMING'
         ? 'dibuka'
         : 'ditutup';
 
     try {
-        if (currentSessionStatus === 'UPCOMING') {
+      if (currentSessionStatus === 'UPCOMING') {
         openSession(sessionId, sessionNote);
-        } else if (currentSessionStatus === 'OPEN') {
+      } else if (currentSessionStatus === 'OPEN') {
         closeSession(sessionId);
-        } else {
+      } else {
         throw new Error(
-            'Sesi yang sudah selesai tidak dapat diubah.',
+          'Sesi yang sudah selesai tidak dapat diubah.',
         );
-        }
+      }
 
-        setSessionNote('');
-        setModalVisible(false);
+      setSessionNote('');
+      setModalVisible(false);
 
-        Alert.alert(
+      Alert.alert(
         'Berhasil',
         `Sesi berhasil ${actionLabel}.`,
-        );
+      );
     } catch (error) {
-        Alert.alert(
+      Alert.alert(
         'Gagal',
         error instanceof Error
-            ? error.message
-            : 'Terjadi kesalahan.',
-        );
+          ? error.message
+          : 'Terjadi kesalahan.',
+      );
     }
-}
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -183,15 +184,19 @@ export default function SessionDetailScreen() {
           <PraktikanAttendanceSection session={session} />
         )}
 
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryLabel}>
-            Jumlah Praktikan Hadir
-          </Text>
+        {currentUser.role === 'ASISTEN' ? (
+          <AttendanceSummary records={session.attendances} />
+        ) : (
+          <View style={styles.summaryCard}>
+            <Text style={styles.summaryLabel}>
+              Jumlah Praktikan Hadir
+            </Text>
 
-          <Text style={styles.summaryValue}>
-            {session.attendances.length} praktikan
-          </Text>
-        </View>
+            <Text style={styles.summaryValue}>
+              {session.attendances.length} praktikan
+            </Text>
+          </View>
+        )}
       </ScrollView>
 
       <Modal
@@ -210,7 +215,7 @@ export default function SessionDetailScreen() {
 
             <Text style={styles.modalDescription}>
               {session.status === 'UPCOMING'
-                ? 'Sesi akan berubah menjadi berlangsung sehingga praktikan dapat melakukan presensi setelah fitur tersebut diintegrasikan.'
+                ? 'Sesi akan berubah menjadi berlangsung sehingga praktikan dapat melakukan presensi.'
                 : 'Sesi akan ditandai selesai dan tidak dapat menerima presensi baru.'}
             </Text>
 
