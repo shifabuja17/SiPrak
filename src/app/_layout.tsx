@@ -4,13 +4,10 @@ import {
   Stack,
   ThemeProvider,
 } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
 import { useColorScheme } from 'react-native';
 
 import { PracticumProvider } from '@/context/PracticumContext';
 import { AssistantSessionsProvider } from '@/features/assistant/state/assistant-sessions-context';
-
-void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
