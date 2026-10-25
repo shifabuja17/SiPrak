@@ -44,6 +44,23 @@ export default function AttendanceHistoryScreen() {
 
   const isPraktikan = currentUser.role === 'PRAKTIKAN';
 
+  const presentCount = sessions.filter((session) =>
+    session.attendances.some(
+      (record) => record.userId === currentUser.id,
+    ),
+  ).length;
+
+  const absentCount = sessions.filter(
+    (session) =>
+      session.status === 'CLOSED' &&
+      !session.attendances.some(
+        (record) => record.userId === currentUser.id,
+      ),
+  ).length;
+
+  const pendingCount =
+    sessions.length - presentCount - absentCount;
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" />
@@ -76,6 +93,31 @@ export default function AttendanceHistoryScreen() {
                 <Text style={styles.summaryValue}>
                   {sessions.length}
                 </Text>
+
+                <View style={styles.statsRow}>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statValue}>
+                      {presentCount}
+                    </Text>
+                    <Text style={styles.statLabel}>Hadir</Text>
+                  </View>
+
+                  <View style={styles.statItem}>
+                    <Text style={styles.statValue}>
+                      {absentCount}
+                    </Text>
+                    <Text style={styles.statLabel}>
+                      Tidak Hadir
+                    </Text>
+                  </View>
+
+                  <View style={styles.statItem}>
+                    <Text style={styles.statValue}>
+                      {pendingCount}
+                    </Text>
+                    <Text style={styles.statLabel}>Belum</Text>
+                  </View>
+                </View>
               </View>
             )}
 
@@ -214,6 +256,28 @@ const styles = StyleSheet.create({
     color: '#000000',
     fontSize: 28,
     fontWeight: '800',
+  },
+  statsRow: {
+    borderTopColor: '#D9D9D9',
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 5,
+    paddingTop: 12,
+  },
+  statItem: {
+    flex: 1,
+    gap: 2,
+  },
+  statValue: {
+    color: '#000000',
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  statLabel: {
+    color: '#666666',
+    fontSize: 12,
+    fontWeight: '600',
   },
   sectionTitle: {
     color: '#000000',
