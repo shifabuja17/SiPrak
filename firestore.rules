@@ -1,0 +1,135 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- Helper ----------
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function userDoc(uid) {
+      return /databases/$(database)/documents/users/$(uid);
+    }
+
+    function isAsisten() {
+      return signedIn()
+        && exists(userDoc(request.auth.uid))
+        && get(userDoc(request.auth.uid)).data.role == 'asisten';
+    }
+
+    function validStatusSesi() {
+      return request.resource.data.status in ['dijadwalkan', 'dibuka', 'ditutup'];
+    }
+
+    // ---------- users/{uid} ----------
+    // Registrasi mandiri hanya boleh jadi 'praktikan'.
+    // Akun asisten: ubah field role secara manual di Firebase Console.
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAsisten();
+
+      allow create: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(['nama', 'email', 'nim', 'role', 'createdAt'])
+        && request.resource.data.keys().hasAll(['nama', 'email', 'role', 'createdAt'])
+        && request.resource.data.role == 'praktikan'
+        && request.resource.data.email == request.auth.token.email.lower()
+        && request.resource.data.nama is string
+        && request.resource.data.nama.size() > 0
+        && request.resource.data.nama.size() <= 100
+        && (request.resource.data.nim == null
+            || (request.resource.data.nim is string && request.resource.data.nim.size() <= 30))
+        && request.resource.data.createdAt == request.time;
+
+      // Pemilik hanya boleh mengubah nama/nim. role & email tidak bisa diubah.
+      allow update: if isOwner(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nama', 'nim'])
+        && request.resource.data.nama is string
+        && request.resource.data.nama.size() > 0
+        && request.resource.data.nama.size() <= 100;
+
+      allow delete: if false;
+    }
+
+    // ---------- classes, members, schedules, sessions ----------
+    // Semua pengguna login boleh membaca; hanya asisten yang boleh menulis (CRUD).
+    match /classes/{classId} {
+      allow read: if signedIn();
+      allow write: if isAsisten();
+
+      match /members/{uid} {
+        allow read: if signedIn();
+        allow write: if isAsisten();
+      }
+    }
+
+    match /schedules/{scheduleId} {
+      allow read: if signedIn();
+      allow write: if isAsisten();
+    }
+
+    match /sessions/{sessionId} {
+      allow read: if signedIn();
+      allow create: if isAsisten() && validStatusSesi();
+      allow update: if isAsisten() && validStatusSesi();
+      allow delete: if isAsisten();
+
+      // ---------- Presensi ----------
+      // ID dokumen = uid praktikan -> 1 presensi per sesi per praktikan.
+      // 'create' pada dokumen yang sudah ada dianggap 'update' dan ditolak,
+      // jadi presensi ganda tidak mungkin terjadi.
+      match /attendance/{uid} {
+        allow read: if isAsisten() || isOwner(uid);
+
+        allow create: if isOwner(uid)
+          && get(/databases/$(database)/documents/sessions/$(sessionId)).data.status == 'dibuka'
+          // OPSIONAL (aktifkan jika peserta kelas sudah diisi di classes/{id}/members):
+          // && exists(/databases/$(database)/documents/classes/$(get(/databases/$(database)/documents/sessions/$(sessionId)).data.classId)/members/$(uid))
+          && request.resource.data.keys().hasOnly(['uid', 'nama', 'waktu'])
+          && request.resource.data.uid == uid
+          && request.resource.data.nama is string
+          && request.resource.data.waktu == request.time;
+
+        allow update: if false;
+        allow delete: if isAsisten(); // koreksi oleh asisten
+      }
+    }
+
+    // ---------- Pengajuan izin ----------
+    // ID dokumen WAJIB '{sessionId}_{uid}' -> satu pengajuan per sesi per praktikan.
+    // kategoriAI hanya informasi pendukung; status awal selalu 'menunggu'.
+    match /leaveRequests/{requestId} {
+      allow read: if isAsisten()
+        || (signedIn() && resource.data.uid == request.auth.uid);
+
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && requestId == request.resource.data.sessionId + '_' + request.auth.uid
+        && request.resource.data.keys().hasOnly(
+             ['uid', 'nama', 'sessionId', 'alasan', 'kategoriAI', 'status', 'createdAt'])
+        && request.resource.data.keys().hasAll(
+             ['uid', 'sessionId', 'alasan', 'status', 'createdAt'])
+        && request.resource.data.sessionId is string
+        && request.resource.data.alasan is string
+        && request.resource.data.alasan.size() >= 5
+        && request.resource.data.alasan.size() <= 500
+        && (request.resource.data.kategoriAI == null
+            || (request.resource.data.kategoriAI is string
+                && request.resource.data.kategoriAI.size() <= 50))
+        && request.resource.data.status == 'menunggu'
+        && request.resource.data.createdAt == request.time;
+
+      // Hanya asisten yang memutuskan; hanya field keputusan yang boleh berubah.
+      allow update: if isAsisten()
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status', 'reviewedBy', 'reviewedAt', 'catatanAsisten'])
+        && request.resource.data.status in ['diterima', 'ditolak']
+        && request.resource.data.reviewedBy == request.auth.uid;
+
+      allow delete: if false;
+    }
+  }
+}
