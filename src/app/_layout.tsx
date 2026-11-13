@@ -32,6 +32,7 @@ export default function RootLayout() {
               <Stack.Screen name="session/[id]" />
               <Stack.Screen name="assistant/index" />
               <Stack.Screen name="assistant/classes" />
+              <Stack.Screen name="assistant/class-members/[classId]" />
               <Stack.Screen name="assistant/session/[sessionId]" />
             </Stack>
           </AssistantSessionsProvider>

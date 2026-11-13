@@ -50,7 +50,7 @@ export default function AssistantScheduleScreen() {
             {/* Tombol menuju Manajemen Kelas */}
             <Pressable
               style={styles.manageClassButton}
-              onPress={() => router.push('./classes')}
+              onPress={() => router.push('/assistant/classes')}
             >
               <Text style={styles.manageClassButtonText}>
                 + Manajemen Kelas

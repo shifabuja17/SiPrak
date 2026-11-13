@@ -33,17 +33,24 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
-      ]
+      ],
+      "expo-status-bar",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
     },
     "extra": {
-      "router": {},
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
       "eas": {
-        "projectId": "a5bfba5e-0088-4304-a9fe-83bffa7f787a"
+        "projectId": "ff5c893a-5b31-40b9-99bc-0eb83150bf36"
       }
-    }
+    },
+    "owner": "alyssashane"
   }
 }

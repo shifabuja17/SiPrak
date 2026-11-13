@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
+import { router } from 'expo-router';
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -12,7 +15,6 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
 
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -94,6 +96,14 @@ export default function AssistantClassesScreen() {
     setModalVisible(true);
   }
 
+  // Menutup modal dan membersihkan error.
+  function closeModal() {
+    if (saving) return;
+
+    setModalVisible(false);
+    setError('');
+  }
+
   // Menyimpan kelas baru atau perubahan kelas.
   async function handleSave() {
     if (!profile) return;
@@ -143,7 +153,7 @@ export default function AssistantClassesScreen() {
               setError(
                 err instanceof Error
                   ? err.message
-                  : 'Gagal menghapus kelas.'
+                  : 'Gagal menghapus data kelas.'
               );
             }
           },
@@ -152,6 +162,7 @@ export default function AssistantClassesScreen() {
     );
   }
 
+  // Menunggu proses autentikasi.
   if (authLoading) {
     return (
       <SafeAreaView style={styles.centered}>
@@ -163,6 +174,7 @@ export default function AssistantClassesScreen() {
     );
   }
 
+  // Memeriksa pengguna yang belum login.
   if (!profile) {
     return (
       <SafeAreaView style={styles.centered}>
@@ -176,6 +188,7 @@ export default function AssistantClassesScreen() {
     );
   }
 
+  // Membatasi halaman untuk Asisten.
   if (profile.role !== 'asisten') {
     return (
       <SafeAreaView style={styles.centered}>
@@ -193,7 +206,10 @@ export default function AssistantClassesScreen() {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" />
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
         <Pressable
           onPress={() => router.back()}
           style={styles.backButton}
@@ -254,7 +270,8 @@ export default function AssistantClassesScreen() {
             </Text>
 
             <Text style={styles.mutedText}>
-              Tambahkan kelas praktikum pertama untuk mulai mengelola peserta dan jadwal.
+              Tambahkan kelas praktikum pertama untuk mulai
+              mengelola peserta dan jadwal.
             </Text>
           </View>
         ) : (
@@ -273,6 +290,21 @@ export default function AssistantClassesScreen() {
                   {item.deskripsi || 'Tidak ada deskripsi.'}
                 </Text>
               </View>
+
+              {/* Tombol menuju halaman Kelola Peserta */}
+              <Pressable
+                style={styles.manageMembersButton}
+                onPress={() =>
+                  router.push({
+                    pathname: '/assistant/class-members/[classId]',
+                    params: { classId: item.id },
+                  })
+                }
+              >
+                <Text style={styles.manageMembersText}>
+                  Kelola Peserta →
+                </Text>
+              </Pressable>
 
               <View style={styles.cardActions}>
                 <Pressable
@@ -298,116 +330,135 @@ export default function AssistantClassesScreen() {
         )}
       </ScrollView>
 
+      {/* Modal form dengan dukungan keyboard */}
       <Modal
         animationType="slide"
         transparent
         visible={modalVisible}
-        onRequestClose={() => {
-          if (!saving) setModalVisible(false);
-        }}
+        onRequestClose={closeModal}
       >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>
-              {editingClass ? 'Edit Kelas' : 'Tambah Kelas'}
-            </Text>
-
-            <Text style={styles.inputLabel}>
-              Nama Kelas
-            </Text>
-
-            <TextInput
-              value={form.nama}
-              onChangeText={(value) =>
-                setForm((previous) => ({
-                  ...previous,
-                  nama: value,
-                }))
-              }
-              placeholder="Contoh: Praktikum Pemrograman Bergerak"
-              placeholderTextColor="#888888"
-              style={styles.input}
-              editable={!saving}
-              maxLength={100}
-            />
-
-            <Text style={styles.inputLabel}>
-              Kode Kelas
-            </Text>
-
-            <TextInput
-              value={form.kode}
-              onChangeText={(value) =>
-                setForm((previous) => ({
-                  ...previous,
-                  kode: value.toUpperCase(),
-                }))
-              }
-              placeholder="Contoh: PPB-A"
-              placeholderTextColor="#888888"
-              style={styles.input}
-              editable={!saving}
-              autoCapitalize="characters"
-              maxLength={20}
-            />
-
-            <Text style={styles.inputLabel}>
-              Deskripsi
-            </Text>
-
-            <TextInput
-              value={form.deskripsi}
-              onChangeText={(value) =>
-                setForm((previous) => ({
-                  ...previous,
-                  deskripsi: value,
-                }))
-              }
-              placeholder="Keterangan kelas (opsional)"
-              placeholderTextColor="#888888"
-              style={[styles.input, styles.descriptionInput]}
-              multiline
-              textAlignVertical="top"
-              editable={!saving}
-              maxLength={300}
-            />
-
-            <View style={styles.modalActions}>
-              <Pressable
-                style={styles.cancelButton}
-                onPress={() => setModalVisible(false)}
-                disabled={saving}
-              >
-                <Text style={styles.cancelText}>
-                  Batal
+        <KeyboardAvoidingView
+          style={styles.modalKeyboard}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <View style={styles.modalBackdrop}>
+            <ScrollView
+              contentContainerStyle={styles.modalScrollContent}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              showsVerticalScrollIndicator={false}
+              bounces={false}
+            >
+              <View style={styles.modalCard}>
+                <Text style={styles.modalTitle}>
+                  {editingClass ? 'Edit Kelas' : 'Tambah Kelas'}
                 </Text>
-              </Pressable>
 
-              <Pressable
-                style={[
-                  styles.saveButton,
-                  saving && styles.disabledButton,
-                ]}
-                onPress={handleSave}
-                disabled={saving}
-              >
-                {saving ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.saveText}>
-                    {editingClass ? 'Simpan' : 'Tambah'}
+                <Text style={styles.inputLabel}>
+                  Nama Kelas
+                </Text>
+
+                <TextInput
+                  value={form.nama}
+                  onChangeText={(value) =>
+                    setForm((previous) => ({
+                      ...previous,
+                      nama: value,
+                    }))
+                  }
+                  placeholder="Contoh: Praktikum Pemrograman Bergerak"
+                  placeholderTextColor="#888888"
+                  style={styles.input}
+                  editable={!saving}
+                  maxLength={100}
+                  returnKeyType="next"
+                  blurOnSubmit={false}
+                />
+
+                <Text style={styles.inputLabel}>
+                  Kode Kelas
+                </Text>
+
+                <TextInput
+                  value={form.kode}
+                  onChangeText={(value) =>
+                    setForm((previous) => ({
+                      ...previous,
+                      kode: value.toUpperCase(),
+                    }))
+                  }
+                  placeholder="Contoh: PPB-A"
+                  placeholderTextColor="#888888"
+                  style={styles.input}
+                  editable={!saving}
+                  autoCapitalize="characters"
+                  maxLength={20}
+                  returnKeyType="next"
+                  blurOnSubmit={false}
+                />
+
+                <Text style={styles.inputLabel}>
+                  Deskripsi
+                </Text>
+
+                <TextInput
+                  value={form.deskripsi}
+                  onChangeText={(value) =>
+                    setForm((previous) => ({
+                      ...previous,
+                      deskripsi: value,
+                    }))
+                  }
+                  placeholder="Keterangan kelas (opsional)"
+                  placeholderTextColor="#888888"
+                  style={[
+                    styles.input,
+                    styles.descriptionInput,
+                  ]}
+                  multiline
+                  textAlignVertical="top"
+                  editable={!saving}
+                  maxLength={300}
+                />
+
+                {error ? (
+                  <Text style={styles.modalError}>
+                    {error}
                   </Text>
-                )}
-              </Pressable>
-            </View>
+                ) : null}
 
-            {error ? (
-              <Text style={styles.modalError}>
-                {error}
-              </Text>
-            ) : null}
+                <View style={styles.modalActions}>
+                  <Pressable
+                    style={styles.cancelButton}
+                    onPress={closeModal}
+                    disabled={saving}
+                  >
+                    <Text style={styles.cancelText}>
+                      Batal
+                    </Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={[
+                      styles.saveButton,
+                      saving && styles.disabledButton,
+                    ]}
+                    onPress={handleSave}
+                    disabled={saving}
+                  >
+                    {saving ? (
+                      <ActivityIndicator color="#FFFFFF" />
+                    ) : (
+                      <Text style={styles.saveText}>
+                        {editingClass ? 'Simpan' : 'Tambah'}
+                      </Text>
+                    )}
+                  </Pressable>
+                </View>
+              </View>
+            </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -517,6 +568,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
   },
+
+  // Tombol Kelola Peserta
+  manageMembersButton: {
+    alignItems: 'center',
+    backgroundColor: '#F2F2F2',
+    borderRadius: 9,
+    padding: 11,
+  },
+  manageMembersText: {
+    color: '#000000',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+
   cardActions: {
     flexDirection: 'row',
     gap: 9,
@@ -574,9 +639,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
   },
+
+  // Keyboard handling
+  modalKeyboard: {
+    flex: 1,
+  },
   modalBackdrop: {
     backgroundColor: 'rgba(0,0,0,0.45)',
     flex: 1,
+    justifyContent: 'flex-end',
+  },
+  modalScrollContent: {
+    flexGrow: 1,
     justifyContent: 'flex-end',
   },
   modalCard: {
