@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 
+import { PraktikanErrorState } from '@/features/praktikan/components/praktikan-state-view';
 import type { LeaveSubmittingStep } from '@/features/praktikan/hooks/use-praktikan-leave-requests';
 import type {
   FirestoreSessionStatus,
@@ -37,6 +38,10 @@ export interface LeaveRequestSheetProps {
   submitting: boolean;
   submittingStep?: LeaveSubmittingStep;
   error?: string | null;
+  sessionsError?: string | null;
+  attendanceError?: string | null;
+  onRetryData?: () => void;
+  onClearError?: () => void;
   onCancel: () => void;
   onSubmit: (sessionId: string, alasan: string) => Promise<SubmitLeaveRequestOutcome>;
 }
@@ -89,6 +94,10 @@ export function LeaveRequestSheet({
   submitting,
   submittingStep = 'idle',
   error = null,
+  sessionsError = null,
+  attendanceError = null,
+  onRetryData,
+  onClearError,
   onCancel,
   onSubmit,
 }: LeaveRequestSheetProps) {
@@ -122,6 +131,10 @@ export function LeaveRequestSheet({
     setSelectedSessionId(null);
   }, [visible, preselectedSessionId]);
 
+  const dependencyError = preselectedSession
+    ? (attendanceError ?? null)
+    : (sessionsError ?? attendanceError ?? null);
+
   const autoSelectedSession = !preselectedSession
     ? sessions.find(
         (item) => getSessionBlockReason(item.id, attendanceBySessionId, leaveBySessionId) === null,
@@ -153,7 +166,7 @@ export function LeaveRequestSheet({
         (item) => getSessionBlockReason(item.id, attendanceBySessionId, leaveBySessionId) === null,
       );
 
-  const isFormBlocked = !activeSession || activeBlockReason !== null;
+  const isFormBlocked = Boolean(dependencyError) || !activeSession || activeBlockReason !== null;
   const isSubmitDisabled = submitting || isFormBlocked;
   const displayedSubmitError = error || submitError || null;
 
@@ -171,6 +184,12 @@ export function LeaveRequestSheet({
 
     setAttemptedSubmit(true);
     setSubmitError(null);
+    onClearError?.();
+
+    if (dependencyError) {
+      setSubmitError(dependencyError);
+      return;
+    }
 
     if (!activeSession) {
       setSubmitError('Pilih sesi praktikum terlebih dahulu.');
@@ -258,7 +277,19 @@ export function LeaveRequestSheet({
               <View style={styles.sessionSection}>
                 <Text style={styles.sectionLabel}>Pilih Sesi Praktikum</Text>
 
-                {sessions.length === 0 ? (
+                {sessionsError ? (
+                  <PraktikanErrorState
+                    title="Gagal Memuat Daftar Sesi"
+                    message={sessionsError}
+                    onRetry={onRetryData}
+                  />
+                ) : attendanceError ? (
+                  <PraktikanErrorState
+                    title="Status Presensi Belum Dapat Diperiksa"
+                    message={`Kelayakan sesi belum dapat dipastikan karena gagal memeriksa presensi: ${attendanceError}`}
+                    onRetry={onRetryData}
+                  />
+                ) : sessions.length === 0 ? (
                   <View style={styles.emptySessionsBox}>
                     <Text style={styles.emptySessionsText}>
                       Belum ada sesi praktikum yang tersedia untuk diajukan izin.
@@ -287,6 +318,7 @@ export function LeaveRequestSheet({
                           onPress={() => {
                             setSelectedSessionId(item.id);
                             setSubmitError(null);
+                            onClearError?.();
                           }}
                           style={({ pressed }) => [
                             styles.sessionOption,
@@ -363,6 +395,9 @@ export function LeaveRequestSheet({
                   setAlasan(value);
                   if (submitError) {
                     setSubmitError(null);
+                  }
+                  if (error) {
+                    onClearError?.();
                   }
                 }}
                 placeholder="Contoh: Saya tidak dapat hadir karena sakit demam dan berobat ke klinik."

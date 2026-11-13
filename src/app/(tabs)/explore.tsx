@@ -1,8 +1,6 @@
 import { useMemo } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
-  Pressable,
   StatusBar,
   StyleSheet,
   Text,
@@ -16,6 +14,13 @@ import {
   usePracticum,
   type SessionStatus,
 } from '@/context/PracticumContext';
+import {
+  PraktikanEmptyState,
+  PraktikanErrorState,
+  PraktikanInlineErrorBanner,
+  PraktikanLoadingState,
+  PraktikanProfileErrorScreen,
+} from '@/features/praktikan/components/praktikan-state-view';
 import { usePraktikanLeaveRequests } from '@/features/praktikan/hooks/use-praktikan-leave-requests';
 import { usePraktikanSessions } from '@/features/praktikan/hooks/use-praktikan-sessions';
 import { useMyAttendanceMap } from '@/features/praktikan/hooks/use-session-attendance';
@@ -31,11 +36,15 @@ import {
 interface AttendanceBadgeProps {
   sessionStatus: FirestoreSessionStatus | SessionStatus;
   isPresent: boolean;
+  attendanceLoading?: boolean;
+  attendanceError?: string | null;
 }
 
 function AttendanceBadge({
   sessionStatus,
   isPresent,
+  attendanceLoading = false,
+  attendanceError = null,
 }: AttendanceBadgeProps) {
   let label = 'BELUM DIBUKA';
   let background = '#F2F2F2';
@@ -45,6 +54,14 @@ function AttendanceBadge({
     label = 'HADIR';
     background = '#DCFCE7';
     color = '#15803D';
+  } else if (attendanceLoading) {
+    label = 'MEMERIKSA PRESENSI';
+    background = '#F2F2F2';
+    color = '#525252';
+  } else if (attendanceError) {
+    label = 'PRESENSI GAGAL DIMUAT';
+    background = '#FEE2E2';
+    color = '#991B1B';
   } else if (sessionStatus === 'dibuka' || sessionStatus === 'OPEN') {
     label = 'BELUM PRESENSI';
     background = '#FEF3C7';
@@ -97,20 +114,24 @@ function LeaveIndicatorBadge({ status }: { status: LeaveRequestStatus }) {
 
 export default function AttendanceHistoryScreen() {
   const {
+    user,
+    profile,
     role: authRole,
     status: authStatus,
     loading: authLoading,
+    profileError,
   } = useAuth();
 
   if (authLoading || authStatus === 'loading') {
+    return <PraktikanLoadingState fullScreen message="Memeriksa sesi akun..." />;
+  }
+
+  if (user && (profileError || !profile)) {
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <StatusBar barStyle="dark-content" />
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#000000" />
-          <Text style={styles.stateText}>Memeriksa sesi akun...</Text>
-        </View>
-      </SafeAreaView>
+      <PraktikanProfileErrorScreen
+        title="Riwayat Kehadiran"
+        subtitle="Pantau status kehadiran pribadi pada setiap sesi praktikum."
+      />
     );
   }
 
@@ -131,13 +152,10 @@ export default function AttendanceHistoryScreen() {
             <HeaderProfileBar />
             <Text style={styles.sectionTitle}>Riwayat Praktikan</Text>
           </View>
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>Akun Asisten Aktif</Text>
-            <Text style={styles.emptyText}>
-              Halaman ini menampilkan riwayat presensi pribadi untuk akun
-              Praktikan.
-            </Text>
-          </View>
+          <PraktikanEmptyState
+            title="Akun Asisten Aktif"
+            message="Halaman ini menampilkan riwayat presensi pribadi untuk akun Praktikan."
+          />
         </View>
       </SafeAreaView>
     );
@@ -175,85 +193,75 @@ function PraktikanAttendanceHistory() {
     retry: retryLeaves,
   } = usePraktikanLeaveRequests();
 
-  const isLoading =
-    sessionsLoading ||
-    (sessions.length > 0 && (attendanceLoading || leaveLoading));
-  const activeError = sessionsError ?? attendanceError ?? leaveError;
+  const showInitialLoading = sessionsLoading && sessions.length === 0;
+  const showFatalError =
+    Boolean(sessionsError) && sessions.length === 0 && !sessionsLoading;
+  const areAttendanceStatsUnavailable =
+    showInitialLoading ||
+    showFatalError ||
+    (sessions.length > 0 && (attendanceLoading || Boolean(attendanceError)));
 
-  const presentCount = isLoading
+  const presentCount = areAttendanceStatsUnavailable
     ? 0
     : sessions.filter((session) => Boolean(attendanceBySessionId[session.id]))
         .length;
 
-  const absentCount = isLoading
+  const absentCount = areAttendanceStatsUnavailable
     ? 0
     : sessions.filter(
         (session) =>
           session.status === 'ditutup' && !attendanceBySessionId[session.id],
       ).length;
 
-  const pendingCount = isLoading
+  const pendingCount = areAttendanceStatsUnavailable
     ? 0
     : sessions.length - presentCount - absentCount;
 
-  function handleRetry() {
-    if (sessionsError) retrySessions();
-    if (attendanceError) retryAttendance();
-    if (leaveError) retryLeaves();
-  }
+  const hasPartialErrors =
+    !showInitialLoading &&
+    !showFatalError &&
+    ((sessions.length > 0 && Boolean(sessionsError)) ||
+      (sessions.length > 0 && Boolean(attendanceError)) ||
+      Boolean(leaveError));
 
   function renderEmptyState() {
-    if (isLoading) {
+    if (showInitialLoading) {
       return (
-        <View style={styles.emptyCard}>
-          <ActivityIndicator size="small" color="#000000" />
-          <Text style={styles.emptyTitle}>Memuat Riwayat</Text>
-          <Text style={styles.emptyText}>
-            Mengambil riwayat kehadiran praktikum kamu...
-          </Text>
-        </View>
+        <PraktikanLoadingState
+          title="Memuat Riwayat"
+          message="Mengambil riwayat kehadiran praktikum kamu..."
+        />
       );
     }
 
-    if (activeError) {
+    if (showFatalError && sessionsError) {
       return (
-        <View style={styles.errorCard}>
-          <Text style={styles.errorTitle}>Gagal Memuat Riwayat</Text>
-          <Text style={styles.errorText}>{activeError}</Text>
-          <Pressable
-            onPress={handleRetry}
-            style={({ pressed }) => [
-              styles.retryButton,
-              pressed && styles.pressed,
-            ]}
-          >
-            <Text style={styles.retryText}>Coba Lagi</Text>
-          </Pressable>
-        </View>
+        <PraktikanErrorState
+          title="Gagal Memuat Riwayat"
+          message={sessionsError}
+          onRetry={retrySessions}
+        />
       );
     }
 
     if (totalClassCount === 0 || classes.length === 0) {
       return (
-        <View style={styles.emptyCard}>
-          <Text style={styles.emptyTitle}>Belum Terdaftar di Kelas</Text>
-          <Text style={styles.emptyText}>
-            Riwayat kehadiran akan muncul setelah kamu terdaftar di kelas
-            praktikum.
-          </Text>
-        </View>
+        <PraktikanEmptyState
+          title="Belum Terdaftar di Kelas"
+          message="Riwayat kehadiran akan muncul setelah kamu terdaftar di kelas praktikum."
+        />
       );
     }
 
     return (
-      <View style={styles.emptyCard}>
-        <Text style={styles.emptyTitle}>Belum Ada Sesi</Text>
-        <Text style={styles.emptyText}>
-          Riwayat sesi praktikum belum tersedia.
-        </Text>
-      </View>
+      <PraktikanEmptyState
+        title="Belum Ada Sesi"
+        message="Riwayat sesi praktikum belum tersedia."
+      />
     );
   }
+
+  const listData = showInitialLoading || showFatalError ? [] : sessions;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -261,7 +269,7 @@ function PraktikanAttendanceHistory() {
 
       <FlatList
         contentContainerStyle={styles.content}
-        data={isLoading || activeError ? [] : sessions}
+        data={listData}
         keyExtractor={(item) => item.id}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListHeaderComponent={
@@ -278,32 +286,60 @@ function PraktikanAttendanceHistory() {
               <Text style={styles.summaryLabel}>Total Sesi Praktikum</Text>
 
               <Text style={styles.summaryValue}>
-                {isLoading ? '-' : sessions.length}
+                {showInitialLoading || showFatalError ? '-' : sessions.length}
               </Text>
 
               <View style={styles.statsRow}>
                 <View style={styles.statItem}>
                   <Text style={styles.statValue}>
-                    {isLoading ? '-' : presentCount}
+                    {areAttendanceStatsUnavailable ? '-' : presentCount}
                   </Text>
                   <Text style={styles.statLabel}>Hadir</Text>
                 </View>
 
                 <View style={styles.statItem}>
                   <Text style={styles.statValue}>
-                    {isLoading ? '-' : absentCount}
+                    {areAttendanceStatsUnavailable ? '-' : absentCount}
                   </Text>
                   <Text style={styles.statLabel}>Tidak Hadir</Text>
                 </View>
 
                 <View style={styles.statItem}>
                   <Text style={styles.statValue}>
-                    {isLoading ? '-' : pendingCount}
+                    {areAttendanceStatsUnavailable ? '-' : pendingCount}
                   </Text>
                   <Text style={styles.statLabel}>Belum</Text>
                 </View>
               </View>
             </View>
+
+            {hasPartialErrors ? (
+              <View style={styles.bannerStack}>
+                {sessions.length > 0 && sessionsError ? (
+                  <PraktikanInlineErrorBanner
+                    title="Gagal Memperbarui Sesi"
+                    message={sessionsError}
+                    onRetry={retrySessions}
+                  />
+                ) : null}
+
+                {sessions.length > 0 && attendanceError ? (
+                  <PraktikanInlineErrorBanner
+                    title="Gagal Memuat Data Presensi"
+                    message={attendanceError}
+                    onRetry={retryAttendance}
+                  />
+                ) : null}
+
+                {leaveError ? (
+                  <PraktikanInlineErrorBanner
+                    title="Gagal Memuat Status Izin"
+                    message={leaveError}
+                    onRetry={retryLeaves}
+                  />
+                ) : null}
+              </View>
+            ) : null}
 
             <Text style={styles.sectionTitle}>Riwayat Sesi</Text>
           </View>
@@ -325,7 +361,11 @@ function PraktikanAttendanceHistory() {
               scheduleTime={item.scheduleTime}
               sessionStatus={item.status}
               isPresent={Boolean(attendance)}
+              attendanceLoading={attendanceLoading}
+              attendanceError={attendanceError}
               leaveStatus={leaveRequest?.status ?? null}
+              leaveLoading={leaveLoading}
+              leaveError={leaveError}
               timeLabel={timeLabel}
             />
           );
@@ -424,17 +464,14 @@ function LegacyAttendanceHistory() {
           );
         }}
         ListEmptyComponent={
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>
-              {isPraktikan ? 'Belum Ada Sesi' : 'Pilih Akun Praktikan'}
-            </Text>
-
-            <Text style={styles.emptyText}>
-              {isPraktikan
+          <PraktikanEmptyState
+            title={isPraktikan ? 'Belum Ada Sesi' : 'Pilih Akun Praktikan'}
+            message={
+              isPraktikan
                 ? 'Riwayat sesi praktikum belum tersedia.'
-                : 'Ganti akun ke Praktikan untuk melihat riwayat kehadiran pribadi.'}
-            </Text>
-          </View>
+                : 'Ganti akun ke Praktikan untuk melihat riwayat kehadiran pribadi.'
+            }
+          />
         }
       />
     </SafeAreaView>
@@ -448,7 +485,11 @@ function HistoryCard({
   scheduleTime,
   sessionStatus,
   isPresent,
+  attendanceLoading = false,
+  attendanceError = null,
   leaveStatus = null,
+  leaveLoading = false,
+  leaveError = null,
   timeLabel,
   note,
 }: {
@@ -458,7 +499,11 @@ function HistoryCard({
   scheduleTime: string;
   sessionStatus: FirestoreSessionStatus | SessionStatus;
   isPresent: boolean;
+  attendanceLoading?: boolean;
+  attendanceError?: string | null;
   leaveStatus?: LeaveRequestStatus | null;
+  leaveLoading?: boolean;
+  leaveError?: string | null;
   timeLabel: string | null;
   note?: string;
 }) {
@@ -487,10 +532,24 @@ function HistoryCard({
           <AttendanceBadge
             sessionStatus={sessionStatus}
             isPresent={isPresent}
+            attendanceLoading={attendanceLoading}
+            attendanceError={attendanceError}
           />
 
           {!isPresent && leaveStatus ? (
             <LeaveIndicatorBadge status={leaveStatus} />
+          ) : !isPresent && leaveLoading ? (
+            <View style={[styles.badge, styles.statusChipNeutral]}>
+              <Text style={[styles.badgeText, styles.statusChipNeutralText]}>
+                MEMERIKSA IZIN
+              </Text>
+            </View>
+          ) : !isPresent && leaveError ? (
+            <View style={[styles.badge, styles.statusChipError]}>
+              <Text style={[styles.badgeText, styles.statusChipErrorText]}>
+                IZIN GAGAL DIMUAT
+              </Text>
+            </View>
           ) : null}
         </View>
 
@@ -513,17 +572,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     flex: 1,
   },
-  centerContainer: {
-    alignItems: 'center',
-    flex: 1,
-    gap: 12,
-    justifyContent: 'center',
-    padding: 20,
-  },
-  stateText: {
-    color: '#666666',
-    fontSize: 14,
-  },
   content: {
     padding: 20,
     paddingTop: 32,
@@ -543,6 +591,10 @@ const styles = StyleSheet.create({
     color: '#666666',
     fontSize: 14,
     lineHeight: 21,
+  },
+  bannerStack: {
+    gap: 8,
+    marginTop: 6,
   },
   summaryCard: {
     backgroundColor: '#F2F2F2',
@@ -672,58 +724,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
   },
-  emptyCard: {
-    alignItems: 'center',
+  statusChipNeutral: {
     backgroundColor: '#F2F2F2',
-    borderRadius: 16,
-    gap: 6,
-    padding: 24,
   },
-  emptyTitle: {
-    color: '#000000',
-    fontSize: 15,
-    fontWeight: '700',
-    textAlign: 'center',
+  statusChipNeutralText: {
+    color: '#525252',
   },
-  emptyText: {
-    color: '#666666',
-    fontSize: 13,
-    lineHeight: 19,
-    textAlign: 'center',
-  },
-  errorCard: {
-    alignItems: 'center',
+  statusChipError: {
     backgroundColor: '#FEE2E2',
-    borderColor: '#FCA5A5',
-    borderRadius: 16,
-    borderWidth: 1,
-    gap: 10,
-    padding: 20,
   },
-  errorTitle: {
-    color: '#B91C1C',
-    fontSize: 15,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  errorText: {
+  statusChipErrorText: {
     color: '#991B1B',
-    fontSize: 13,
-    lineHeight: 19,
-    textAlign: 'center',
-  },
-  retryButton: {
-    backgroundColor: '#B91C1C',
-    borderRadius: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  retryText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  pressed: {
-    opacity: 0.78,
   },
 });

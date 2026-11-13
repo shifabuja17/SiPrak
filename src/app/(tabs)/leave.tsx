@@ -14,6 +14,13 @@ import HeaderProfileBar from '@/components/common/HeaderProfileBar';
 import { useAuth } from '@/context/AuthContext';
 import { LeaveRequestCard } from '@/features/praktikan/components/leave-request-card';
 import { LeaveRequestSheet } from '@/features/praktikan/components/leave-request-sheet';
+import {
+  PraktikanEmptyState,
+  PraktikanErrorState,
+  PraktikanInlineErrorBanner,
+  PraktikanLoadingState,
+  PraktikanProfileErrorScreen,
+} from '@/features/praktikan/components/praktikan-state-view';
 import { usePraktikanLeaveRequests } from '@/features/praktikan/hooks/use-praktikan-leave-requests';
 import { usePraktikanSessions } from '@/features/praktikan/hooks/use-praktikan-sessions';
 import { useMyAttendanceMap } from '@/features/praktikan/hooks/use-session-attendance';
@@ -25,20 +32,24 @@ import { showLeaveSubmitSuccessAlert } from '@/features/praktikan/utils/leave-fe
 
 export default function LeaveScreen() {
   const {
+    user,
+    profile,
     role: authRole,
     status: authStatus,
     loading: authLoading,
+    profileError,
   } = useAuth();
 
   if (authLoading || authStatus === 'loading') {
+    return <PraktikanLoadingState fullScreen message="Memeriksa sesi akun..." />;
+  }
+
+  if (user && (profileError || !profile)) {
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <StatusBar barStyle="dark-content" />
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#000000" />
-          <Text style={styles.stateText}>Memeriksa sesi akun...</Text>
-        </View>
-      </SafeAreaView>
+      <PraktikanProfileErrorScreen
+        title="Pengajuan Izin"
+        subtitle="Ajukan izin ketidakhadiran dan pantau status persetujuan secara real-time."
+      />
     );
   }
 
@@ -60,12 +71,10 @@ export default function LeaveScreen() {
             <Text style={styles.sectionTitle}>Daftar Pengajuan Izin</Text>
           </View>
 
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>Akun Asisten Aktif</Text>
-            <Text style={styles.emptyText}>
-              Halaman ini menampilkan pengajuan dan status izin pribadi khusus untuk akun Praktikan.
-            </Text>
-          </View>
+          <PraktikanEmptyState
+            title="Akun Asisten Aktif"
+            message="Halaman ini menampilkan pengajuan dan status izin pribadi khusus untuk akun Praktikan."
+          />
         </View>
       </SafeAreaView>
     );
@@ -83,13 +92,10 @@ export default function LeaveScreen() {
           <HeaderProfileBar />
         </View>
 
-        <View style={styles.emptyCard}>
-          <Text style={styles.emptyTitle}>Autentikasi Diperlukan</Text>
-          <Text style={styles.emptyText}>
-            Silakan login dengan akun Praktikan untuk mengajukan izin dan memantau keputusan
-            Asisten.
-          </Text>
-        </View>
+        <PraktikanEmptyState
+          title="Autentikasi Diperlukan"
+          message="Silakan login dengan akun Praktikan untuk mengajukan izin dan memantau keputusan Asisten."
+        />
       </View>
     </SafeAreaView>
   );
@@ -156,17 +162,26 @@ function PraktikanLeaveList() {
     };
   }, [leaveRequests]);
 
-  const isListLoading = leaveLoading || sessionsLoading;
-  const isFormDataLoading = sessionsLoading || (sessions.length > 0 && attendanceLoading);
-  const activeError = leaveError ?? sessionsError ?? attendanceError;
+  const leaveListError = !sheetVisible ? leaveError : null;
+  const hideStats = leaveLoading || Boolean(leaveListError);
+  const showInitialLoading = leaveLoading && leaveRequests.length === 0;
+  const showFatalLeaveError =
+    Boolean(leaveListError) && leaveRequests.length === 0 && !leaveLoading;
+  const isFormDataLoading =
+    sessionsLoading || (sessions.length > 0 && attendanceLoading);
+  const hasFormDependencyError = Boolean(sessionsError || attendanceError);
+  const isCreateDisabled =
+    isFormDataLoading || submitting || hasFormDependencyError;
 
-  function handleRetry() {
-    if (leaveError) retryLeaves();
+  function handleRetryFormDependencies() {
     if (sessionsError) retrySessions();
     if (attendanceError) retryAttendance();
   }
 
   function handleOpenSheet() {
+    if (isCreateDisabled) {
+      return;
+    }
     clearLeaveError();
     setSheetVisible(true);
   }
@@ -192,49 +207,38 @@ function PraktikanLeaveList() {
   }
 
   function renderEmptyState() {
-    if (isListLoading) {
+    if (showInitialLoading) {
       return (
-        <View style={styles.emptyCard}>
-          <ActivityIndicator size="small" color="#000000" />
-          <Text style={styles.emptyTitle}>Memuat Pengajuan Izin</Text>
-          <Text style={styles.emptyText}>
-            Mengambil riwayat pengajuan izin dan status peninjauan Asisten...
-          </Text>
-        </View>
+        <PraktikanLoadingState
+          title="Memuat Pengajuan Izin"
+          message="Mengambil riwayat pengajuan izin dan status peninjauan Asisten..."
+        />
       );
     }
 
-    if (activeError) {
+    if (showFatalLeaveError && leaveListError) {
       return (
-        <View style={styles.errorCard}>
-          <Text style={styles.errorTitle}>Gagal Memuat Data Izin</Text>
-          <Text style={styles.errorText}>{activeError}</Text>
-          <Pressable
-            accessibilityRole="button"
-            onPress={handleRetry}
-            style={({ pressed }) => [
-              styles.retryButton,
-              pressed && styles.pressed,
-            ]}
-          >
-            <Text style={styles.retryText}>Coba Lagi</Text>
-          </Pressable>
-        </View>
+        <PraktikanErrorState
+          title="Gagal Memuat Data Izin"
+          message={leaveListError}
+          onRetry={retryLeaves}
+        />
       );
     }
 
     return (
-      <View style={styles.emptyCard}>
-        <Text style={styles.emptyTitle}>Belum ada pengajuan izin</Text>
-        <Text style={styles.emptyText}>
-          Jika Anda berhalangan hadir, tekan tombol &quot;+ Ajukan Izin&quot; di atas untuk memilih
-          sesi dan mengirim alasan.
-        </Text>
-      </View>
+      <PraktikanEmptyState
+        title="Belum ada pengajuan izin"
+        message={
+          hasFormDependencyError
+            ? 'Daftar sesi atau status presensi sedang mengalami gangguan. Tekan Coba Lagi pada pesan gangguan di atas sebelum mengajukan izin baru.'
+            : 'Jika Anda berhalangan hadir, tekan tombol "+ Ajukan Izin" di atas untuk memilih sesi dan mengirim alasan.'
+        }
+      />
     );
   }
 
-  const listData = isListLoading ? [] : leaveRequests;
+  const listData = showInitialLoading || showFatalLeaveError ? [] : leaveRequests;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -259,27 +263,27 @@ function PraktikanLeaveList() {
               <Text style={styles.summaryLabel}>Total Pengajuan Izin</Text>
 
               <Text style={styles.summaryValue}>
-                {leaveLoading ? '-' : stats.total}
+                {hideStats ? '-' : stats.total}
               </Text>
 
               <View style={styles.statsRow}>
                 <View style={styles.statItem}>
                   <Text style={[styles.statValue, styles.statPending]}>
-                    {leaveLoading ? '-' : stats.menunggu}
+                    {hideStats ? '-' : stats.menunggu}
                   </Text>
                   <Text style={styles.statLabel}>Menunggu</Text>
                 </View>
 
                 <View style={styles.statItem}>
                   <Text style={[styles.statValue, styles.statAccepted]}>
-                    {leaveLoading ? '-' : stats.diterima}
+                    {hideStats ? '-' : stats.diterima}
                   </Text>
                   <Text style={styles.statLabel}>Diterima</Text>
                 </View>
 
-                <View style={styles.statItem}>
+                <View style={[styles.statItem]}>
                   <Text style={[styles.statValue, styles.statRejected]}>
-                    {leaveLoading ? '-' : stats.ditolak}
+                    {hideStats ? '-' : stats.ditolak}
                   </Text>
                   <Text style={styles.statLabel}>Ditolak</Text>
                 </View>
@@ -287,14 +291,19 @@ function PraktikanLeaveList() {
             </View>
 
             <Pressable
+              accessibilityLabel={
+                hasFormDependencyError
+                  ? 'Daftar sesi belum siap untuk pengajuan izin'
+                  : 'Ajukan Izin'
+              }
               accessibilityRole="button"
-              accessibilityState={{ disabled: isFormDataLoading || submitting }}
-              disabled={isFormDataLoading || submitting}
+              accessibilityState={{ disabled: isCreateDisabled }}
+              disabled={isCreateDisabled}
               onPress={handleOpenSheet}
               style={({ pressed }) => [
                 styles.createButton,
-                (isFormDataLoading || submitting) && styles.createButtonDisabled,
-                pressed && !isFormDataLoading && !submitting && styles.pressed,
+                isCreateDisabled && styles.createButtonDisabled,
+                pressed && !isCreateDisabled && styles.pressed,
               ]}
             >
               {isFormDataLoading ? (
@@ -302,24 +311,40 @@ function PraktikanLeaveList() {
                   <ActivityIndicator size="small" color="#FFFFFF" />
                   <Text style={styles.createButtonText}>Menyiapkan daftar sesi...</Text>
                 </View>
+              ) : hasFormDependencyError ? (
+                <Text style={styles.createButtonText}>Daftar Sesi Belum Siap</Text>
               ) : (
                 <Text style={styles.createButtonText}>+ Ajukan Izin</Text>
               )}
             </Pressable>
 
-            {activeError && listData.length > 0 ? (
-              <View style={styles.inlineErrorCard}>
-                <Text style={styles.inlineErrorText}>{activeError}</Text>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={handleRetry}
-                  style={({ pressed }) => [
-                    styles.retryButton,
-                    pressed && styles.pressed,
-                  ]}
-                >
-                  <Text style={styles.retryText}>Coba Lagi</Text>
-                </Pressable>
+            {(leaveListError && listData.length > 0) ||
+            sessionsError ||
+            attendanceError ? (
+              <View style={styles.bannerStack}>
+                {leaveListError && listData.length > 0 ? (
+                  <PraktikanInlineErrorBanner
+                    title="Gagal Memuat Daftar Izin"
+                    message={leaveListError}
+                    onRetry={retryLeaves}
+                  />
+                ) : null}
+
+                {sessionsError ? (
+                  <PraktikanInlineErrorBanner
+                    title="Gagal Memuat Daftar Sesi"
+                    message={`Daftar sesi belum dapat dimuat untuk pengajuan izin baru: ${sessionsError}`}
+                    onRetry={retrySessions}
+                  />
+                ) : null}
+
+                {attendanceError ? (
+                  <PraktikanInlineErrorBanner
+                    title="Gagal Memuat Status Presensi"
+                    message={`Status presensi belum dapat diperiksa untuk pengajuan izin baru: ${attendanceError}`}
+                    onRetry={retryAttendance}
+                  />
+                ) : null}
               </View>
             ) : null}
 
@@ -343,6 +368,10 @@ function PraktikanLeaveList() {
         submitting={submitting}
         submittingStep={submittingStep}
         error={leaveError}
+        sessionsError={sessionsError}
+        attendanceError={attendanceError}
+        onRetryData={handleRetryFormDependencies}
+        onClearError={clearLeaveError}
         onCancel={handleCloseSheet}
         onSubmit={handleSubmitLeave}
       />
@@ -354,17 +383,6 @@ const styles = StyleSheet.create({
   safeArea: {
     backgroundColor: '#FFFFFF',
     flex: 1,
-  },
-  centerContainer: {
-    alignItems: 'center',
-    flex: 1,
-    gap: 12,
-    justifyContent: 'center',
-    padding: 20,
-  },
-  stateText: {
-    color: '#666666',
-    fontSize: 14,
   },
   staticContent: {
     padding: 20,
@@ -465,75 +483,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginTop: 14,
   },
-  separator: {
-    height: 12,
-  },
-  emptyCard: {
-    alignItems: 'center',
-    backgroundColor: '#F2F2F2',
-    borderRadius: 16,
-    gap: 6,
-    padding: 24,
-  },
-  emptyTitle: {
-    color: '#000000',
-    fontSize: 15,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  emptyText: {
-    color: '#666666',
-    fontSize: 13,
-    lineHeight: 19,
-    textAlign: 'center',
-  },
-  errorCard: {
-    alignItems: 'center',
-    backgroundColor: '#FEE2E2',
-    borderColor: '#FCA5A5',
-    borderRadius: 16,
-    borderWidth: 1,
-    gap: 10,
-    padding: 20,
-  },
-  errorTitle: {
-    color: '#B91C1C',
-    fontSize: 15,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  errorText: {
-    color: '#991B1B',
-    fontSize: 13,
-    lineHeight: 19,
-    textAlign: 'center',
-  },
-  inlineErrorCard: {
-    alignItems: 'center',
-    backgroundColor: '#FEE2E2',
-    borderColor: '#FCA5A5',
-    borderRadius: 14,
-    borderWidth: 1,
+  bannerStack: {
     gap: 8,
     marginTop: 4,
-    padding: 14,
   },
-  inlineErrorText: {
-    color: '#991B1B',
-    fontSize: 13,
-    lineHeight: 19,
-    textAlign: 'center',
-  },
-  retryButton: {
-    backgroundColor: '#B91C1C',
-    borderRadius: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  retryText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '700',
+  separator: {
+    height: 12,
   },
   pressed: {
     opacity: 0.78,

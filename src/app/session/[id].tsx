@@ -1,7 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Modal,
   Pressable,
@@ -24,6 +23,13 @@ import { LeaveAiInfoBox } from '@/features/praktikan/components/leave-ai-info-bo
 import { LeaveRequestSheet } from '@/features/praktikan/components/leave-request-sheet';
 import { LeaveStatusBadge } from '@/features/praktikan/components/leave-status-badge';
 import PraktikanAttendanceSection from '@/features/praktikan/components/praktikan-attendance-section';
+import {
+  PraktikanEmptyState,
+  PraktikanErrorState,
+  PraktikanInlineErrorBanner,
+  PraktikanLoadingState,
+  PraktikanProfileErrorScreen,
+} from '@/features/praktikan/components/praktikan-state-view';
 import { usePraktikanLeaveRequests } from '@/features/praktikan/hooks/use-praktikan-leave-requests';
 import { useSessionAttendance } from '@/features/praktikan/hooks/use-session-attendance';
 import { subscribeSessionById } from '@/features/praktikan/services/praktikan-sessions';
@@ -39,21 +45,25 @@ export default function SessionDetailScreen() {
   const sessionIdParam = Array.isArray(id) ? id[0] : id;
 
   const {
+    user,
+    profile,
     role: authRole,
     status: authStatus,
     loading: authLoading,
+    profileError,
   } = useAuth();
   const { currentUser } = usePracticum();
 
   if (authLoading || authStatus === 'loading') {
+    return <PraktikanLoadingState fullScreen message="Memeriksa sesi akun..." />;
+  }
+
+  if (user && (profileError || !profile)) {
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <StatusBar barStyle="dark-content" />
-        <View style={styles.centerStateContainer}>
-          <ActivityIndicator size="large" color="#000000" />
-          <Text style={styles.stateText}>Memeriksa sesi akun...</Text>
-        </View>
-      </SafeAreaView>
+      <PraktikanProfileErrorScreen
+        title="Detail Sesi"
+        subtitle="Lihat informasi pertemuan, presensi, dan status pengajuan izin Anda."
+      />
     );
   }
 
@@ -71,18 +81,13 @@ export default function SessionDetailScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" />
-      <View style={styles.missingContainer}>
-        <Text style={styles.title}>Autentikasi Diperlukan</Text>
-        <Text style={styles.stateText}>
-          Silakan login menggunakan akun Firebase Praktikan untuk mengakses
-          detail sesi dan presensi.
-        </Text>
-        <Pressable
-          onPress={() => router.back()}
-          style={styles.primaryButton}
-        >
-          <Text style={styles.primaryButtonText}>Kembali</Text>
-        </Pressable>
+      <View style={styles.stateScreenPadding}>
+        <PraktikanEmptyState
+          title="Autentikasi Diperlukan"
+          message="Silakan login menggunakan akun Firebase Praktikan untuk mengakses detail sesi dan presensi."
+          actionLabel="Kembali"
+          onAction={() => router.back()}
+        />
       </View>
     </SafeAreaView>
   );
@@ -105,6 +110,7 @@ function PraktikanSessionDetail({
     attendance,
     loading: attendanceLoading,
     error: attendanceError,
+    retry: retryAttendance,
   } = useSessionAttendance(trimmedId);
 
   const {
@@ -147,39 +153,22 @@ function PraktikanSessionDetail({
     };
   }, [trimmedId, retryNonce]);
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.safeArea}>
-        <StatusBar barStyle="dark-content" />
-        <View style={styles.centerStateContainer}>
-          <ActivityIndicator size="large" color="#000000" />
-          <Text style={styles.stateText}>Memuat detail sesi...</Text>
-        </View>
-      </SafeAreaView>
-    );
+  if (loading && !session) {
+    return <PraktikanLoadingState fullScreen message="Memuat detail sesi..." />;
   }
 
-  if (error) {
+  if (error && !session) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <StatusBar barStyle="dark-content" />
-        <View style={styles.missingContainer}>
-          <Text style={styles.title}>Gagal Memuat Sesi</Text>
-          <Text style={styles.errorText}>{error}</Text>
-
-          <Pressable
-            onPress={() => setRetryNonce((prev) => prev + 1)}
-            style={styles.primaryButton}
-          >
-            <Text style={styles.primaryButtonText}>Coba Lagi</Text>
-          </Pressable>
-
-          <Pressable
-            onPress={() => router.back()}
-            style={styles.secondaryButton}
-          >
-            <Text style={styles.secondaryButtonText}>Kembali ke Jadwal</Text>
-          </Pressable>
+        <View style={styles.stateScreenPadding}>
+          <PraktikanErrorState
+            title="Gagal Memuat Sesi"
+            message={error}
+            onRetry={() => setRetryNonce((prev) => prev + 1)}
+            secondaryActionLabel="Kembali ke Jadwal"
+            onSecondaryAction={() => router.back()}
+          />
         </View>
       </SafeAreaView>
     );
@@ -189,15 +178,13 @@ function PraktikanSessionDetail({
     return (
       <SafeAreaView style={styles.safeArea}>
         <StatusBar barStyle="dark-content" />
-        <View style={styles.missingContainer}>
-          <Text style={styles.title}>Sesi tidak ditemukan</Text>
-
-          <Pressable
-            onPress={() => router.back()}
-            style={styles.primaryButton}
-          >
-            <Text style={styles.primaryButtonText}>Kembali ke Jadwal</Text>
-          </Pressable>
+        <View style={styles.stateScreenPadding}>
+          <PraktikanEmptyState
+            title="Sesi Tidak Ditemukan"
+            message="Data sesi praktikum tidak tersedia atau mungkin telah dihapus oleh Asisten."
+            actionLabel="Kembali ke Jadwal"
+            onAction={() => router.back()}
+          />
         </View>
       </SafeAreaView>
     );
@@ -205,6 +192,7 @@ function PraktikanSessionDetail({
 
   const sessionLeave = leaveBySessionId[session.id] ?? null;
   const isLeaveCheckLoading = attendanceLoading || leaveLoading;
+  const leaveSectionError = !leaveSheetVisible ? leaveError : null;
   const sessionLeaveDateLabel = sessionLeave
     ? (formatDateTimeWIB(sessionLeave.createdAt) ?? 'Menunggu sinkronisasi waktu...')
     : null;
@@ -221,6 +209,14 @@ function PraktikanSessionDetail({
       <StatusBar barStyle="dark-content" />
 
       <ScrollView contentContainerStyle={styles.content}>
+        {error ? (
+          <PraktikanInlineErrorBanner
+            title="Sinkronisasi Sesi Terganggu"
+            message={error}
+            onRetry={() => setRetryNonce((prev) => prev + 1)}
+          />
+        ) : null}
+
         <SessionOverview
           practicumName={session.practicumName}
           status={session.status}
@@ -233,75 +229,89 @@ function PraktikanSessionDetail({
         <PraktikanAttendanceSection session={session} />
 
         {sessionLeave ? (
-          <View style={styles.leaveSummaryCard}>
-            <View style={styles.leaveSummaryHeader}>
-              <Text style={styles.leaveSummaryTitle}>Status Pengajuan Izin</Text>
-              <LeaveStatusBadge status={sessionLeave.status} />
-            </View>
-
-            {sessionLeaveDateLabel ? (
-              <Text style={styles.leaveMetaText}>Diajukan: {sessionLeaveDateLabel}</Text>
+          <View style={styles.leaveSectionStack}>
+            {leaveSectionError ? (
+              <PraktikanInlineErrorBanner
+                title="Sinkronisasi Status Izin Terganggu"
+                message={leaveSectionError}
+                onRetry={retryLeave}
+              />
             ) : null}
 
-            <View style={styles.leaveReasonBox}>
-              <Text style={styles.leaveReasonLabel}>Alasan Izin</Text>
-              <Text style={styles.leaveReasonText}>{sessionLeave.alasan}</Text>
-            </View>
-
-            <LeaveAiInfoBox kategoriAI={sessionLeave.kategoriAI} />
-
-            {assistantNote ? (
-              <View
-                style={[
-                  styles.leaveNoteBox,
-                  sessionLeave.status === 'diterima'
-                    ? styles.leaveNoteAccepted
-                    : styles.leaveNoteRejected,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.leaveNoteLabel,
-                    sessionLeave.status === 'diterima'
-                      ? styles.leaveNoteTextAccepted
-                      : styles.leaveNoteTextRejected,
-                  ]}
-                >
-                  Catatan Asisten
-                </Text>
-                <Text
-                  style={[
-                    styles.leaveNoteText,
-                    sessionLeave.status === 'diterima'
-                      ? styles.leaveNoteTextAccepted
-                      : styles.leaveNoteTextRejected,
-                  ]}
-                >
-                  {assistantNote}
-                </Text>
+            <View style={styles.leaveSummaryCard}>
+              <View style={styles.leaveSummaryHeader}>
+                <Text style={styles.leaveSummaryTitle}>Status Pengajuan Izin</Text>
+                <LeaveStatusBadge status={sessionLeave.status} />
               </View>
-            ) : null}
+
+              {sessionLeaveDateLabel ? (
+                <Text style={styles.leaveMetaText}>Diajukan: {sessionLeaveDateLabel}</Text>
+              ) : null}
+
+              <View style={styles.leaveReasonBox}>
+                <Text style={styles.leaveReasonLabel}>Alasan Izin</Text>
+                <Text style={styles.leaveReasonText}>{sessionLeave.alasan}</Text>
+              </View>
+
+              <LeaveAiInfoBox kategoriAI={sessionLeave.kategoriAI} />
+
+              {assistantNote ? (
+                <View
+                  style={[
+                    styles.leaveNoteBox,
+                    sessionLeave.status === 'diterima'
+                      ? styles.leaveNoteAccepted
+                      : styles.leaveNoteRejected,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.leaveNoteLabel,
+                      sessionLeave.status === 'diterima'
+                        ? styles.leaveNoteTextAccepted
+                        : styles.leaveNoteTextRejected,
+                    ]}
+                  >
+                    Catatan Asisten
+                  </Text>
+                  <Text
+                    style={[
+                      styles.leaveNoteText,
+                      sessionLeave.status === 'diterima'
+                        ? styles.leaveNoteTextAccepted
+                        : styles.leaveNoteTextRejected,
+                    ]}
+                  >
+                    {assistantNote}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
           </View>
         ) : isLeaveCheckLoading ? (
-          <View style={styles.leaveLoadingCard}>
-            <ActivityIndicator size="small" color="#666666" />
-            <Text style={styles.leaveLoadingText}>Memeriksa status pengajuan izin...</Text>
-          </View>
-        ) : !leaveSheetVisible && leaveError ? (
-          <View style={styles.leaveErrorCard}>
-            <Text style={styles.leaveErrorText}>{leaveError}</Text>
-            <Pressable
-              accessibilityRole="button"
-              onPress={retryLeave}
-              style={({ pressed }) => [
-                styles.leaveRetryButton,
-                pressed && styles.pressed,
-              ]}
-            >
-              <Text style={styles.leaveRetryText}>Coba Lagi</Text>
-            </Pressable>
-          </View>
-        ) : !attendance && !attendanceError ? (
+          <PraktikanLoadingState message="Memeriksa status presensi dan pengajuan izin..." />
+        ) : leaveSectionError && !attendance && attendanceError ? (
+          <PraktikanInlineErrorBanner
+            title="Status Presensi & Izin Belum Dapat Diperiksa"
+            message={`${attendanceError} ${leaveSectionError}`}
+            onRetry={() => {
+              retryAttendance();
+              retryLeave();
+            }}
+          />
+        ) : leaveSectionError ? (
+          <PraktikanInlineErrorBanner
+            title="Gagal Memuat Status Izin"
+            message={leaveSectionError}
+            onRetry={retryLeave}
+          />
+        ) : !attendance && attendanceError ? (
+          <PraktikanInlineErrorBanner
+            title="Kelayakan Izin Menunggu Verifikasi Presensi"
+            message={`Status presensi sesi ini gagal diperiksa (${attendanceError}). Muat ulang status presensi sebelum mengajukan izin.`}
+            onRetry={retryAttendance}
+          />
+        ) : !attendance ? (
           <Pressable
             accessibilityRole="button"
             onPress={() => {
@@ -327,6 +337,9 @@ function PraktikanSessionDetail({
         submitting={leaveSubmitting}
         submittingStep={leaveSubmittingStep}
         error={leaveError}
+        attendanceError={attendanceError}
+        onRetryData={retryAttendance}
+        onClearError={clearLeaveError}
         onCancel={() => {
           if (!leaveSubmitting) {
             clearLeaveError();
@@ -597,10 +610,8 @@ const styles = StyleSheet.create({
     paddingTop: 32,
     paddingBottom: 40,
   },
-  centerStateContainer: {
-    alignItems: 'center',
+  stateScreenPadding: {
     flex: 1,
-    gap: 12,
     justifyContent: 'center',
     padding: 20,
   },
@@ -609,17 +620,6 @@ const styles = StyleSheet.create({
     gap: 16,
     justifyContent: 'center',
     padding: 20,
-  },
-  stateText: {
-    color: '#666666',
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  errorText: {
-    color: '#B91C1C',
-    fontSize: 14,
-    fontWeight: '600',
-    lineHeight: 20,
   },
   backButton: {
     alignSelf: 'flex-start',
@@ -769,6 +769,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
   },
+  leaveSectionStack: {
+    gap: 10,
+  },
   leaveSummaryCard: {
     backgroundColor: '#FFFFFF',
     borderColor: '#D9D9D9',
@@ -837,46 +840,6 @@ const styles = StyleSheet.create({
   },
   leaveNoteTextRejected: {
     color: '#991B1B',
-  },
-  leaveLoadingCard: {
-    alignItems: 'center',
-    backgroundColor: '#F2F2F2',
-    borderRadius: 14,
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'center',
-    padding: 14,
-  },
-  leaveLoadingText: {
-    color: '#666666',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  leaveErrorCard: {
-    alignItems: 'center',
-    backgroundColor: '#FEE2E2',
-    borderColor: '#FCA5A5',
-    borderRadius: 14,
-    borderWidth: 1,
-    gap: 10,
-    padding: 14,
-  },
-  leaveErrorText: {
-    color: '#B91C1C',
-    fontSize: 13,
-    lineHeight: 19,
-    textAlign: 'center',
-  },
-  leaveRetryButton: {
-    backgroundColor: '#B91C1C',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  leaveRetryText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
   },
   pressed: {
     opacity: 0.65,

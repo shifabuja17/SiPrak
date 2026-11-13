@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
 import { useMemo } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
   Pressable,
   StatusBar,
@@ -17,6 +16,13 @@ import StatusBadge, {
 } from '@/components/common/StatusBadge';
 import { useAuth } from '@/context/AuthContext';
 import { usePracticum } from '@/context/PracticumContext';
+import {
+  PraktikanEmptyState,
+  PraktikanErrorState,
+  PraktikanInlineErrorBanner,
+  PraktikanLoadingState,
+  PraktikanProfileErrorScreen,
+} from '@/features/praktikan/components/praktikan-state-view';
 import { usePraktikanSessions } from '@/features/praktikan/hooks/use-praktikan-sessions';
 import { useMyAttendanceMap } from '@/features/praktikan/hooks/use-session-attendance';
 import type {
@@ -32,6 +38,7 @@ function getPersonalAttendanceSummary(
   session: PraktikanSession,
   attendance: SessionAttendanceDoc | null | undefined,
   attendanceLoading: boolean,
+  attendanceError: string | null,
 ): { text: string; tone: 'present' | 'open' | 'absent' | 'neutral' } {
   if (attendance) {
     const timeLabel = formatAttendanceTimeWIB(attendance.waktu);
@@ -43,6 +50,10 @@ function getPersonalAttendanceSummary(
 
   if (attendanceLoading) {
     return { text: 'Memeriksa presensi...', tone: 'neutral' };
+  }
+
+  if (attendanceError) {
+    return { text: 'Status presensi gagal dimuat', tone: 'neutral' };
   }
 
   if (session.status === 'dibuka') {
@@ -58,20 +69,24 @@ function getPersonalAttendanceSummary(
 
 export default function ScheduleScreen() {
   const {
+    user,
+    profile,
     role: authRole,
     status: authStatus,
     loading: authLoading,
+    profileError,
   } = useAuth();
 
   if (authLoading || authStatus === 'loading') {
+    return <PraktikanLoadingState fullScreen message="Memeriksa sesi akun..." />;
+  }
+
+  if (user && (profileError || !profile)) {
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <StatusBar barStyle="dark-content" />
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#000000" />
-          <Text style={styles.stateText}>Memeriksa sesi akun...</Text>
-        </View>
-      </SafeAreaView>
+      <PraktikanProfileErrorScreen
+        title="Jadwal Praktikum"
+        subtitle="Pantau jadwal sesi dan lakukan presensi saat sesi dibuka Asisten."
+      />
     );
   }
 
@@ -104,74 +119,53 @@ function PraktikanScheduleList() {
     retry: retryAttendance,
   } = useMyAttendanceMap(sessionIds);
 
-  const activeError = sessionsError ?? attendanceError;
-
-  function handleRetry() {
-    if (sessionsError) retrySessions();
-    if (attendanceError) retryAttendance();
-  }
+  const showInitialLoading = sessionsLoading && sessions.length === 0;
+  const showFatalError =
+    Boolean(sessionsError) && sessions.length === 0 && !sessionsLoading;
 
   function renderEmptyState() {
-    if (sessionsLoading) {
+    if (showInitialLoading) {
       return (
-        <View style={styles.emptyCard}>
-          <ActivityIndicator size="small" color="#000000" />
-          <Text style={styles.emptyTitle}>Memuat Jadwal</Text>
-          <Text style={styles.emptyText}>
-            Mengambil data kelas dan sesi praktikum kamu...
-          </Text>
-        </View>
+        <PraktikanLoadingState
+          title="Memuat Jadwal"
+          message="Mengambil data kelas dan sesi praktikum kamu..."
+        />
       );
     }
 
-    if (activeError) {
+    if (showFatalError && sessionsError) {
       return (
-        <View style={styles.errorCard}>
-          <Text style={styles.errorTitle}>Gagal Memuat Jadwal</Text>
-          <Text style={styles.errorText}>{activeError}</Text>
-          <Pressable
-            onPress={handleRetry}
-            style={({ pressed }) => [
-              styles.retryButton,
-              pressed && styles.pressed,
-            ]}
-          >
-            <Text style={styles.retryText}>Coba Lagi</Text>
-          </Pressable>
-        </View>
+        <PraktikanErrorState
+          title="Gagal Memuat Jadwal"
+          message={sessionsError}
+          onRetry={retrySessions}
+        />
       );
     }
 
     if (totalClassCount === 0) {
       return (
-        <View style={styles.emptyCard}>
-          <Text style={styles.emptyTitle}>Belum Ada Kelas</Text>
-          <Text style={styles.emptyText}>
-            Belum ada kelas praktikum yang tersedia saat ini.
-          </Text>
-        </View>
+        <PraktikanEmptyState
+          title="Belum Ada Kelas"
+          message="Belum ada kelas praktikum yang tersedia saat ini."
+        />
       );
     }
 
     if (classes.length === 0) {
       return (
-        <View style={styles.emptyCard}>
-          <Text style={styles.emptyTitle}>Belum Terdaftar di Kelas</Text>
-          <Text style={styles.emptyText}>
-            Akunmu belum terdaftar sebagai peserta di kelas praktikum mana pun.
-            Hubungi Asisten untuk ditambahkan ke daftar peserta.
-          </Text>
-        </View>
+        <PraktikanEmptyState
+          title="Belum Terdaftar di Kelas"
+          message="Akunmu belum terdaftar sebagai peserta di kelas praktikum mana pun. Hubungi Asisten untuk ditambahkan ke daftar peserta."
+        />
       );
     }
 
     return (
-      <View style={styles.emptyCard}>
-        <Text style={styles.emptyTitle}>Belum Ada Sesi</Text>
-        <Text style={styles.emptyText}>
-          Jadwal sesi praktikum untuk kelas kamu belum tersedia.
-        </Text>
-      </View>
+      <PraktikanEmptyState
+        title="Belum Ada Sesi"
+        message="Jadwal sesi praktikum untuk kelas kamu belum tersedia."
+      />
     );
   }
 
@@ -181,7 +175,7 @@ function PraktikanScheduleList() {
 
       <FlatList
         contentContainerStyle={styles.content}
-        data={activeError ? [] : sessions}
+        data={showInitialLoading || showFatalError ? [] : sessions}
         keyExtractor={(item) => item.id}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListHeaderComponent={
@@ -194,6 +188,26 @@ function PraktikanScheduleList() {
 
             <HeaderProfileBar />
 
+            {!showFatalError && sessions.length > 0 && (sessionsError || attendanceError) ? (
+              <View style={styles.bannerStack}>
+                {sessionsError ? (
+                  <PraktikanInlineErrorBanner
+                    title="Gagal Memperbarui Jadwal"
+                    message={sessionsError}
+                    onRetry={retrySessions}
+                  />
+                ) : null}
+
+                {attendanceError ? (
+                  <PraktikanInlineErrorBanner
+                    title="Gagal Memuat Status Presensi"
+                    message={attendanceError}
+                    onRetry={retryAttendance}
+                  />
+                ) : null}
+              </View>
+            ) : null}
+
             <Text style={styles.sectionTitle}>Sesi Praktikum</Text>
           </View>
         }
@@ -202,6 +216,7 @@ function PraktikanScheduleList() {
             item,
             attendanceBySessionId[item.id],
             attendanceLoading,
+            attendanceError,
           );
 
           return (
@@ -265,13 +280,10 @@ function LegacyScheduleList() {
           />
         )}
         ListEmptyComponent={
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>Belum Ada Sesi</Text>
-
-            <Text style={styles.emptyText}>
-              Jadwal praktikum belum tersedia.
-            </Text>
-          </View>
+          <PraktikanEmptyState
+            title="Belum Ada Sesi"
+            message="Jadwal praktikum belum tersedia."
+          />
         }
       />
     </SafeAreaView>
@@ -352,17 +364,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     flex: 1,
   },
-  centerContainer: {
-    alignItems: 'center',
-    flex: 1,
-    gap: 12,
-    justifyContent: 'center',
-    padding: 20,
-  },
-  stateText: {
-    color: '#666666',
-    fontSize: 14,
-  },
   content: {
     padding: 20,
     paddingTop: 32,
@@ -382,6 +383,10 @@ const styles = StyleSheet.create({
     color: '#666666',
     fontSize: 14,
     lineHeight: 21,
+  },
+  bannerStack: {
+    gap: 8,
+    marginTop: 6,
   },
   sectionTitle: {
     color: '#000000',
@@ -464,58 +469,6 @@ const styles = StyleSheet.create({
   detailText: {
     color: '#000000',
     fontSize: 12,
-    fontWeight: '700',
-  },
-  emptyCard: {
-    alignItems: 'center',
-    borderColor: '#D9D9D9',
-    borderRadius: 18,
-    borderWidth: 1,
-    gap: 8,
-    padding: 24,
-  },
-  emptyTitle: {
-    color: '#000000',
-    fontSize: 16,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  emptyText: {
-    color: '#666666',
-    fontSize: 13,
-    lineHeight: 19,
-    textAlign: 'center',
-  },
-  errorCard: {
-    alignItems: 'center',
-    backgroundColor: '#FEE2E2',
-    borderColor: '#FCA5A5',
-    borderRadius: 18,
-    borderWidth: 1,
-    gap: 10,
-    padding: 20,
-  },
-  errorTitle: {
-    color: '#B91C1C',
-    fontSize: 15,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  errorText: {
-    color: '#991B1B',
-    fontSize: 13,
-    lineHeight: 19,
-    textAlign: 'center',
-  },
-  retryButton: {
-    backgroundColor: '#B91C1C',
-    borderRadius: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  retryText: {
-    color: '#FFFFFF',
-    fontSize: 13,
     fontWeight: '700',
   },
 });
