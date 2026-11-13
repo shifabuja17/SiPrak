@@ -1,29 +1,44 @@
 import { StyleSheet, Text, View } from 'react-native';
-import type { SessionStatus } from '@/context/PracticumContext';
+
+import type { SessionStatus as LegacySessionStatus } from '@/context/PracticumContext';
+import type { FirestoreSessionStatus } from '@/features/praktikan/types';
+
+export type StatusBadgeStatus = FirestoreSessionStatus | LegacySessionStatus;
 
 interface StatusBadgeProps {
-  status: SessionStatus;
+  status: StatusBadgeStatus;
 }
 
-const BADGE_CONFIG: Record<
-  SessionStatus,
-  { label: string; background: string; color: string }
-> = {
-  UPCOMING: {
+interface BadgeVisualConfig {
+  label: string;
+  background: string;
+  color: string;
+}
+
+const SPRINT2_BADGE_CONFIG: Record<FirestoreSessionStatus, BadgeVisualConfig> = {
+  dijadwalkan: {
     label: 'BELUM DIBUKA',
     background: '#F2F2F2',
     color: '#404040',
   },
-  OPEN: {
+  dibuka: {
     label: 'BERLANGSUNG',
     background: '#DCFCE7',
     color: '#15803D',
   },
-  CLOSED: {
+  ditutup: {
     label: 'SELESAI',
     background: '#FEE2E2',
     color: '#B91C1C',
   },
+};
+
+// Alias sementara untuk kompatibilitas layar Sprint 1 sebelum integrasi penuh.
+const BADGE_CONFIG: Record<StatusBadgeStatus, BadgeVisualConfig> = {
+  ...SPRINT2_BADGE_CONFIG,
+  UPCOMING: SPRINT2_BADGE_CONFIG.dijadwalkan,
+  OPEN: SPRINT2_BADGE_CONFIG.dibuka,
+  CLOSED: SPRINT2_BADGE_CONFIG.ditutup,
 };
 
 export default function StatusBadge({
