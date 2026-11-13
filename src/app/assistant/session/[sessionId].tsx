@@ -1,84 +1,607 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Modal, Pressable, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Modal,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
+import AssistantHeader from '@/components/common/AssistantHeader';
 import { AttendanceSummary } from '@/features/assistant/components/attendance-summary';
-import { SessionStatusBadge } from '@/features/assistant/components/session-status-badge';
 import { useAssistantSessions } from '@/features/assistant/state/assistant-sessions-context';
 
-export default function AssistantSessionDetailScreen() {
-  const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
-  const { sessions, openSession, closeSession } = useAssistantSessions();
-  const session = sessions.find((item) => item.id === sessionId);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [sessionNote, setSessionNote] = useState('');
+type IconName =
+  | 'book'
+  | 'pin'
+  | 'clock'
+  | 'note'
+  | 'play'
+  | 'stop'
+  | 'check'
+  | 'alert'
+  | 'close';
 
-  if (!session) {
-    return <SafeAreaView style={styles.safeArea}><Text style={styles.title}>Sesi tidak ditemukan</Text></SafeAreaView>;
+// ==========================================
+// ICON SVG
+// ==========================================
+
+function DetailIcon({
+  name,
+  size = 20,
+  color = '#000000',
+}: {
+  name: IconName;
+  size?: number;
+  color?: string;
+}) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {name === 'book' && (
+        <>
+          <Path
+            d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20V19H6.5A2.5 2.5 0 0 0 4 21V5.5Z"
+            stroke={color}
+            strokeWidth={1.8}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <Path
+            d="M4 5.5V21M8 7H16M8 11H16"
+            stroke={color}
+            strokeWidth={1.8}
+            strokeLinecap="round"
+          />
+        </>
+      )}
+
+      {name === 'pin' && (
+        <>
+          <Path
+            d="M20 10C20 15.5 12 21 12 21S4 15.5 4 10A8 8 0 1 1 20 10Z"
+            stroke={color}
+            strokeWidth={1.8}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <Circle
+            cx={12}
+            cy={10}
+            r={2.5}
+            stroke={color}
+            strokeWidth={1.8}
+          />
+        </>
+      )}
+
+      {name === 'clock' && (
+        <>
+          <Circle
+            cx={12}
+            cy={12}
+            r={9}
+            stroke={color}
+            strokeWidth={1.8}
+          />
+          <Path
+            d="M12 7V12L15.5 14"
+            stroke={color}
+            strokeWidth={1.8}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </>
+      )}
+
+      {name === 'note' && (
+        <>
+          <Rect
+            x={5}
+            y={3}
+            width={14}
+            height={18}
+            rx={2}
+            stroke={color}
+            strokeWidth={1.8}
+          />
+          <Path
+            d="M8 8H16M8 12H16M8 16H13"
+            stroke={color}
+            strokeWidth={1.8}
+            strokeLinecap="round"
+          />
+        </>
+      )}
+
+      {name === 'play' && (
+        <>
+          <Circle
+            cx={12}
+            cy={12}
+            r={9}
+            stroke={color}
+            strokeWidth={1.8}
+          />
+          <Path
+            d="M10 8L16 12L10 16V8Z"
+            stroke={color}
+            strokeWidth={1.8}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </>
+      )}
+
+      {name === 'stop' && (
+        <>
+          <Circle
+            cx={12}
+            cy={12}
+            r={9}
+            stroke={color}
+            strokeWidth={1.8}
+          />
+          <Rect
+            x={9}
+            y={9}
+            width={6}
+            height={6}
+            rx={1}
+            fill={color}
+          />
+        </>
+      )}
+
+      {name === 'check' && (
+        <>
+          <Circle
+            cx={12}
+            cy={12}
+            r={9}
+            stroke={color}
+            strokeWidth={1.8}
+          />
+          <Path
+            d="M8 12L10.5 14.5L16 9"
+            stroke={color}
+            strokeWidth={1.8}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </>
+      )}
+
+      {name === 'alert' && (
+        <>
+          <Circle
+            cx={12}
+            cy={12}
+            r={9}
+            stroke={color}
+            strokeWidth={1.8}
+          />
+          <Path
+            d="M12 7.5V13"
+            stroke={color}
+            strokeWidth={1.8}
+            strokeLinecap="round"
+          />
+          <Circle cx={12} cy={16.5} r={1} fill={color} />
+        </>
+      )}
+
+      {name === 'close' && (
+        <Path
+          d="M6 6L18 18M18 6L6 18"
+          stroke={color}
+          strokeWidth={2}
+          strokeLinecap="round"
+        />
+      )}
+    </Svg>
+  );
+}
+
+// ==========================================
+// STATUS SESI
+// ==========================================
+
+function SessionStatus({ status }: { status: string }) {
+  let label = 'Dijadwalkan';
+  let icon: IconName = 'clock';
+
+  if (status === 'dibuka') {
+    label = 'Sedang berlangsung';
+    icon = 'play';
+  } else if (status === 'ditutup') {
+    label = 'Selesai';
+    icon = 'check';
   }
 
   return (
+    <View style={styles.statusBadge}>
+      <DetailIcon name={icon} size={15} color="#404040" />
+      <Text style={styles.statusText}>{label}</Text>
+    </View>
+  );
+}
+
+// ==========================================
+// INFORMASI SESI
+// ==========================================
+
+function InfoRow({
+  icon,
+  label,
+  value,
+  last = false,
+}: {
+  icon: IconName;
+  label: string;
+  value: string;
+  last?: boolean;
+}) {
+  return (
+    <View style={[styles.infoRow, last && styles.infoRowLast]}>
+      <View style={styles.infoIcon}>
+        <DetailIcon name={icon} size={20} />
+      </View>
+
+      <View style={styles.infoText}>
+        <Text style={styles.infoLabel}>{label}</Text>
+        <Text style={styles.infoValue}>{value}</Text>
+      </View>
+    </View>
+  );
+}
+
+// ==========================================
+// HALAMAN DETAIL SESI
+// ==========================================
+
+export default function AssistantSessionDetailScreen() {
+  const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
+
+  const { sessions, openSession, closeSession } = useAssistantSessions();
+
+  // Mengambil sesi dari data Firebase melalui context.
+  const session = sessions.find((item) => item.id === sessionId);
+
+  // STATE MODAL
+  const [modalVisible, setModalVisible] = useState(false);
+  const [sessionNote, setSessionNote] = useState('');
+
+  // STATE PROSES DAN ERROR
+  const [processingAction, setProcessingAction] = useState(false);
+  const [actionError, setActionError] = useState('');
+
+  // ========================================
+  // MEMBUKA MODAL KONFIRMASI
+  // ========================================
+
+  function openActionModal() {
+    if (!session) return;
+
+    setSessionNote(session.sessionNote || '');
+    setActionError('');
+    setModalVisible(true);
+  }
+
+  // ========================================
+  // MENUTUP MODAL
+  // ========================================
+
+  function closeActionModal() {
+    if (processingAction) return;
+
+    setModalVisible(false);
+    setSessionNote('');
+    setActionError('');
+  }
+
+  // ========================================
+  // KONFIRMASI BUKA / TUTUP SESI
+  // ========================================
+
+  async function handleConfirmAction() {
+    if (!session) return;
+
+    try {
+      setProcessingAction(true);
+      setActionError('');
+
+      if (session.status === 'dijadwalkan') {
+        // Membuka sesi sekaligus menyimpan catatan ke Firebase.
+        await openSession(session.id, sessionNote);
+      } else if (session.status === 'dibuka') {
+        // Menutup sesi melalui Firebase.
+        await closeSession(session.id);
+      }
+
+      // Modal ditutup setelah proses Firebase berhasil.
+      setSessionNote('');
+      setModalVisible(false);
+
+    } catch (error) {
+      console.error('Gagal mengubah status sesi:', error);
+
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : 'Terjadi kesalahan saat memproses sesi.',
+      );
+    } finally {
+      setProcessingAction(false);
+    }
+  }
+
+  // ========================================
+  // JIKA SESI BELUM DITEMUKAN
+  // ========================================
+
+  if (!session) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar barStyle="light-content" />
+        <AssistantHeader />
+
+        <View style={styles.notFound}>
+          <View style={styles.notFoundIcon}>
+            <DetailIcon name="alert" size={30} />
+          </View>
+
+          <Text style={styles.notFoundTitle}>
+            Sesi tidak ditemukan
+          </Text>
+
+          <Text style={styles.notFoundDescription}>
+            Data sesi yang kamu cari tidak tersedia.
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const isScheduled = session.status === 'dijadwalkan';
+  const isOpen = session.status === 'dibuka';
+  const isClosed = session.status === 'ditutup';
+
+  // ========================================
+  // TAMPILAN UTAMA
+  // ========================================
+
+  return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" />
-      <ScrollView contentContainerStyle={styles.content}>
-        <Pressable onPress={() => router.back()}><Text style={styles.back}>‹  Kembali ke jadwal</Text></Pressable>
-        <View style={styles.titleBlock}>
-          <Text style={styles.title}>{session.practicumName}</Text>
-          <SessionStatusBadge status={session.status} />
+      <StatusBar barStyle="light-content" />
+      <AssistantHeader />
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.content}
+      >
+        {/* JUDUL SESI */}
+        <View style={styles.heading}>
+          <Text style={styles.pageSubtitle}>
+            DETAIL SESI PRAKTIKUM
+          </Text>
+
+          <Text style={styles.title}>
+            {session.practicumName}
+          </Text>
+
+          <SessionStatus status={session.status} />
         </View>
+
+        {/* INFORMASI SESI */}
         <View style={styles.infoCard}>
-          <Info label="Pertemuan dan Materi" value={session.moduleTitle} />
-          <Info label="Lokasi" value={session.classRoom} />
-          <Info label="Jadwal" value={session.scheduleTime} />
-          <Info label="Catatan sesi" value={session.sessionNote || '-'} last />
+          <Text style={styles.sectionTitle}>
+            Informasi Sesi
+          </Text>
+
+          <InfoRow
+            icon="book"
+            label="Pertemuan dan Materi"
+            value={session.moduleTitle}
+          />
+
+          <InfoRow
+            icon="pin"
+            label="Lokasi"
+            value={session.classRoom}
+          />
+
+          <InfoRow
+            icon="clock"
+            label="Jadwal"
+            value={session.scheduleTime}
+          />
+
+          <InfoRow
+            icon="note"
+            label="Catatan Sesi"
+            value={session.sessionNote || 'Belum ada catatan'}
+            last
+          />
         </View>
-        {session.status === 'dijadwalkan' && (
-          <Pressable style={styles.primaryButton} onPress={() => setModalVisible(true)}>
-            <Text style={styles.primaryButtonText}>Buka Sesi</Text>
+
+        {/* TOMBOL BUKA SESI */}
+        {isScheduled && (
+          <Pressable
+            style={({ pressed }) => [
+              styles.actionButton,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={openActionModal}
+          >
+            <DetailIcon name="play" size={20} color="#FFFFFF" />
+            <Text style={styles.actionButtonText}>
+              Buka Sesi
+            </Text>
           </Pressable>
         )}
-        {session.status === 'dibuka' && (
-          <Pressable style={styles.secondaryButton} onPress={() => setModalVisible(true)}>
-            <Text style={styles.secondaryButtonText}>Tutup Sesi</Text>
+
+        {/* TOMBOL TUTUP SESI */}
+        {isOpen && (
+          <Pressable
+            style={({ pressed }) => [
+              styles.closeSessionButton,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={openActionModal}
+          >
+            <DetailIcon name="stop" size={20} color="#000000" />
+            <Text style={styles.closeSessionButtonText}>
+              Tutup Sesi
+            </Text>
           </Pressable>
         )}
-        {session.status === 'ditutup' && (
-          <View style={styles.closedNotice}><Text style={styles.closedNoticeText}>Sesi ini sudah selesai.</Text></View>
+
+        {/* NOTIFIKASI SESI SELESAI */}
+        {isClosed && (
+          <View style={styles.closedNotice}>
+            <DetailIcon name="check" size={21} color="#404040" />
+
+            <View style={styles.closedNoticeContent}>
+              <Text style={styles.closedNoticeTitle}>
+                Sesi telah selesai
+              </Text>
+
+              <Text style={styles.closedNoticeText}>
+                Presensi untuk sesi ini sudah ditutup.
+              </Text>
+            </View>
+          </View>
         )}
-        <AttendanceSummary records={session.attendances} />
+
+        {/* REKAP PRESENSI */}
+        <View style={styles.attendanceSection}>
+          <Text style={styles.sectionTitle}>
+            Rekap Presensi
+          </Text>
+
+          <AttendanceSummary records={session.attendances} />
+        </View>
       </ScrollView>
-      <Modal animationType="slide" transparent visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
+
+      {/* =====================================
+          MODAL KONFIRMASI BUKA / TUTUP SESI
+      ===================================== */}
+
+      <Modal
+        animationType="slide"
+        transparent
+        visible={modalVisible}
+        onRequestClose={closeActionModal}
+      >
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{session.status === 'dijadwalkan' ? 'Buka sesi praktikum?' : 'Tutup sesi praktikum?'}</Text>
-            <Text style={styles.modalDescription}>{session.status === 'dijadwalkan' ? 'Sesi akan berubah menjadi berlangsung dan praktikan dapat melakukan presensi.' : 'Sesi akan ditandai selesai. Praktikan tidak dapat melakukan presensi setelah sesi ditutup.'}</Text>
-            {session.status === 'dijadwalkan' && (
-              <>
-                <Text style={styles.inputLabel}>Catatan / materi sesi (opsional)</Text>
+
+            {/* TOMBOL TUTUP MODAL */}
+            <View style={styles.modalTop}>
+              <Pressable
+                style={[
+                  styles.modalCloseButton,
+                  processingAction && styles.disabledButton,
+                ]}
+                onPress={closeActionModal}
+                disabled={processingAction}
+                hitSlop={8}
+              >
+                <DetailIcon
+                  name="close"
+                  size={20}
+                  color="#555555"
+                />
+              </Pressable>
+            </View>
+
+            {/* JUDUL */}
+            <Text style={styles.modalTitle}>
+              {isScheduled
+                ? 'Buka sesi praktikum?'
+                : 'Tutup sesi praktikum?'}
+            </Text>
+
+            {/* DESKRIPSI */}
+            <Text style={styles.modalDescription}>
+              {isScheduled
+                ? 'Sesi akan berubah menjadi berlangsung dan praktikan dapat melakukan presensi.'
+                : 'Sesi akan ditandai selesai. Praktikan tidak dapat melakukan presensi setelah sesi ditutup.'}
+            </Text>
+
+            {/* INPUT CATATAN */}
+            {isScheduled && (
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>
+                  Catatan / materi sesi (opsional)
+                </Text>
+
                 <TextInput
                   value={sessionNote}
                   onChangeText={setSessionNote}
-                  placeholder="Contoh: bahas latihan bagian 1–3"
-                  placeholderTextColor="#777777"
+                  placeholder="Contoh: Bahas latihan bagian 1–3"
+                  placeholderTextColor="#888888"
                   multiline
                   textAlignVertical="top"
                   style={styles.noteInput}
+                  editable={!processingAction}
                 />
-              </>
+              </View>
             )}
+
+            {/* PESAN ERROR */}
+            {actionError ? (
+              <View style={styles.modalErrorBox}>
+                <DetailIcon name="alert" size={17} color="#555555" />
+
+                <Text style={styles.modalError}>
+                  {actionError}
+                </Text>
+              </View>
+            ) : null}
+
+            {/* TOMBOL */}
             <View style={styles.modalActions}>
-              <Pressable style={styles.cancelButton} onPress={() => setModalVisible(false)}><Text style={styles.cancelButtonText}>Batal</Text></Pressable>
               <Pressable
-                style={styles.confirmButton}
-                onPress={() => {
-                  if (session.status === 'dijadwalkan') openSession(session.id, sessionNote);
-                  else if (session.status === 'dibuka') closeSession(session.id);
-                  setSessionNote('');
-                  setModalVisible(false);
-                }}>
-                <Text style={styles.confirmButtonText}>Konfirmasi</Text>
+                style={({ pressed }) => [
+                  styles.cancelButton,
+                  pressed && styles.buttonPressed,
+                  processingAction && styles.disabledButton,
+                ]}
+                onPress={closeActionModal}
+                disabled={processingAction}
+              >
+                <Text style={styles.cancelButtonText}>
+                  Batal
+                </Text>
+              </Pressable>
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.confirmButton,
+                  pressed && styles.buttonPressed,
+                  processingAction && styles.disabledButton,
+                ]}
+                onPress={handleConfirmAction}
+                disabled={processingAction}
+              >
+                {processingAction ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.confirmButtonText}>
+                    Konfirmasi
+                  </Text>
+                )}
               </Pressable>
             </View>
+
           </View>
         </View>
       </Modal>
@@ -86,36 +609,347 @@ export default function AssistantSessionDetailScreen() {
   );
 }
 
-function Info({ label, value, last = false }: { label: string; value: string; last?: boolean }) {
-  return <View style={[styles.infoRow, last && styles.infoRowLast]}><Text style={styles.infoLabel}>{label}</Text><Text style={styles.infoValue}>{value}</Text></View>;
-}
+// ==========================================
+// STYLE DETAIL SESI
+// ==========================================
 
 const styles = StyleSheet.create({
-  safeArea: { backgroundColor: '#FFFFFF', flex: 1 },
-  content: { gap: 22, padding: 20, paddingTop: 48, paddingBottom: 40 },
-  back: { color: '#000000', fontSize: 14, fontWeight: '700', paddingVertical: 5 },
-  titleBlock: { gap: 10 },
-  title: { color: '#000000', fontSize: 25, fontWeight: '800', lineHeight: 32 },
-  infoCard: { backgroundColor: '#FFFFFF', borderColor: '#D9D9D9', borderRadius: 18, borderWidth: 1, paddingHorizontal: 16 },
-  infoRow: { borderBottomColor: '#E5E5E5', borderBottomWidth: 1, gap: 5, paddingVertical: 14 },
-  infoRowLast: { borderBottomWidth: 0 },
-  infoLabel: { color: '#666666', fontSize: 12, fontWeight: '600' },
-  infoValue: { color: '#000000', fontSize: 14, fontWeight: '600', lineHeight: 20 },
-  primaryButton: { alignItems: 'center', backgroundColor: '#000000', borderRadius: 14, padding: 16 },
-  primaryButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
-  secondaryButton: { alignItems: 'center', backgroundColor: '#FFFFFF', borderColor: '#000000', borderRadius: 14, borderWidth: 1, padding: 15 },
-  secondaryButtonText: { color: '#000000', fontSize: 15, fontWeight: '700' },
-  closedNotice: { alignItems: 'center', backgroundColor: '#F2F2F2', borderRadius: 14, padding: 15 },
-  closedNoticeText: { color: '#404040', fontSize: 14, fontWeight: '600' },
-  modalBackdrop: { backgroundColor: 'rgba(0, 0, 0, 0.45)', flex: 1, justifyContent: 'flex-end' },
-  modalCard: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 22, borderTopRightRadius: 22, gap: 14, padding: 22, paddingBottom: 32 },
-  modalTitle: { color: '#000000', fontSize: 20, fontWeight: '800' },
-  modalDescription: { color: '#404040', fontSize: 14, lineHeight: 21 },
-  inputLabel: { color: '#000000', fontSize: 13, fontWeight: '700' },
-  noteInput: { borderColor: '#BFBFBF', borderRadius: 12, borderWidth: 1, color: '#000000', minHeight: 92, padding: 12 },
-  modalActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
-  cancelButton: { alignItems: 'center', borderColor: '#BFBFBF', borderRadius: 12, borderWidth: 1, flex: 1, padding: 14 },
-  cancelButtonText: { color: '#000000', fontSize: 14, fontWeight: '700' },
-  confirmButton: { alignItems: 'center', backgroundColor: '#000000', borderRadius: 12, flex: 1, padding: 14 },
-  confirmButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
+  safeArea: {
+    backgroundColor: '#F5F5F5',
+    flex: 1,
+  },
+
+  content: {
+    gap: 20,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 40,
+  },
+
+  // JUDUL
+  heading: {
+    gap: 10,
+  },
+
+  pageSubtitle: {
+    color: '#777777',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+  },
+
+  title: {
+    color: '#000000',
+    fontSize: 25,
+    fontWeight: '800',
+    lineHeight: 33,
+  },
+
+  // STATUS
+  statusBadge: {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: '#E8E8E8',
+    borderRadius: 20,
+    flexDirection: 'row',
+    gap: 7,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+
+  statusText: {
+    color: '#404040',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+
+  // INFORMASI SESI
+  infoCard: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E2E2',
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingTop: 18,
+  },
+
+  sectionTitle: {
+    color: '#000000',
+    fontSize: 17,
+    fontWeight: '800',
+    marginBottom: 8,
+  },
+
+  infoRow: {
+    alignItems: 'center',
+    borderBottomColor: '#EEEEEE',
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    gap: 13,
+    paddingVertical: 15,
+  },
+
+  infoRowLast: {
+    borderBottomWidth: 0,
+  },
+
+  infoIcon: {
+    alignItems: 'center',
+    backgroundColor: '#F0F0F0',
+    borderRadius: 12,
+    height: 42,
+    justifyContent: 'center',
+    width: 42,
+  },
+
+  infoText: {
+    flex: 1,
+    gap: 5,
+  },
+
+  infoLabel: {
+    color: '#777777',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+
+  infoValue: {
+    color: '#000000',
+    fontSize: 14,
+    fontWeight: '700',
+    lineHeight: 20,
+  },
+
+  // TOMBOL BUKA
+  actionButton: {
+    alignItems: 'center',
+    backgroundColor: '#000000',
+    borderRadius: 14,
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'center',
+    padding: 16,
+  },
+
+  actionButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+
+  // TOMBOL TUTUP
+  closeSessionButton: {
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#000000',
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'center',
+    padding: 15,
+  },
+
+  closeSessionButtonText: {
+    color: '#000000',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+
+  // NOTIFIKASI SELESAI
+  closedNotice: {
+    alignItems: 'center',
+    backgroundColor: '#EAEAEA',
+    borderRadius: 14,
+    flexDirection: 'row',
+    gap: 12,
+    padding: 16,
+  },
+
+  closedNoticeContent: {
+    flex: 1,
+    gap: 4,
+  },
+
+  closedNoticeTitle: {
+    color: '#000000',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+
+  closedNoticeText: {
+    color: '#555555',
+    fontSize: 12,
+    lineHeight: 18,
+  },
+
+  // REKAP
+  attendanceSection: {
+    gap: 12,
+  },
+
+  // ========================================
+  // MODAL
+  // ========================================
+
+  modalBackdrop: {
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+
+  modalCard: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    gap: 14,
+    padding: 22,
+    paddingBottom: 32,
+  },
+
+  modalTop: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+
+  modalCloseButton: {
+    alignItems: 'center',
+    backgroundColor: '#F1F1F1',
+    borderRadius: 20,
+    height: 36,
+    justifyContent: 'center',
+    width: 36,
+  },
+
+  modalTitle: {
+    color: '#000000',
+    fontSize: 20,
+    fontWeight: '800',
+  },
+
+  modalDescription: {
+    color: '#555555',
+    fontSize: 14,
+    lineHeight: 21,
+  },
+
+  // INPUT CATATAN
+  inputContainer: {
+    gap: 9,
+    marginTop: 4,
+  },
+
+  inputLabel: {
+    color: '#000000',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+
+  noteInput: {
+    borderColor: '#CCCCCC',
+    borderRadius: 12,
+    borderWidth: 1,
+    color: '#000000',
+    fontSize: 14,
+    minHeight: 95,
+    padding: 12,
+  },
+
+  // ERROR
+  modalErrorBox: {
+    alignItems: 'center',
+    backgroundColor: '#EEEEEE',
+    borderRadius: 10,
+    flexDirection: 'row',
+    gap: 8,
+    padding: 11,
+  },
+
+  modalError: {
+    color: '#555555',
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 18,
+  },
+
+  // TOMBOL MODAL
+  modalActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 6,
+  },
+
+  cancelButton: {
+    alignItems: 'center',
+    borderColor: '#BFBFBF',
+    borderRadius: 12,
+    borderWidth: 1,
+    flex: 1,
+    justifyContent: 'center',
+    padding: 14,
+  },
+
+  cancelButtonText: {
+    color: '#000000',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+
+  confirmButton: {
+    alignItems: 'center',
+    backgroundColor: '#000000',
+    borderRadius: 12,
+    flex: 1,
+    justifyContent: 'center',
+    padding: 14,
+  },
+
+  confirmButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+
+  buttonPressed: {
+    opacity: 0.65,
+  },
+
+  disabledButton: {
+    opacity: 0.5,
+  },
+
+  // ========================================
+  // SESI TIDAK DITEMUKAN
+  // ========================================
+
+  notFound: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+    padding: 30,
+  },
+
+  notFoundIcon: {
+    alignItems: 'center',
+    backgroundColor: '#EAEAEA',
+    borderRadius: 24,
+    height: 64,
+    justifyContent: 'center',
+    marginBottom: 18,
+    width: 64,
+  },
+
+  notFoundTitle: {
+    color: '#000000',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+
+  notFoundDescription: {
+    color: '#777777',
+    fontSize: 13,
+    marginTop: 8,
+    textAlign: 'center',
+  },
 });

@@ -8,8 +8,7 @@ import { useColorScheme } from 'react-native';
 
 import { PracticumProvider } from '@/context/PracticumContext';
 import { AssistantSessionsProvider } from '@/features/assistant/state/assistant-sessions-context';
-
-import { AuthProvider } from "../context/AuthContext";
+import { AuthProvider } from '@/context/AuthContext';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -20,21 +19,16 @@ export default function RootLayout() {
         <PracticumProvider>
           <AssistantSessionsProvider>
             <Stack screenOptions={{ headerShown: false }}>
-              {/* Layar awal: pilih peran dan identitas */}
               <Stack.Screen name="index" />
-
-              {/* Navigasi utama aplikasi */}
               <Stack.Screen name="(tabs)" />
-
-              {/* Halaman pendukung */}
-              <Stack.Screen name="role-switcher" options={{ presentation: 'modal' }} />
-
+              <Stack.Screen
+                name="role-switcher"
+                options={{ presentation: 'modal' }}
+              />
               <Stack.Screen name="session/[id]" />
-              <Stack.Screen name="assistant/index" />
-              <Stack.Screen name="assistant/classes" />
-              <Stack.Screen name="assistant/schedules" />
-              <Stack.Screen name="assistant/class-members/[classId]" />
-              <Stack.Screen name="assistant/session/[sessionId]" />
+
+              {/* Navigasi khusus Asisten */}
+              <Stack.Screen name="assistant" />
             </Stack>
           </AssistantSessionsProvider>
         </PracticumProvider>

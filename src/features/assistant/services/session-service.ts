@@ -15,6 +15,10 @@ import {
 
 import { db } from '@/lib/firebase';
 
+// ==========================================
+// TIPE DATA SESI
+// ==========================================
+
 export type SessionStatus =
   | 'dijadwalkan'
   | 'dibuka'
@@ -43,7 +47,10 @@ export interface SessionInput {
   sessionNote: string;
 }
 
-// Mengambil semua sesi secara real-time.
+// ==========================================
+// MENGAMBIL SEMUA SESI SECARA REAL-TIME
+// ==========================================
+
 export function subscribeSessions(
   onData: (sessions: SessionRecord[]) => void,
   onError: (error: Error) => void,
@@ -67,7 +74,10 @@ export function subscribeSessions(
   );
 }
 
-// Membuat sesi baru.
+// ==========================================
+// MEMBUAT SESI BARU
+// ==========================================
+
 export async function createSession(
   input: SessionInput,
   createdBy: string,
@@ -81,7 +91,10 @@ export async function createSession(
   });
 }
 
-// Mengubah informasi sesi yang belum dibuka.
+// ==========================================
+// MENGUBAH INFORMASI SESI
+// ==========================================
+
 export async function updateSession(
   sessionId: string,
   input: SessionInput,
@@ -106,9 +119,13 @@ export async function updateSession(
   });
 }
 
-// Membuka sesi.
+// ==========================================
+// MEMBUKA SESI
+// ==========================================
+
 export async function openSession(
   sessionId: string,
+  note?: string,
 ) {
   const sessionRef = doc(db, 'sessions', sessionId);
 
@@ -127,13 +144,23 @@ export async function openSession(
 
     transaction.update(sessionRef, {
       status: 'dibuka',
+
+      // Catatan diperbarui jika diberikan.
+      // Jika tidak ada catatan, nilai sebelumnya tetap dipertahankan.
+      ...(note !== undefined
+        ? { sessionNote: note.trim() }
+        : {}),
+
       openedAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
   });
 }
 
-// Menutup sesi.
+// ==========================================
+// MENUTUP SESI
+// ==========================================
+
 export async function closeSession(
   sessionId: string,
 ) {
@@ -160,9 +187,16 @@ export async function closeSession(
   });
 }
 
-// Menghapus sesi yang belum dibuka dan belum memiliki presensi.
-export async function deleteSession(sessionId: string) {
+// ==========================================
+// MENGHAPUS SESI
+// Hanya sesi yang belum dibuka dan belum memiliki presensi
+// ==========================================
+
+export async function deleteSession(
+  sessionId: string,
+) {
   const sessionRef = doc(db, 'sessions', sessionId);
+
   const sessionSnapshot = await getDoc(sessionRef);
 
   if (!sessionSnapshot.exists()) {
