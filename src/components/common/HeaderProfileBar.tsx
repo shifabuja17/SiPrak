@@ -1,32 +1,58 @@
 import { router } from 'expo-router';
+import { useState } from 'react';
 import {
+  Alert,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 
+import { useAuth } from '@/context/AuthContext';
 import { usePracticum } from '@/context/PracticumContext';
 
 export default function HeaderProfileBar() {
+  const { profile, logout } = useAuth();
   const { currentUser } = usePracticum();
+  const [loggingOut, setLoggingOut] = useState(false);
 
-  const roleLabel =
-    currentUser.role === 'ASISTEN'
+  const isFirebaseAuthenticated = profile !== null;
+  const displayName = profile ? profile.nama : currentUser.name;
+  const roleLabel = profile
+    ? profile.role === 'asisten'
+      ? 'Asisten Praktikum'
+      : 'Praktikan'
+    : currentUser.role === 'ASISTEN'
       ? 'Asisten Praktikum'
       : 'Praktikan';
+  const displayNim = profile ? (profile.nim ?? '-') : currentUser.nim;
+
+  async function handleLogout() {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      await logout();
+    } catch (err) {
+      Alert.alert(
+        'Gagal keluar',
+        err instanceof Error ? err.message : 'Terjadi kesalahan saat logout.',
+      );
+    } finally {
+      setLoggingOut(false);
+    }
+  }
 
   return (
     <View style={styles.container}>
       <View style={styles.avatar}>
         <Text style={styles.avatarText}>
-          {currentUser.name.charAt(0).toUpperCase()}
+          {displayName.charAt(0).toUpperCase() || '?'}
         </Text>
       </View>
 
       <View style={styles.profileDetails}>
         <Text style={styles.name}>
-          {currentUser.name}
+          {displayName}
         </Text>
 
         <Text style={styles.role}>
@@ -34,21 +60,38 @@ export default function HeaderProfileBar() {
         </Text>
 
         <Text style={styles.nim}>
-          {currentUser.nim}
+          {displayNim}
         </Text>
       </View>
 
-      <Pressable
-        onPress={() => router.push('/role-switcher')}
-        style={({ pressed }) => [
-          styles.switchButton,
-          pressed && styles.pressed,
-        ]}
-      >
-        <Text style={styles.switchText}>
-          Ganti akun
-        </Text>
-      </Pressable>
+      {isFirebaseAuthenticated ? (
+        <Pressable
+          accessibilityRole="button"
+          disabled={loggingOut}
+          onPress={() => void handleLogout()}
+          style={({ pressed }) => [
+            styles.logoutButton,
+            pressed && !loggingOut && styles.pressed,
+            loggingOut && styles.disabled,
+          ]}
+        >
+          <Text style={styles.logoutText}>
+            {loggingOut ? 'Keluar...' : 'Keluar'}
+          </Text>
+        </Pressable>
+      ) : (
+        <Pressable
+          onPress={() => router.push('/role-switcher')}
+          style={({ pressed }) => [
+            styles.switchButton,
+            pressed && styles.pressed,
+          ]}
+        >
+          <Text style={styles.switchText}>
+            Ganti akun
+          </Text>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -102,6 +145,20 @@ const styles = StyleSheet.create({
     color: '#000000',
     fontSize: 12,
     fontWeight: '700',
+  },
+  logoutButton: {
+    backgroundColor: '#F2F2F2',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  logoutText: {
+    color: '#B91C1C',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  disabled: {
+    opacity: 0.5,
   },
   pressed: {
     opacity: 0.6,
