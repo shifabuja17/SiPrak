@@ -17,6 +17,12 @@ export default function AppTabs() {
             <Text style={styles.label}>Riwayat</Text>
           </Pressable>
         </TabTrigger>
+
+        <TabTrigger name="leave" href="/leave" asChild>
+          <Pressable style={styles.tab}>
+            <Text style={styles.label}>Izin</Text>
+          </Pressable>
+        </TabTrigger>
       </TabList>
     </Tabs>
   );

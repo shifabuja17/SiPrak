@@ -20,10 +20,17 @@ import StatusBadge, {
 import { useAuth } from '@/context/AuthContext';
 import { usePracticum } from '@/context/PracticumContext';
 import { AttendanceSummary } from '@/features/assistant/components/attendance-summary';
+import { LeaveRequestSheet } from '@/features/praktikan/components/leave-request-sheet';
+import { LeaveStatusBadge } from '@/features/praktikan/components/leave-status-badge';
 import PraktikanAttendanceSection from '@/features/praktikan/components/praktikan-attendance-section';
+import { usePraktikanLeaveRequests } from '@/features/praktikan/hooks/use-praktikan-leave-requests';
+import { useSessionAttendance } from '@/features/praktikan/hooks/use-session-attendance';
 import { subscribeSessionById } from '@/features/praktikan/services/praktikan-sessions';
 import type { PraktikanSession } from '@/features/praktikan/types';
-import { formatMeetingTitle } from '@/features/praktikan/utils/format';
+import {
+  formatDateTimeWIB,
+  formatMeetingTitle,
+} from '@/features/praktikan/utils/format';
 
 export default function SessionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -88,8 +95,25 @@ function PraktikanSessionDetail({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryNonce, setRetryNonce] = useState(0);
+  const [leaveSheetVisible, setLeaveSheetVisible] = useState(false);
 
   const trimmedId = sessionId?.trim() ?? '';
+
+  const {
+    attendance,
+    loading: attendanceLoading,
+    error: attendanceError,
+  } = useSessionAttendance(trimmedId);
+
+  const {
+    leaveBySessionId,
+    loading: leaveLoading,
+    submitting: leaveSubmitting,
+    error: leaveError,
+    submitLeaveRequest,
+    clearError: clearLeaveError,
+    retry: retryLeave,
+  } = usePraktikanLeaveRequests();
 
   useEffect(() => {
     if (!trimmedId) {
@@ -176,6 +200,19 @@ function PraktikanSessionDetail({
     );
   }
 
+  const sessionLeave = leaveBySessionId[session.id] ?? null;
+  const isLeaveCheckLoading = attendanceLoading || leaveLoading;
+  const sessionLeaveDateLabel = sessionLeave
+    ? (formatDateTimeWIB(sessionLeave.createdAt) ?? 'Menunggu sinkronisasi waktu...')
+    : null;
+  const assistantNote =
+    sessionLeave &&
+    (sessionLeave.status === 'diterima' || sessionLeave.status === 'ditolak') &&
+    typeof sessionLeave.catatanAsisten === 'string' &&
+    sessionLeave.catatanAsisten.trim().length > 0
+      ? sessionLeave.catatanAsisten.trim()
+      : null;
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" />
@@ -191,7 +228,117 @@ function PraktikanSessionDetail({
         />
 
         <PraktikanAttendanceSection session={session} />
+
+        {sessionLeave ? (
+          <View style={styles.leaveSummaryCard}>
+            <View style={styles.leaveSummaryHeader}>
+              <Text style={styles.leaveSummaryTitle}>Status Pengajuan Izin</Text>
+              <LeaveStatusBadge status={sessionLeave.status} />
+            </View>
+
+            {sessionLeaveDateLabel ? (
+              <Text style={styles.leaveMetaText}>Diajukan: {sessionLeaveDateLabel}</Text>
+            ) : null}
+
+            <View style={styles.leaveReasonBox}>
+              <Text style={styles.leaveReasonLabel}>Alasan Izin</Text>
+              <Text style={styles.leaveReasonText}>{sessionLeave.alasan}</Text>
+            </View>
+
+            {assistantNote ? (
+              <View
+                style={[
+                  styles.leaveNoteBox,
+                  sessionLeave.status === 'diterima'
+                    ? styles.leaveNoteAccepted
+                    : styles.leaveNoteRejected,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.leaveNoteLabel,
+                    sessionLeave.status === 'diterima'
+                      ? styles.leaveNoteTextAccepted
+                      : styles.leaveNoteTextRejected,
+                  ]}
+                >
+                  Catatan Asisten
+                </Text>
+                <Text
+                  style={[
+                    styles.leaveNoteText,
+                    sessionLeave.status === 'diterima'
+                      ? styles.leaveNoteTextAccepted
+                      : styles.leaveNoteTextRejected,
+                  ]}
+                >
+                  {assistantNote}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        ) : isLeaveCheckLoading ? (
+          <View style={styles.leaveLoadingCard}>
+            <ActivityIndicator size="small" color="#666666" />
+            <Text style={styles.leaveLoadingText}>Memeriksa status pengajuan izin...</Text>
+          </View>
+        ) : !leaveSheetVisible && leaveError ? (
+          <View style={styles.leaveErrorCard}>
+            <Text style={styles.leaveErrorText}>{leaveError}</Text>
+            <Pressable
+              accessibilityRole="button"
+              onPress={retryLeave}
+              style={({ pressed }) => [
+                styles.leaveRetryButton,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={styles.leaveRetryText}>Coba Lagi</Text>
+            </Pressable>
+          </View>
+        ) : !attendance && !attendanceError ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              clearLeaveError();
+              setLeaveSheetVisible(true);
+            }}
+            style={({ pressed }) => [
+              styles.secondaryButton,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={styles.secondaryButtonText}>Ajukan Izin untuk Sesi Ini</Text>
+          </Pressable>
+        ) : null}
       </ScrollView>
+
+      <LeaveRequestSheet
+        visible={leaveSheetVisible}
+        sessions={[session]}
+        preselectedSession={session}
+        attendanceBySessionId={attendance ? { [session.id]: attendance } : {}}
+        leaveBySessionId={leaveBySessionId}
+        submitting={leaveSubmitting}
+        error={leaveError}
+        onCancel={() => {
+          if (!leaveSubmitting) {
+            clearLeaveError();
+            setLeaveSheetVisible(false);
+          }
+        }}
+        onSubmit={async (targetSessionId, alasan) => {
+          const ok = await submitLeaveRequest({
+            sessionId: targetSessionId,
+            alasan,
+          });
+          if (ok) {
+            setLeaveSheetVisible(false);
+            Alert.alert('Berhasil', 'Pengajuan izin untuk sesi ini berhasil dikirim.');
+          }
+          return ok;
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -614,6 +761,115 @@ const styles = StyleSheet.create({
   confirmButtonText: {
     color: '#FFFFFF',
     fontSize: 14,
+    fontWeight: '700',
+  },
+  leaveSummaryCard: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#D9D9D9',
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 10,
+    padding: 16,
+  },
+  leaveSummaryHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'space-between',
+  },
+  leaveSummaryTitle: {
+    color: '#000000',
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  leaveMetaText: {
+    color: '#666666',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  leaveReasonBox: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    gap: 4,
+    padding: 12,
+  },
+  leaveReasonLabel: {
+    color: '#525252',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  leaveReasonText: {
+    color: '#171717',
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  leaveNoteBox: {
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 4,
+    padding: 12,
+  },
+  leaveNoteAccepted: {
+    backgroundColor: '#DCFCE7',
+    borderColor: '#86EFAC',
+  },
+  leaveNoteRejected: {
+    backgroundColor: '#FEE2E2',
+    borderColor: '#FCA5A5',
+  },
+  leaveNoteLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  leaveNoteText: {
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  leaveNoteTextAccepted: {
+    color: '#166534',
+  },
+  leaveNoteTextRejected: {
+    color: '#991B1B',
+  },
+  leaveLoadingCard: {
+    alignItems: 'center',
+    backgroundColor: '#F2F2F2',
+    borderRadius: 14,
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'center',
+    padding: 14,
+  },
+  leaveLoadingText: {
+    color: '#666666',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  leaveErrorCard: {
+    alignItems: 'center',
+    backgroundColor: '#FEE2E2',
+    borderColor: '#FCA5A5',
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 10,
+    padding: 14,
+  },
+  leaveErrorText: {
+    color: '#B91C1C',
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: 'center',
+  },
+  leaveRetryButton: {
+    backgroundColor: '#B91C1C',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  leaveRetryText: {
+    color: '#FFFFFF',
+    fontSize: 12,
     fontWeight: '700',
   },
   pressed: {

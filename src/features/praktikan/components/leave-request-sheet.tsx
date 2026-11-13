@@ -33,6 +33,7 @@ export interface LeaveRequestSheetProps {
   attendanceBySessionId: Record<string, SessionAttendanceDoc | null | undefined>;
   leaveBySessionId: Record<string, LeaveRequestDoc | null | undefined>;
   submitting: boolean;
+  error?: string | null;
   onCancel: () => void;
   onSubmit: (sessionId: string, alasan: string) => Promise<boolean>;
 }
@@ -77,6 +78,7 @@ export function LeaveRequestSheet({
   attendanceBySessionId,
   leaveBySessionId,
   submitting,
+  error = null,
   onCancel,
   onSubmit,
 }: LeaveRequestSheetProps) {
@@ -143,6 +145,7 @@ export function LeaveRequestSheet({
 
   const isFormBlocked = !activeSession || activeBlockReason !== null;
   const isSubmitDisabled = submitting || isFormBlocked;
+  const displayedSubmitError = error || submitError || null;
 
   function handleRequestClose() {
     if (submitting || localSubmittingRef.current) {
@@ -356,7 +359,7 @@ export function LeaveRequestSheet({
                 placeholderTextColor="#8C8C8C"
                 style={[
                   styles.textArea,
-                  (visibleValidationError || submitError) && styles.textAreaError,
+                  (visibleValidationError || displayedSubmitError) && styles.textAreaError,
                   (submitting || isFormBlocked) && styles.textAreaDisabled,
                 ]}
                 textAlignVertical="top"
@@ -372,9 +375,9 @@ export function LeaveRequestSheet({
                 <Text style={styles.inlineErrorText}>{visibleValidationError}</Text>
               ) : null}
 
-              {submitError ? (
+              {displayedSubmitError ? (
                 <View style={styles.submitErrorBox}>
-                  <Text style={styles.submitErrorText}>{submitError}</Text>
+                  <Text style={styles.submitErrorText}>{displayedSubmitError}</Text>
                 </View>
               ) : null}
             </View>

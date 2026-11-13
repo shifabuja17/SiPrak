@@ -16,9 +16,13 @@ import {
   usePracticum,
   type SessionStatus,
 } from '@/context/PracticumContext';
+import { usePraktikanLeaveRequests } from '@/features/praktikan/hooks/use-praktikan-leave-requests';
 import { usePraktikanSessions } from '@/features/praktikan/hooks/use-praktikan-sessions';
 import { useMyAttendanceMap } from '@/features/praktikan/hooks/use-session-attendance';
-import type { FirestoreSessionStatus } from '@/features/praktikan/types';
+import type {
+  FirestoreSessionStatus,
+  LeaveRequestStatus,
+} from '@/features/praktikan/types';
 import {
   formatAttendanceTimeWIB,
   formatMeetingTitle,
@@ -54,6 +58,39 @@ function AttendanceBadge({
   return (
     <View style={[styles.badge, { backgroundColor: background }]}>
       <Text style={[styles.badgeText, { color }]}>{label}</Text>
+    </View>
+  );
+}
+
+const LEAVE_INDICATOR_CONFIG: Record<
+  LeaveRequestStatus,
+  { label: string; background: string; color: string }
+> = {
+  menunggu: {
+    label: 'Menunggu Izin',
+    background: '#FEF3C7',
+    color: '#B45309',
+  },
+  diterima: {
+    label: 'Izin Diterima',
+    background: '#DCFCE7',
+    color: '#15803D',
+  },
+  ditolak: {
+    label: 'Izin Ditolak',
+    background: '#FEE2E2',
+    color: '#B91C1C',
+  },
+};
+
+function LeaveIndicatorBadge({ status }: { status: LeaveRequestStatus }) {
+  const config = LEAVE_INDICATOR_CONFIG[status];
+
+  return (
+    <View style={[styles.badge, { backgroundColor: config.background }]}>
+      <Text style={[styles.badgeText, { color: config.color }]}>
+        {config.label}
+      </Text>
     </View>
   );
 }
@@ -131,9 +168,17 @@ function PraktikanAttendanceHistory() {
     retry: retryAttendance,
   } = useMyAttendanceMap(sessionIds);
 
+  const {
+    leaveBySessionId,
+    loading: leaveLoading,
+    error: leaveError,
+    retry: retryLeaves,
+  } = usePraktikanLeaveRequests();
+
   const isLoading =
-    sessionsLoading || (sessions.length > 0 && attendanceLoading);
-  const activeError = sessionsError ?? attendanceError;
+    sessionsLoading ||
+    (sessions.length > 0 && (attendanceLoading || leaveLoading));
+  const activeError = sessionsError ?? attendanceError ?? leaveError;
 
   const presentCount = isLoading
     ? 0
@@ -154,6 +199,7 @@ function PraktikanAttendanceHistory() {
   function handleRetry() {
     if (sessionsError) retrySessions();
     if (attendanceError) retryAttendance();
+    if (leaveError) retryLeaves();
   }
 
   function renderEmptyState() {
@@ -264,6 +310,9 @@ function PraktikanAttendanceHistory() {
         }
         renderItem={({ item }) => {
           const attendance = attendanceBySessionId[item.id] ?? null;
+          const leaveRequest = attendance
+            ? null
+            : (leaveBySessionId[item.id] ?? null);
           const timeLabel = attendance
             ? (formatAttendanceTimeWIB(attendance.waktu) ?? 'Tercatat')
             : null;
@@ -276,6 +325,7 @@ function PraktikanAttendanceHistory() {
               scheduleTime={item.scheduleTime}
               sessionStatus={item.status}
               isPresent={Boolean(attendance)}
+              leaveStatus={leaveRequest?.status ?? null}
               timeLabel={timeLabel}
             />
           );
@@ -398,6 +448,7 @@ function HistoryCard({
   scheduleTime,
   sessionStatus,
   isPresent,
+  leaveStatus = null,
   timeLabel,
   note,
 }: {
@@ -407,6 +458,7 @@ function HistoryCard({
   scheduleTime: string;
   sessionStatus: FirestoreSessionStatus | SessionStatus;
   isPresent: boolean;
+  leaveStatus?: LeaveRequestStatus | null;
   timeLabel: string | null;
   note?: string;
 }) {
@@ -431,10 +483,16 @@ function HistoryCard({
       </View>
 
       <View style={styles.footer}>
-        <AttendanceBadge
-          sessionStatus={sessionStatus}
-          isPresent={isPresent}
-        />
+        <View style={styles.footerBadges}>
+          <AttendanceBadge
+            sessionStatus={sessionStatus}
+            isPresent={isPresent}
+          />
+
+          {!isPresent && leaveStatus ? (
+            <LeaveIndicatorBadge status={leaveStatus} />
+          ) : null}
+        </View>
 
         {timeLabel && <Text style={styles.timestamp}>{timeLabel}</Text>}
       </View>
@@ -579,6 +637,13 @@ const styles = StyleSheet.create({
     gap: 8,
     justifyContent: 'space-between',
     paddingTop: 12,
+  },
+  footerBadges: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexShrink: 1,
+    flexWrap: 'wrap',
+    gap: 6,
   },
   badge: {
     alignSelf: 'flex-start',
