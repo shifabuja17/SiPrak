@@ -15,6 +15,7 @@ import Svg, {
 } from 'react-native-svg';
 
 import { router } from 'expo-router';
+
 import { useAuth } from '@/context/AuthContext';
 
 import { SessionCard } from '@/features/assistant/components/session-card';
@@ -26,15 +27,35 @@ import { useAssistantSessions } from '@/features/assistant/state/assistant-sessi
 
 function UsersIcon() {
   return (
-    <Svg width={42} height={42} viewBox="0 0 48 48" fill="none">
-      <Circle cx="17" cy="15" r="6" stroke="#000000" strokeWidth={2.5} />
-      <Circle cx="32" cy="17" r="5" stroke="#000000" strokeWidth={2.5} />
+    <Svg
+      width={42}
+      height={42}
+      viewBox="0 0 48 48"
+      fill="none"
+    >
+      <Circle
+        cx="17"
+        cy="15"
+        r="6"
+        stroke="#000000"
+        strokeWidth={2.5}
+      />
+
+      <Circle
+        cx="32"
+        cy="17"
+        r="5"
+        stroke="#000000"
+        strokeWidth={2.5}
+      />
+
       <Path
         d="M5 38c0-7 5-12 12-12s12 5 12 12"
         stroke="#000000"
         strokeWidth={2.5}
         strokeLinecap="round"
       />
+
       <Path
         d="M29 28c7 0 12 4 13 10"
         stroke="#000000"
@@ -47,7 +68,12 @@ function UsersIcon() {
 
 function CalendarIcon() {
   return (
-    <Svg width={42} height={42} viewBox="0 0 48 48" fill="none">
+    <Svg
+      width={42}
+      height={42}
+      viewBox="0 0 48 48"
+      fill="none"
+    >
       <Rect
         x="6"
         y="10"
@@ -57,12 +83,14 @@ function CalendarIcon() {
         stroke="#000000"
         strokeWidth={2.5}
       />
+
       <Path
         d="M6 19h36M16 6v9M32 6v9"
         stroke="#000000"
         strokeWidth={2.5}
         strokeLinecap="round"
       />
+
       <Path
         d="M15 27h4M27 27h4M15 35h4M27 35h4"
         stroke="#000000"
@@ -75,7 +103,12 @@ function CalendarIcon() {
 
 function AttendanceIcon() {
   return (
-    <Svg width={42} height={42} viewBox="0 0 48 48" fill="none">
+    <Svg
+      width={42}
+      height={42}
+      viewBox="0 0 48 48"
+      fill="none"
+    >
       <Rect
         x="8"
         y="8"
@@ -85,12 +118,14 @@ function AttendanceIcon() {
         stroke="#000000"
         strokeWidth={2.5}
       />
+
       <Path
         d="M17 5h14v8H17z"
         stroke="#000000"
         strokeWidth={2.5}
         strokeLinejoin="round"
       />
+
       <Path
         d="m15 25 4 4 7-8M15 35h17"
         stroke="#000000"
@@ -104,7 +139,12 @@ function AttendanceIcon() {
 
 function LeaveIcon() {
   return (
-    <Svg width={42} height={42} viewBox="0 0 48 48" fill="none">
+    <Svg
+      width={42}
+      height={42}
+      viewBox="0 0 48 48"
+      fill="none"
+    >
       <Path
         d="M11 5h19l9 9v12M30 5v10h9M11 5v38h12"
         stroke="#000000"
@@ -112,12 +152,14 @@ function LeaveIcon() {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+
       <Path
         d="M17 21h15M17 27h10"
         stroke="#000000"
         strokeWidth={2.5}
         strokeLinecap="round"
       />
+
       <Circle
         cx="33"
         cy="34"
@@ -125,6 +167,7 @@ function LeaveIcon() {
         stroke="#000000"
         strokeWidth={2.5}
       />
+
       <Path
         d="M33 28v6l4 2"
         stroke="#000000"
@@ -142,30 +185,68 @@ function LeaveIcon() {
 
 export default function AssistantScheduleScreen() {
   const { sessions } = useAssistantSessions();
-  const { profile } = useAuth();
 
-  // Mengambil nama dari profil Firebase.
-  const displayName = profile?.nama?.trim() || 'Asisten Praktikum';
+  const {
+    user,
+    profile,
+    loading,
+  } = useAuth();
 
-  // Mengambil inisial nama untuk avatar.
-  const initials = displayName
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
-    .join('');
+  // ========================================
+  // NAMA ASISTEN
+  // ========================================
+
+  // Prioritas:
+  // 1. Nama dari Firestore.
+  // 2. Display name dari Firebase Authentication.
+  // 3. Bagian depan email.
+  // 4. Pesan fallback jika semuanya kosong.
+
+  const authDisplayName =
+    user?.displayName?.trim() ||
+    user?.email?.split('@')[0]?.trim() ||
+    '';
+
+  const displayName =
+    profile?.nama?.trim() ||
+    authDisplayName ||
+    'Nama belum tersedia';
+
+  const visibleName = loading
+    ? 'Memuat profil...'
+    : displayName;
+
+  // ========================================
+  // INISIAL AVATAR
+  // ========================================
+
+  const initials =
+    displayName === 'Nama belum tersedia'
+      ? '?'
+      : displayName
+          .split(/\s+/)
+          .filter(Boolean)
+          .slice(0, 2)
+          .map((part) => part.charAt(0).toUpperCase())
+          .join('');
+
+  // ========================================
+  // TAMPILAN DASHBOARD
+  // ========================================
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar
-        barStyle="light-content"
-      />
+      <StatusBar barStyle="light-content" />
 
       <FlatList
         contentContainerStyle={styles.content}
         data={sessions}
         keyExtractor={(item) => item.id}
 
+        // ==================================
         // KARTU SESI
+        // ==================================
+
         renderItem={({ item }) => (
           <View style={styles.sessionItem}>
             <SessionCard
@@ -173,7 +254,9 @@ export default function AssistantScheduleScreen() {
               onPress={() =>
                 router.push({
                   pathname: '/assistant/session/[sessionId]',
-                  params: { sessionId: item.id },
+                  params: {
+                    sessionId: item.id,
+                  },
                 })
               }
             />
@@ -184,23 +267,25 @@ export default function AssistantScheduleScreen() {
           <View style={styles.separator} />
         )}
 
+        // ==================================
         // HEADER DASHBOARD
+        // ==================================
+
         ListHeaderComponent={
           <View>
-            {/* HEADER SIPrak */}
+            {/* HEADER SIPRAK */}
             <View style={styles.topBar}>
-                  <Text style={styles.brand}>
-                    SiPrak
-                  </Text>
+              <Text style={styles.brand}>
+                SiPrak
+              </Text>
             </View>
 
             <View style={styles.headerContent}>
-
               {/* KARTU PROFIL ASISTEN */}
               <View style={styles.profileCard}>
                 <View style={styles.avatar}>
                   <Text style={styles.avatarText}>
-                    {initials}
+                    {loading ? '...' : initials}
                   </Text>
                 </View>
 
@@ -208,8 +293,10 @@ export default function AssistantScheduleScreen() {
                   <Text
                     style={styles.profileName}
                     numberOfLines={2}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.8}
                   >
-                    {displayName}
+                    {visibleName}
                   </Text>
 
                   <Text style={styles.profileRole}>
@@ -221,7 +308,6 @@ export default function AssistantScheduleScreen() {
               {/* MENU FITUR */}
               <View style={styles.menuCard}>
                 <View style={styles.menuRow}>
-
                   {/* KELAS DAN PESERTA */}
                   <Pressable
                     style={({ pressed }) => [
@@ -259,11 +345,9 @@ export default function AssistantScheduleScreen() {
                       Jadwal
                     </Text>
                   </Pressable>
-
                 </View>
 
                 <View style={styles.menuRow}>
-
                   {/* SESI DAN PRESENSI */}
                   <Pressable
                     style={({ pressed }) => [
@@ -301,7 +385,6 @@ export default function AssistantScheduleScreen() {
                       Pengajuan Izin
                     </Text>
                   </Pressable>
-
                 </View>
               </View>
 
@@ -323,12 +406,14 @@ export default function AssistantScheduleScreen() {
                   </Text>
                 </View>
               </View>
-
             </View>
           </View>
         }
 
+        // ==================================
         // JIKA BELUM ADA SESI
+        // ==================================
+
         ListEmptyComponent={
           <View style={styles.emptyCard}>
             <Text style={styles.emptyTitle}>
@@ -356,7 +441,7 @@ const styles = StyleSheet.create({
   },
 
   content: {
-    paddingBottom: 40,
+    paddingBottom: 25,
   },
 
   // HEADER
@@ -383,7 +468,7 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
 
-  // PROFIL
+  // PROFIL ASISTEN
   profileCard: {
     alignItems: 'center',
     backgroundColor: '#000000',

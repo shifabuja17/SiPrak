@@ -8,6 +8,8 @@ import {
   useState,
 } from 'react';
 
+import { useAuth } from '@/context/AuthContext';
+
 import type {
   AttendanceRecord,
   PracticumSession,
@@ -52,6 +54,16 @@ const AssistantSessionsContext =
 export function AssistantSessionsProvider({
   children,
 }: PropsWithChildren) {
+  // Mengambil status autentikasi Firebase.
+  const {
+    user,
+    profile,
+    loading: authLoading,
+  } = useAuth();
+
+  const userId = user?.uid ?? null;
+  const isAssistant = profile?.role === 'asisten';
+
   // DATA SESI DARI FIRESTORE
   const [sessionRecords, setSessionRecords] = useState<SessionRecord[]>([]);
 
@@ -61,10 +73,24 @@ export function AssistantSessionsProvider({
   >({});
 
   // ========================================
-  // MENGAMBIL DATA SESI DAN PRESENSI REAL-TIME
+  // MENDENGARKAN DATA SESI DAN PRESENSI
   // ========================================
 
   useEffect(() => {
+    // Tunggu sampai Firebase selesai memeriksa status login.
+    if (authLoading) {
+      return;
+    }
+
+    // Listener hanya diperlukan untuk akun Asisten.
+    if (!userId || !isAssistant) {
+      setSessionRecords([]);
+      setAttendanceBySession({});
+      return;
+    }
+
+    let isActive = true;
+
     // Menyimpan listener presensi untuk setiap sesi.
     const attendanceListeners = new Map<
       string,
@@ -74,40 +100,49 @@ export function AssistantSessionsProvider({
       }
     >();
 
-    // Mendengarkan perubahan koleksi sessions.
+    setSessionRecords([]);
+    setAttendanceBySession({});
+
+    // ======================================
+    // LISTENER DAFTAR SESI
+    // ======================================
+
     const unsubscribeSessions = subscribeSessions(
       (data) => {
+        if (!isActive) return;
+
         setSessionRecords(data);
 
         const activeSessionIds = new Set(
           data.map((item) => item.id),
         );
 
-        // MENGHENTIKAN LISTENER YANG TIDAK DIPERLUKAN
+        // Menghentikan listener sesi yang sudah tidak diperlukan.
         for (const [sessionId, listener] of attendanceListeners) {
           const session = data.find(
             (item) => item.id === sessionId,
           );
 
-          // Hentikan listener jika sesi sudah dihapus
-          // atau kelas yang terhubung dengan sesi berubah.
-          if (!session || session.classId !== listener.classId) {
+          if (
+            !session ||
+            session.classId !== listener.classId
+          ) {
             listener.unsubscribe();
             attendanceListeners.delete(sessionId);
 
             setAttendanceBySession((previous) => {
               const updated = { ...previous };
-
               delete updated[sessionId];
-
               return updated;
             });
           }
         }
 
-        // MEMASANG LISTENER PRESENSI SETIAP SESI
+        // ==================================
+        // LISTENER PRESENSI SETIAP SESI
+        // ==================================
+
         data.forEach((session) => {
-          // Jika listener sudah tersedia, tidak perlu membuat ulang.
           if (attendanceListeners.has(session.id)) {
             return;
           }
@@ -116,13 +151,16 @@ export function AssistantSessionsProvider({
             session.id,
             session.classId,
             (records) => {
-              // Memperbarui data presensi sesi secara real-time.
+              if (!isActive) return;
+
               setAttendanceBySession((previous) => ({
                 ...previous,
                 [session.id]: records,
               }));
             },
             (error) => {
+              if (!isActive) return;
+
               console.error(
                 `Gagal mengambil presensi sesi ${session.id}:`,
                 error,
@@ -136,7 +174,7 @@ export function AssistantSessionsProvider({
           });
         });
 
-        // MEMBERSIHKAN DATA PRESENSI SESI YANG SUDAH DIHAPUS
+        // Menghapus data presensi sesi yang sudah tidak ada.
         setAttendanceBySession((previous) => {
           const updated = { ...previous };
 
@@ -150,7 +188,15 @@ export function AssistantSessionsProvider({
         });
       },
       (error) => {
-        console.error('Gagal mengambil daftar sesi:', error);
+        if (!isActive) return;
+
+        console.error(
+          'Gagal mengambil daftar sesi:',
+          error,
+        );
+
+        setSessionRecords([]);
+        setAttendanceBySession({});
       },
     );
 
@@ -159,6 +205,8 @@ export function AssistantSessionsProvider({
     // ========================================
 
     return () => {
+      isActive = false;
+
       unsubscribeSessions();
 
       attendanceListeners.forEach((listener) => {
@@ -167,26 +215,25 @@ export function AssistantSessionsProvider({
 
       attendanceListeners.clear();
     };
-  }, []);
+  }, [authLoading, userId, isAssistant]);
 
   // ========================================
-  // MENGUBAH DATA FIREBASE MENJADI DATA TAMPILAN
+  // MENGUBAH DATA FIREBASE MENJADI DATA UI
   // ========================================
 
   const sessions = useMemo<PracticumSession[]>(() => {
     return sessionRecords.map((session) => {
-      // Mengambil data presensi dari sesi terkait.
       const attendanceRecords =
         attendanceBySession[session.id] ?? [];
 
-      // Hanya mengambil praktikan yang benar-benar hadir.
-      const attendances: AttendanceRecord[] = attendanceRecords
-        .filter((item) => item.hadir)
-        .map((item) => ({
-          uid: item.uid,
-          nama: item.nama,
-          waktu: item.waktu ?? '-',
-        }));
+      const attendances: AttendanceRecord[] =
+        attendanceRecords
+          .filter((item) => item.hadir)
+          .map((item) => ({
+            uid: item.uid,
+            nama: item.nama,
+            waktu: item.waktu ?? '-',
+          }));
 
       return {
         id: session.id,

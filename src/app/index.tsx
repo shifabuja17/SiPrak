@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -44,8 +44,10 @@ export default function StartScreen() {
     if (loading || !user || !profile) return;
 
     if (profile.role === 'asisten') {
-      router.replace('/assistant');
-    } else {
+      // Langsung masuk ke halaman Beranda Asisten.
+      router.replace('/assistant/(tabs)' as Href);
+    } else if (profile.role === 'praktikan') {
+      // Praktikan tetap masuk ke halaman Jadwal.
       router.replace('/(tabs)/schedule');
     }
   }, [loading, user, profile]);

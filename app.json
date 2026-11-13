@@ -21,6 +21,7 @@
       "package": "com.shifa_buja17.SiPrak"
     },
     "web": {
+      "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },

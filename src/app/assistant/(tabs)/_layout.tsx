@@ -73,6 +73,7 @@ export default function AssistantTabsLayout() {
         tabBarInactiveTintColor: '#888888',
         tabBarHideOnKeyboard: true,
         tabBarStyle: {
+          display: 'flex',
           backgroundColor: '#FFFFFF',
           borderTopColor: '#E5E5E5',
           borderTopWidth: 1,
