@@ -118,9 +118,10 @@ function PraktikanSessionDetail({
     loading: leaveLoading,
     submitting: leaveSubmitting,
     submittingStep: leaveSubmittingStep,
-    error: leaveError,
+    listError: leaveListError,
+    submitError: leaveSubmitError,
     submitLeaveRequest,
-    clearError: clearLeaveError,
+    clearSubmitError: clearLeaveSubmitError,
     retry: retryLeave,
   } = usePraktikanLeaveRequests();
 
@@ -192,7 +193,7 @@ function PraktikanSessionDetail({
 
   const sessionLeave = leaveBySessionId[session.id] ?? null;
   const isLeaveCheckLoading = attendanceLoading || leaveLoading;
-  const leaveSectionError = !leaveSheetVisible ? leaveError : null;
+  const leaveSectionError = leaveListError;
   const sessionLeaveDateLabel = sessionLeave
     ? (formatDateTimeWIB(sessionLeave.createdAt) ?? 'Menunggu sinkronisasi waktu...')
     : null;
@@ -315,7 +316,7 @@ function PraktikanSessionDetail({
           <Pressable
             accessibilityRole="button"
             onPress={() => {
-              clearLeaveError();
+              clearLeaveSubmitError();
               setLeaveSheetVisible(true);
             }}
             style={({ pressed }) => [
@@ -336,13 +337,13 @@ function PraktikanSessionDetail({
         leaveBySessionId={leaveBySessionId}
         submitting={leaveSubmitting}
         submittingStep={leaveSubmittingStep}
-        error={leaveError}
+        error={leaveSubmitError}
         attendanceError={attendanceError}
         onRetryData={retryAttendance}
-        onClearError={clearLeaveError}
+        onClearError={clearLeaveSubmitError}
         onCancel={() => {
           if (!leaveSubmitting) {
-            clearLeaveError();
+            clearLeaveSubmitError();
             setLeaveSheetVisible(false);
           }
         }}

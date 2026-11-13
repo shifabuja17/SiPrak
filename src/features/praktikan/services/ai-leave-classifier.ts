@@ -4,10 +4,44 @@ import { LEAVE_AI_CATEGORY_MAX_LENGTH } from '@/features/praktikan/utils/leave-v
 const AI_CLASSIFY_TIMEOUT_MS = 6000;
 const CATEGORY_FIELD_CANDIDATES = ['category', 'kategori', 'label', 'prediction'] as const;
 
-function readAiClassifyConfig(): { endpoint: string; apiKey: string } {
+function readAiClassifyConfig(): {
+  endpoint: string;
+  apiKey: string;
+  endpointValid: boolean;
+} {
   const endpoint = process.env.EXPO_PUBLIC_AI_CLASSIFY_URL?.trim() ?? '';
   const apiKey = process.env.EXPO_PUBLIC_AI_API_KEY?.trim() ?? '';
-  return { endpoint, apiKey };
+
+  if (!endpoint) {
+    return { endpoint: '', apiKey, endpointValid: false };
+  }
+
+  try {
+    const parsed = new URL(endpoint);
+    const endpointValid = parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    return { endpoint, apiKey, endpointValid };
+  } catch {
+    return { endpoint, apiKey, endpointValid: false };
+  }
+}
+
+function formatAiNetworkErrorReason(error: unknown): string {
+  const lowerMessage =
+    error instanceof Error && typeof error.message === 'string'
+      ? error.message.toLowerCase()
+      : '';
+
+  if (
+    lowerMessage.includes('network request failed') ||
+    lowerMessage.includes('failed to fetch') ||
+    lowerMessage.includes('load failed') ||
+    lowerMessage.includes('networkerror') ||
+    lowerMessage.includes('offline')
+  ) {
+    return 'Tidak dapat menghubungi layanan AI karena koneksi internet bermasalah atau offline.';
+  }
+
+  return 'Gagal menghubungi layanan AI.';
 }
 
 /**
@@ -102,12 +136,20 @@ function isTimeoutError(error: unknown, signal: AbortSignal): boolean {
 export async function classifyLeaveReason(
   alasan: string,
 ): Promise<LeaveAiClassificationResult> {
-  const { endpoint, apiKey } = readAiClassifyConfig();
+  const { endpoint, apiKey, endpointValid } = readAiClassifyConfig();
   if (!endpoint) {
     return {
       ok: false,
       category: null,
       reason: 'Endpoint layanan AI belum dikonfigurasi.',
+    };
+  }
+
+  if (!endpointValid) {
+    return {
+      ok: false,
+      category: null,
+      reason: 'Konfigurasi URL layanan AI tidak valid.',
     };
   }
 
@@ -146,10 +188,7 @@ export async function classifyLeaveReason(
     return {
       ok: false,
       category: null,
-      reason:
-        error instanceof Error && error.message
-          ? `Gagal menghubungi layanan AI: ${error.message}`
-          : 'Gagal menghubungi layanan AI.',
+      reason: formatAiNetworkErrorReason(error),
     };
   }
 

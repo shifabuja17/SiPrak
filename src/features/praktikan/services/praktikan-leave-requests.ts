@@ -163,8 +163,16 @@ async function resolveLeaveWritePermissionError(
       getDocs(duplicateQuery),
       getDoc(attendanceRef),
     ]);
-  } catch {
-    // Confirmation checks failed as well (e.g. unauthenticated); surface original Firestore error.
+  } catch (checkError) {
+    const checkCode = (checkError as { code?: string })?.code;
+    if (
+      checkCode &&
+      checkCode !== 'permission-denied' &&
+      checkCode !== 'firestore/permission-denied'
+    ) {
+      return mapPraktikanFirestoreError(checkError);
+    }
+    // Confirmation checks failed with permission/unknown; surface original Firestore error.
     return mapPraktikanFirestoreError(originalError);
   }
 
@@ -220,7 +228,7 @@ export function subscribeMyLeaveRequests(
         mapped.sort(compareLeaveRequestsNewestFirst);
         onData(mapped);
       } catch (error) {
-        onError(error instanceof Error ? error : new Error(String(error)));
+        onError(mapPraktikanFirestoreError(error));
       }
     },
     (error) => {

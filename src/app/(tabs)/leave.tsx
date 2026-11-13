@@ -127,9 +127,10 @@ function PraktikanLeaveList() {
     loading: leaveLoading,
     submitting,
     submittingStep,
-    error: leaveError,
+    listError: leaveListError,
+    submitError: leaveSubmitError,
     submitLeaveRequest,
-    clearError: clearLeaveError,
+    clearSubmitError: clearLeaveSubmitError,
     retry: retryLeaves,
   } = usePraktikanLeaveRequests();
 
@@ -162,7 +163,6 @@ function PraktikanLeaveList() {
     };
   }, [leaveRequests]);
 
-  const leaveListError = !sheetVisible ? leaveError : null;
   const hideStats = leaveLoading || Boolean(leaveListError);
   const showInitialLoading = leaveLoading && leaveRequests.length === 0;
   const showFatalLeaveError =
@@ -182,7 +182,7 @@ function PraktikanLeaveList() {
     if (isCreateDisabled) {
       return;
     }
-    clearLeaveError();
+    clearLeaveSubmitError();
     setSheetVisible(true);
   }
 
@@ -190,7 +190,7 @@ function PraktikanLeaveList() {
     if (submitting) {
       return;
     }
-    clearLeaveError();
+    clearLeaveSubmitError();
     setSheetVisible(false);
   }
 
@@ -367,11 +367,11 @@ function PraktikanLeaveList() {
         leaveBySessionId={leaveBySessionId}
         submitting={submitting}
         submittingStep={submittingStep}
-        error={leaveError}
+        error={leaveSubmitError}
         sessionsError={sessionsError}
         attendanceError={attendanceError}
         onRetryData={handleRetryFormDependencies}
-        onClearError={clearLeaveError}
+        onClearError={clearLeaveSubmitError}
         onCancel={handleCloseSheet}
         onSubmit={handleSubmitLeave}
       />

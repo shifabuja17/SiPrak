@@ -189,7 +189,7 @@ function PraktikanAttendanceHistory() {
   const {
     leaveBySessionId,
     loading: leaveLoading,
-    error: leaveError,
+    listError: leaveError,
     retry: retryLeaves,
   } = usePraktikanLeaveRequests();
 

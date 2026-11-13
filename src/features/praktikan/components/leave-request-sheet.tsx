@@ -109,6 +109,8 @@ export function LeaveRequestSheet({
 
   const mountedRef = useRef(true);
   const localSubmittingRef = useRef(false);
+  const onClearErrorRef = useRef(onClearError);
+  onClearErrorRef.current = onClearError;
 
   useEffect(() => {
     mountedRef.current = true;
@@ -129,6 +131,7 @@ export function LeaveRequestSheet({
     setAttemptedSubmit(false);
     setSubmitError(null);
     setSelectedSessionId(null);
+    onClearErrorRef.current?.();
   }, [visible, preselectedSessionId]);
 
   const dependencyError = preselectedSession
@@ -174,6 +177,7 @@ export function LeaveRequestSheet({
     if (submitting || localSubmittingRef.current) {
       return;
     }
+    onClearErrorRef.current?.();
     onCancel();
   }
 
@@ -184,10 +188,24 @@ export function LeaveRequestSheet({
 
     setAttemptedSubmit(true);
     setSubmitError(null);
-    onClearError?.();
+    onClearErrorRef.current?.();
 
     if (dependencyError) {
       setSubmitError(dependencyError);
+      return;
+    }
+
+    if (!preselectedSession && sessions.length === 0) {
+      setSubmitError('Belum ada sesi praktikum yang tersedia untuk diajukan izin.');
+      return;
+    }
+
+    if (!hasEligibleSession) {
+      setSubmitError(
+        preselectedSession
+          ? (activeBlockReason ?? 'Sesi ini tidak dapat diajukan izin.')
+          : 'Semua sesi Anda sudah memiliki catatan presensi atau pengajuan izin.',
+      );
       return;
     }
 
@@ -265,7 +283,13 @@ export function LeaveRequestSheet({
                   </Text>
                 </View>
 
-                {activeBlockReason ? (
+                {attendanceError ? (
+                  <PraktikanErrorState
+                    title="Status Presensi Belum Dapat Diperiksa"
+                    message={`Kelayakan izin untuk sesi ini belum dapat dipastikan karena gagal memeriksa presensi: ${attendanceError}`}
+                    onRetry={onRetryData}
+                  />
+                ) : activeBlockReason ? (
                   <View style={styles.blockedNoticeBox}>
                     <Text style={styles.blockedNoticeText}>
                       Tidak dapat mengajukan izin: {activeBlockReason}.

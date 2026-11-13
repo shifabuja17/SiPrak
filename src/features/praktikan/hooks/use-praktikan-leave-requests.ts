@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useAuth } from '@/context/AuthContext';
 import { classifyLeaveReason } from '@/features/praktikan/services/ai-leave-classifier';
+import { mapPraktikanFirestoreError } from '@/features/praktikan/services/firestore-helpers';
 import {
   subscribeMyLeaveRequests,
   submitPraktikanLeaveRequest,
@@ -27,8 +28,11 @@ export interface UsePraktikanLeaveRequestsResult {
   submitting: boolean;
   submittingStep: LeaveSubmittingStep;
   error: string | null;
+  listError: string | null;
+  submitError: string | null;
   submitLeaveRequest: (input: SubmitPraktikanLeaveInput) => Promise<SubmitLeaveRequestOutcome>;
   clearError: () => void;
+  clearSubmitError: () => void;
   retry: () => void;
 }
 
@@ -179,6 +183,11 @@ export function usePraktikanLeaveRequests(): UsePraktikanLeaveRequestsResult {
         return buildRejectedOutcome();
       }
 
+      if (authLoading || status === 'loading') {
+        setSubmitError('Sesi akun masih dipulihkan. Tunggu beberapa saat lalu coba kembali.');
+        return buildRejectedOutcome();
+      }
+
       if (status !== 'authenticated' || !uid) {
         setSubmitError('Anda harus login sebagai Praktikan untuk mengajukan izin.');
         return buildRejectedOutcome();
@@ -254,9 +263,7 @@ export function usePraktikanLeaveRequests(): UsePraktikanLeaveRequestsResult {
         };
       } catch (err) {
         if (mountedRef.current) {
-          setSubmitError(
-            err instanceof Error ? err.message : 'Gagal mengirim pengajuan izin.',
-          );
+          setSubmitError(mapPraktikanFirestoreError(err).message);
         }
 
         return {
@@ -273,8 +280,12 @@ export function usePraktikanLeaveRequests(): UsePraktikanLeaveRequestsResult {
         }
       }
     },
-    [leaveBySessionId, nama, profileError, role, status, uid],
+    [authLoading, leaveBySessionId, nama, profileError, role, status, uid],
   );
+
+  const clearSubmitError = useCallback(() => {
+    setSubmitError(null);
+  }, []);
 
   const clearError = useCallback(() => {
     setSubmitError(null);
@@ -286,7 +297,8 @@ export function usePraktikanLeaveRequests(): UsePraktikanLeaveRequestsResult {
     setRetryNonce((prev) => prev + 1);
   }, []);
 
-  const error = submitError ?? subscriptionError ?? roleGuardError ?? profileError ?? null;
+  const listError = subscriptionError ?? roleGuardError ?? profileError ?? null;
+  const error = submitError ?? listError ?? null;
 
   return {
     leaveRequests,
@@ -295,8 +307,11 @@ export function usePraktikanLeaveRequests(): UsePraktikanLeaveRequestsResult {
     submitting,
     submittingStep,
     error,
+    listError,
+    submitError,
     submitLeaveRequest,
     clearError,
+    clearSubmitError,
     retry,
   };
 }

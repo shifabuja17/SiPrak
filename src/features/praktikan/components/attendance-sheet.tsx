@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -14,8 +15,9 @@ interface AttendanceSheetProps {
   practicumName: string;
   moduleTitle: string;
   submitting?: boolean;
+  error?: string | null;
   onCancel: () => void;
-  onSubmit: () => void;
+  onSubmit: () => Promise<unknown> | void;
 }
 
 /**
@@ -28,12 +30,43 @@ export default function AttendanceSheet({
   practicumName,
   moduleTitle,
   submitting = false,
+  error = null,
   onCancel,
   onSubmit,
 }: AttendanceSheetProps) {
+  const mountedRef = useRef(true);
+  const localSubmittingRef = useRef(false);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!visible || !submitting) {
+      localSubmittingRef.current = false;
+    }
+  }, [submitting, visible]);
+
+  const isSubmitting = submitting || localSubmittingRef.current;
+
   function handleRequestClose() {
-    if (submitting) return;
+    if (isSubmitting) return;
     onCancel();
+  }
+
+  async function handlePressSubmit() {
+    if (isSubmitting) return;
+    localSubmittingRef.current = true;
+    try {
+      await onSubmit();
+    } finally {
+      if (mountedRef.current) {
+        localSubmittingRef.current = false;
+      }
+    }
   }
 
   return (
@@ -67,31 +100,43 @@ export default function AttendanceSheet({
             </Text>
           </View>
 
+          {error ? (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          ) : null}
+
           <View style={styles.actions}>
             <Pressable
+              accessibilityLabel="Batal presensi"
               accessibilityRole="button"
-              disabled={submitting}
-              onPress={onCancel}
+              accessibilityState={{ disabled: isSubmitting }}
+              disabled={isSubmitting}
+              onPress={handleRequestClose}
               style={({ pressed }) => [
                 styles.cancelButton,
-                submitting && styles.disabled,
-                pressed && !submitting && styles.pressed,
+                isSubmitting && styles.disabled,
+                pressed && !isSubmitting && styles.pressed,
               ]}
             >
               <Text style={styles.cancelText}>Batal</Text>
             </Pressable>
 
             <Pressable
+              accessibilityLabel={
+                isSubmitting ? 'Sedang mengirim presensi' : 'Kirim Presensi'
+              }
               accessibilityRole="button"
-              disabled={submitting}
-              onPress={onSubmit}
+              accessibilityState={{ disabled: isSubmitting, busy: isSubmitting }}
+              disabled={isSubmitting}
+              onPress={() => void handlePressSubmit()}
               style={({ pressed }) => [
                 styles.submitButton,
-                submitting && styles.disabled,
-                pressed && !submitting && styles.pressed,
+                isSubmitting && styles.disabled,
+                pressed && !isSubmitting && styles.pressed,
               ]}
             >
-              {submitting ? (
+              {isSubmitting ? (
                 <View style={styles.submittingRow}>
                   <ActivityIndicator size="small" color="#FFFFFF" />
                   <Text style={styles.submitText}>Mengirim...</Text>
@@ -164,6 +209,19 @@ const styles = StyleSheet.create({
   noticeText: {
     color: '#166534',
     fontSize: 13,
+    lineHeight: 19,
+  },
+  errorBox: {
+    backgroundColor: '#FEE2E2',
+    borderColor: '#FCA5A5',
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 12,
+  },
+  errorText: {
+    color: '#B91C1C',
+    fontSize: 13,
+    fontWeight: '600',
     lineHeight: 19,
   },
   actions: {

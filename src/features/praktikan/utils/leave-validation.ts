@@ -10,7 +10,7 @@ export const LEAVE_AI_CATEGORY_MAX_LENGTH = 50;
  * Mengembalikan pesan error berbahasa Indonesia atau `null` jika valid.
  */
 export function validateLeaveReason(alasan: string): string | null {
-  const trimmed = alasan.trim();
+  const trimmed = typeof alasan === 'string' ? alasan.trim() : '';
 
   if (!trimmed) {
     return 'Alasan ketidakhadiran wajib diisi.';

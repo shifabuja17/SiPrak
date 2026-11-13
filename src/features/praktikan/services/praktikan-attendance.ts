@@ -25,11 +25,20 @@ export interface SubmitPraktikanAttendanceInput {
 
 function mapAttendanceDoc(
   data: DocumentData,
-  fallbackUid: string,
 ): SessionAttendanceDoc {
+  const uid = readString(data.uid);
+  if (!uid) {
+    throw new Error('Dokumen presensi tidak memiliki field "uid" yang valid.');
+  }
+
+  const nama = readString(data.nama);
+  if (!nama) {
+    throw new Error('Dokumen presensi tidak memiliki field "nama" yang valid.');
+  }
+
   return {
-    uid: readString(data.uid) ?? fallbackUid,
-    nama: readString(data.nama) ?? '',
+    uid,
+    nama,
     waktu: toDateOrNull(data.waktu),
   };
 }
@@ -83,7 +92,16 @@ async function resolveAttendanceWriteError(
     return new Error(
       'Presensi ditolak oleh aturan keamanan. Pastikan akun terdaftar pada kelas ini dan sesi masih dibuka.',
     );
-  } catch {
+  } catch (checkError) {
+    const checkCode = (checkError as { code?: string })?.code;
+    if (
+      checkCode &&
+      checkCode !== 'permission-denied' &&
+      checkCode !== 'firestore/permission-denied'
+    ) {
+      return mapPraktikanFirestoreError(checkError);
+    }
+
     return new Error(
       'Presensi ditolak. Sesi mungkin sudah ditutup oleh Asisten atau presensi kamu sudah tercatat.',
     );
@@ -127,7 +145,11 @@ export function subscribeMyAttendance(
         onData(null);
         return;
       }
-      onData(mapAttendanceDoc(snap.data(), trimmedUid));
+      try {
+        onData(mapAttendanceDoc(snap.data()));
+      } catch (err) {
+        onError(mapPraktikanFirestoreError(err));
+      }
     },
     (err) => {
       if (!active) return;

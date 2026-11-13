@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 
+import { PraktikanInlineErrorBanner } from '@/features/praktikan/components/praktikan-state-view';
 import { useSessionAttendance } from '@/features/praktikan/hooks/use-session-attendance';
 import type { PraktikanSession } from '@/features/praktikan/types';
 import { formatAttendanceTimeWIB } from '@/features/praktikan/utils/format';
@@ -45,6 +46,14 @@ export default function PraktikanAttendanceSection({
   } = useSessionAttendance(session.id);
 
   const [sheetVisible, setSheetVisible] = useState(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   function getButtonState(): ButtonState {
     if (attendance !== null) {
@@ -95,13 +104,22 @@ export default function PraktikanAttendanceSection({
   const isInteractive = !buttonState.disabled;
 
   function handleOpenSheet() {
+    if (submitting || buttonState.disabled) {
+      return;
+    }
     clearError();
     setSheetVisible(true);
   }
 
   async function handleConfirmSubmit() {
-    const ok = await submitAttendance();
-    setSheetVisible(false);
+    let ok = false;
+    try {
+      ok = await submitAttendance();
+    } finally {
+      if (mountedRef.current) {
+        setSheetVisible(false);
+      }
+    }
 
     if (ok) {
       Alert.alert('Berhasil', 'Presensi kamu sudah tercatat.');
@@ -156,31 +174,12 @@ export default function PraktikanAttendanceSection({
       </Pressable>
 
       {error ? (
-        <View style={styles.errorCard}>
-          <Text style={styles.errorText}>{error}</Text>
-
-          <View style={styles.errorActions}>
-            <Pressable
-              onPress={retry}
-              style={({ pressed }) => [
-                styles.retryButton,
-                pressed && styles.pressed,
-              ]}
-            >
-              <Text style={styles.retryText}>Coba Lagi</Text>
-            </Pressable>
-
-            <Pressable
-              onPress={clearError}
-              style={({ pressed }) => [
-                styles.dismissButton,
-                pressed && styles.pressed,
-              ]}
-            >
-              <Text style={styles.dismissText}>Tutup</Text>
-            </Pressable>
-          </View>
-        </View>
+        <PraktikanInlineErrorBanner
+          title="Gangguan Presensi"
+          message={error}
+          onRetry={retry}
+          onDismiss={clearError}
+        />
       ) : null}
 
       <AttendanceSheet
@@ -188,10 +187,11 @@ export default function PraktikanAttendanceSection({
         practicumName={session.practicumName}
         moduleTitle={session.moduleTitle}
         submitting={submitting}
+        error={sheetVisible ? error : null}
         onCancel={() => {
           if (!submitting) setSheetVisible(false);
         }}
-        onSubmit={() => void handleConfirmSubmit()}
+        onSubmit={() => handleConfirmSubmit()}
       />
     </View>
   );
@@ -236,45 +236,6 @@ const styles = StyleSheet.create({
   },
   buttonTextSuccess: {
     color: '#15803D',
-  },
-  errorCard: {
-    backgroundColor: '#FEE2E2',
-    borderColor: '#FCA5A5',
-    borderRadius: 12,
-    borderWidth: 1,
-    gap: 10,
-    padding: 12,
-  },
-  errorText: {
-    color: '#B91C1C',
-    fontSize: 13,
-    fontWeight: '600',
-    lineHeight: 19,
-  },
-  errorActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  retryButton: {
-    backgroundColor: '#B91C1C',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  retryText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  dismissButton: {
-    justifyContent: 'center',
-    paddingHorizontal: 6,
-    paddingVertical: 6,
-  },
-  dismissText: {
-    color: '#7F1D1D',
-    fontSize: 12,
-    fontWeight: '700',
   },
   pressed: {
     opacity: 0.65,
