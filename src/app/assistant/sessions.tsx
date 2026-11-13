@@ -20,6 +20,8 @@ import {
 
 import { useAuth } from '@/context/AuthContext';
 
+import AttendanceRecap from '@/features/assistant/components/attendance-recap';
+
 import {
   subscribeSchedules,
   type PracticumSchedule,
@@ -330,7 +332,7 @@ export default function AssistantSessionsScreen() {
     }
   }
 
-  // Menampilkan kartu berdasarkan status sesi.
+  // Menampilkan kartu sesi beserta rekap kehadiran.
   function renderSession({ item }: { item: SessionRecord }) {
     return (
       <View style={styles.card}>
@@ -375,6 +377,12 @@ export default function AssistantSessionsScreen() {
         <Text style={styles.detail}>
           Catatan: {item.sessionNote || '-'}
         </Text>
+
+        {/* Rekap kehadiran real-time */}
+        <AttendanceRecap
+          sessionId={item.id}
+          classId={item.classId}
+        />
 
         {/* Sesi yang belum dibuka */}
         {item.status === 'dijadwalkan' && (

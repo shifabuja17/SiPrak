@@ -1,4 +1,5 @@
 import {
+  Alert,
   FlatList,
   Pressable,
   SafeAreaView,
@@ -7,13 +8,30 @@ import {
   Text,
   View,
 } from 'react-native';
+
 import { router } from 'expo-router';
+import { useAuth } from '@/context/AuthContext';
 
 import { SessionCard } from '@/features/assistant/components/session-card';
 import { useAssistantSessions } from '@/features/assistant/state/assistant-sessions-context';
 
 export default function AssistantScheduleScreen() {
   const { sessions } = useAssistantSessions();
+  const { logout } = useAuth();
+
+  // Fungsi untuk logout dari akun.
+  async function handleLogout() {
+    try {
+      await logout();
+      router.replace('/');
+    } catch (error) {
+      console.error('Gagal logout:', error);
+      Alert.alert(
+        'Gagal',
+        'Tidak berhasil keluar dari akun. Silakan coba lagi.'
+      );
+    }
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -78,6 +96,17 @@ export default function AssistantScheduleScreen() {
               </Text>
             </Pressable>
 
+            {/* Tombol Manajemen Pengajuan Izin */}
+            <Pressable
+              style={styles.manageLeaveButton}
+              onPress={() => router.push('/assistant/leave-requests')}
+            >
+              <Text style={styles.manageSessionButtonText}>
+                + Manajemen Pengajuan Izin
+              </Text>
+            </Pressable>
+
+            {/* Profil Asisten */}
             <View style={styles.profile}>
               <View style={styles.profileAvatar}>
                 <Text style={styles.profileInitial}>B</Text>
@@ -92,9 +121,15 @@ export default function AssistantScheduleScreen() {
                 </Text>
               </View>
 
-              <Text style={styles.switch}>
-                Ganti akun
-              </Text>
+              {/* Tombol Logout */}
+              <Pressable
+                onPress={handleLogout}
+                hitSlop={10}
+              >
+                <Text style={styles.switch}>
+                  Ganti akun
+                </Text>
+              </Pressable>
             </View>
 
             <Text style={styles.sectionTitle}>
@@ -170,6 +205,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   manageSessionButton: {
+    alignItems: 'center',
+    backgroundColor: '#EEEEEE',
+    borderColor: '#000000',
+    borderRadius: 11,
+    borderWidth: 1,
+    justifyContent: 'center',
+    marginTop: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 13,
+  },
+  manageLeaveButton: {
     alignItems: 'center',
     backgroundColor: '#EEEEEE',
     borderColor: '#000000',
