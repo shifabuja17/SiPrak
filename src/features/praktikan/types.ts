@@ -70,3 +70,36 @@ export interface SessionAttendanceDoc {
   nama: string;
   waktu: Date | null;
 }
+
+/**
+ * Status pengajuan izin Praktikan di koleksi `leaveRequests/{requestId}` sesuai `firestore.rules`.
+ */
+export type LeaveRequestStatus = 'menunggu' | 'diterima' | 'ditolak';
+
+/**
+ * Dokumen pengajuan izin pada koleksi `leaveRequests/{sessionId}_{uid}`.
+ */
+export interface LeaveRequestDoc {
+  id: string;
+  uid: string;
+  nama: string | null;
+  sessionId: string;
+  alasan: string;
+  kategoriAI: string | null;
+  status: LeaveRequestStatus;
+  createdAt: Date | null;
+  reviewedBy?: string | null;
+  reviewedAt?: Date | null;
+  catatanAsisten?: string | null;
+}
+
+/**
+ * Input pengiriman pengajuan izin Praktikan sebelum ditulis ke Firestore.
+ */
+export interface SubmitLeaveRequestInput {
+  sessionId: string;
+  uid: string;
+  nama: string;
+  alasan: string;
+  kategoriAI?: string | null;
+}
