@@ -33,25 +33,25 @@ export default function PraktikanAttendanceSection({
   const [sheetVisible, setSheetVisible] = useState(false);
 
   const attendance = session.attendances.find(
-    (record) => record.userId === currentUser.id,
+    (record) => record.uid === currentUser.uid,
   );
 
   function getButtonState(): ButtonState {
     if (attendance) {
       return {
-        label: `Anda Sudah Presensi pada ${attendance.timestamp}`,
+        label: `Anda Sudah Presensi pada ${attendance.waktu}`,
         variant: 'SUCCESS',
       };
     }
 
-    if (session.status === 'OPEN') {
+    if (session.status === 'dibuka') {
       return {
         label: 'Lakukan Presensi Sekarang',
         variant: 'ACTIVE',
       };
     }
 
-    if (session.status === 'CLOSED') {
+    if (session.status === 'ditutup') {
       return {
         label: 'Sesi Telah Ditutup - Tidak Hadir',
         variant: 'DISABLED',
@@ -67,11 +67,11 @@ export default function PraktikanAttendanceSection({
   const buttonState = getButtonState();
   const isActive = buttonState.variant === 'ACTIVE';
 
-  function handleSubmit(note: string) {
+  function handleSubmit() {
     setSheetVisible(false);
 
     try {
-      submitAttendance(session.id, currentUser, note);
+      submitAttendance(session.id, currentUser);
 
       Alert.alert('Berhasil', 'Presensi kamu sudah tercatat.');
     } catch (error) {
@@ -116,14 +116,6 @@ export default function PraktikanAttendanceSection({
           {buttonState.label}
         </Text>
       </Pressable>
-
-      {attendance?.note ? (
-        <View style={styles.noteContainer}>
-          <Text style={styles.noteLabel}>Catatan Presensi</Text>
-
-          <Text style={styles.noteText}>{attendance.note}</Text>
-        </View>
-      ) : null}
 
       <AttendanceSheet
         visible={sheetVisible}
@@ -170,22 +162,6 @@ const styles = StyleSheet.create({
   },
   buttonTextSuccess: {
     color: '#000000',
-  },
-  noteContainer: {
-    backgroundColor: '#F2F2F2',
-    borderRadius: 12,
-    gap: 5,
-    padding: 12,
-  },
-  noteLabel: {
-    color: '#666666',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  noteText: {
-    color: '#404040',
-    fontSize: 13,
-    lineHeight: 20,
   },
   pressed: {
     opacity: 0.65,

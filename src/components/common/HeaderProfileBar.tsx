@@ -12,7 +12,7 @@ export default function HeaderProfileBar() {
   const { currentUser } = usePracticum();
 
   const roleLabel =
-    currentUser.role === 'ASISTEN'
+    currentUser.role === 'asisten'
       ? 'Asisten Praktikum'
       : 'Praktikan';
 
@@ -20,13 +20,13 @@ export default function HeaderProfileBar() {
     <View style={styles.container}>
       <View style={styles.avatar}>
         <Text style={styles.avatarText}>
-          {currentUser.name.charAt(0).toUpperCase()}
+          {currentUser.nama.charAt(0).toUpperCase()}
         </Text>
       </View>
 
       <View style={styles.profileDetails}>
         <Text style={styles.name}>
-          {currentUser.name}
+          {currentUser.nama}
         </Text>
 
         <Text style={styles.role}>

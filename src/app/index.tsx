@@ -30,7 +30,7 @@ export default function StartScreen() {
     : [];
 
   const selectedUser = availableUsers.find(
-    (user) => user.id === selectedUserId,
+    (user) => user.uid === selectedUserId,
   );
 
   function handleSelectRole(role: UserRole) {
@@ -48,7 +48,7 @@ export default function StartScreen() {
     }
 
     try {
-      switchUser(selectedUser.id);
+      switchUser(selectedUser.uid);
       router.replace('/(tabs)/schedule');
     } catch (error) {
       Alert.alert(
@@ -98,7 +98,7 @@ export default function StartScreen() {
 
           <View style={styles.roleList}>
             {(
-              ['ASISTEN', 'PRAKTIKAN'] as UserRole[]
+              ['asisten', 'praktikan'] as UserRole[]
             ).map((role) => {
               const isSelected = selectedRole === role;
 
@@ -114,7 +114,7 @@ export default function StartScreen() {
                 >
                   <View style={styles.roleDetails}>
                     <Text style={styles.roleName}>
-                      {role === 'ASISTEN'
+                      {role === 'asisten'
                         ? 'Asisten Praktikum'
                         : 'Praktikan'}
                     </Text>
@@ -145,12 +145,12 @@ export default function StartScreen() {
             <View style={styles.userList}>
               {availableUsers.map((user) => {
                 const isSelected =
-                  selectedUserId === user.id;
+                  selectedUserId === user.uid;
 
                 return (
                   <Pressable
-                    key={user.id}
-                    onPress={() => setSelectedUserId(user.id)}
+                    key={user.uid}
+                    onPress={() => setSelectedUserId(user.uid)}
                     style={({ pressed }) => [
                       styles.userCard,
                       isSelected && styles.selectedCard,
@@ -159,13 +159,13 @@ export default function StartScreen() {
                   >
                     <View style={styles.avatar}>
                       <Text style={styles.avatarText}>
-                        {user.name.charAt(0).toUpperCase()}
+                        {user.nama.charAt(0).toUpperCase()}
                       </Text>
                     </View>
 
                     <View style={styles.userDetails}>
                       <Text style={styles.userName}>
-                        {user.name}
+                        {user.nama}
                       </Text>
 
                       <Text style={styles.userNim}>

@@ -1,3 +1,4 @@
+import type { Role } from '@/types/user';
 
 import {
   createContext,
@@ -7,23 +8,25 @@ import {
   type ReactNode,
 } from 'react';
 
-export type UserRole = 'ASISTEN' | 'PRAKTIKAN';
+// Menggunakan tipe role yang sama dengan Firebase Auth dan Firestore.
+export type UserRole = Role;
 
-export type SessionStatus = 'UPCOMING' | 'OPEN' | 'CLOSED';
+export type SessionStatus = 'dijadwalkan' | 'dibuka' | 'ditutup';
 
 export interface PracticumUser {
-  id: string;
-  name: string;
-  nim: string;
+  uid: string;
+  nama: string;
+  nim: string | null;
   role: UserRole;
 }
 
+// Bentuk data tampilan presensi mengikuti field dokumen Firestore.
+// Nilai waktu di sini sudah diformat untuk UI; saat disimpan ke Firestore
+// gunakan serverTimestamp() agar sesuai dengan firestore.rules.
 export interface AttendanceRecord {
-  userId: string;
-  name: string;
-  nim: string;
-  timestamp: string;
-  note: string;
+  uid: string;
+  nama: string;
+  waktu: string;
 }
 
 export interface PracticumSession {
@@ -39,28 +42,28 @@ export interface PracticumSession {
 
 const INITIAL_USERS: PracticumUser[] = [
   {
-    id: 'ast-1',
-    name: 'Budi Santoso',
+    uid: 'ast-1',
+    nama: 'Budi Santoso',
     nim: '24060121130045',
-    role: 'ASISTEN',
+    role: 'asisten',
   },
   {
-    id: 'prk-1',
-    name: 'Andi Pratama',
+    uid: 'prk-1',
+    nama: 'Andi Pratama',
     nim: '24060123120001',
-    role: 'PRAKTIKAN',
+    role: 'praktikan',
   },
   {
-    id: 'prk-2',
-    name: 'Siti Aminah',
+    uid: 'prk-2',
+    nama: 'Siti Aminah',
     nim: '24060123120002',
-    role: 'PRAKTIKAN',
+    role: 'praktikan',
   },
   {
-    id: 'prk-3',
-    name: 'Rizky Ramadhan',
+    uid: 'prk-3',
+    nama: 'Rizky Ramadhan',
     nim: '24060123120003',
-    role: 'PRAKTIKAN',
+    role: 'praktikan',
   },
 ];
 
@@ -71,7 +74,7 @@ const INITIAL_SESSIONS: PracticumSession[] = [
     moduleTitle: 'Modul 1: Pengenalan React Native & Flexbox',
     classRoom: 'Kelas A - Lab Komputasi Dasar',
     scheduleTime: 'Kamis, 08:00 - 10:30 WIB',
-    status: 'UPCOMING',
+    status: 'dijadwalkan',
     sessionNote: '',
     attendances: [],
   },
@@ -81,7 +84,7 @@ const INITIAL_SESSIONS: PracticumSession[] = [
     moduleTitle: 'Modul 3: Stack & Queue',
     classRoom: 'Kelas B - Lab Algoritma',
     scheduleTime: 'Jumat, 13:00 - 15:30 WIB',
-    status: 'UPCOMING',
+    status: 'dijadwalkan',
     sessionNote: '',
     attendances: [],
   },
@@ -92,13 +95,12 @@ interface PracticumContextValue {
   currentUser: PracticumUser;
   sessions: PracticumSession[];
 
-  switchUser: (userId: string) => void;
+  switchUser: (uid: string) => void;
   openSession: (sessionId: string, note: string) => void;
   closeSession: (sessionId: string) => void;
   submitAttendance: (
     sessionId: string,
     user: PracticumUser,
-    note: string,
   ) => void;
 }
 
@@ -134,9 +136,9 @@ export function PracticumProvider({
     new Set(),
   );
 
-  function switchUser(userId: string): void {
+  function switchUser(uid: string): void {
     const selectedUser = INITIAL_USERS.find(
-      (user) => user.id === userId,
+      (user) => user.uid === uid,
     );
 
     if (!selectedUser) {
@@ -150,7 +152,7 @@ export function PracticumProvider({
     sessionId: string,
     note: string,
   ): void {
-    if (currentUser.role !== 'ASISTEN') {
+    if (currentUser.role !== 'asisten') {
       throw new Error(
         'Hanya Asisten yang dapat membuka sesi.',
       );
@@ -164,7 +166,7 @@ export function PracticumProvider({
       throw new Error('Sesi praktikum tidak ditemukan.');
     }
 
-    if (session.status !== 'UPCOMING') {
+    if (session.status !== 'dijadwalkan') {
       throw new Error('Sesi ini tidak dapat dibuka lagi.');
     }
 
@@ -173,7 +175,7 @@ export function PracticumProvider({
         item.id === sessionId
           ? {
               ...item,
-              status: 'OPEN',
+              status: 'dibuka',
               sessionNote: note.trim(),
             }
           : item,
@@ -182,7 +184,7 @@ export function PracticumProvider({
   }
 
   function closeSession(sessionId: string): void {
-    if (currentUser.role !== 'ASISTEN') {
+    if (currentUser.role !== 'asisten') {
       throw new Error(
         'Hanya Asisten yang dapat menutup sesi.',
       );
@@ -196,7 +198,7 @@ export function PracticumProvider({
       throw new Error('Sesi praktikum tidak ditemukan.');
     }
 
-    if (session.status !== 'OPEN') {
+    if (session.status !== 'dibuka') {
       throw new Error(
         'Hanya sesi yang sedang berlangsung yang dapat ditutup.',
       );
@@ -205,7 +207,7 @@ export function PracticumProvider({
     setSessions((previousSessions) =>
       previousSessions.map((item) =>
         item.id === sessionId
-          ? { ...item, status: 'CLOSED' }
+          ? { ...item, status: 'ditutup' }
           : item,
       ),
     );
@@ -214,17 +216,16 @@ export function PracticumProvider({
   function submitAttendance(
     sessionId: string,
     user: PracticumUser,
-    note: string,
   ): void {
-    if (currentUser.role !== 'PRAKTIKAN') {
+    if (currentUser.role !== 'praktikan') {
       throw new Error(
         'Hanya Praktikan yang dapat melakukan presensi.',
       );
     }
 
     if (
-      user.id !== currentUser.id ||
-      user.role !== 'PRAKTIKAN'
+      user.uid !== currentUser.uid ||
+      user.role !== 'praktikan'
     ) {
       throw new Error(
         'Identitas praktikan tidak sesuai dengan akun aktif.',
@@ -239,17 +240,17 @@ export function PracticumProvider({
       throw new Error('Sesi praktikum tidak ditemukan.');
     }
 
-    if (session.status !== 'OPEN') {
+    if (session.status !== 'dibuka') {
       throw new Error(
         'Presensi hanya dapat dilakukan saat sesi berlangsung.',
       );
     }
 
-    const duplicateKey = `${sessionId}:${currentUser.id}`;
+    const duplicateKey = `${sessionId}:${currentUser.uid}`;
 
     const alreadyAttended = session.attendances.some(
       (attendance) =>
-        attendance.userId === currentUser.id,
+        attendance.uid === currentUser.uid,
     );
 
     if (
@@ -262,11 +263,9 @@ export function PracticumProvider({
     }
 
     const newAttendance: AttendanceRecord = {
-      userId: currentUser.id,
-      name: currentUser.name,
-      nim: currentUser.nim,
-      timestamp: getTimestampWIB(),
-      note: note.trim(),
+      uid: currentUser.uid,
+      nama: currentUser.nama,
+      waktu: getTimestampWIB(),
     };
 
     submittedAttendanceKeys.current.add(duplicateKey);

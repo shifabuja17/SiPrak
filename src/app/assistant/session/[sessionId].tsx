@@ -32,17 +32,17 @@ export default function AssistantSessionDetailScreen() {
           <Info label="Jadwal" value={session.scheduleTime} />
           <Info label="Catatan sesi" value={session.sessionNote || '-'} last />
         </View>
-        {session.status === 'UPCOMING' && (
+        {session.status === 'dijadwalkan' && (
           <Pressable style={styles.primaryButton} onPress={() => setModalVisible(true)}>
             <Text style={styles.primaryButtonText}>Buka Sesi</Text>
           </Pressable>
         )}
-        {session.status === 'OPEN' && (
+        {session.status === 'dibuka' && (
           <Pressable style={styles.secondaryButton} onPress={() => setModalVisible(true)}>
             <Text style={styles.secondaryButtonText}>Tutup Sesi</Text>
           </Pressable>
         )}
-        {session.status === 'CLOSED' && (
+        {session.status === 'ditutup' && (
           <View style={styles.closedNotice}><Text style={styles.closedNoticeText}>Sesi ini sudah selesai.</Text></View>
         )}
         <AttendanceSummary records={session.attendances} />
@@ -50,9 +50,9 @@ export default function AssistantSessionDetailScreen() {
       <Modal animationType="slide" transparent visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{session.status === 'UPCOMING' ? 'Buka sesi praktikum?' : 'Tutup sesi praktikum?'}</Text>
-            <Text style={styles.modalDescription}>{session.status === 'UPCOMING' ? 'Sesi akan berubah menjadi berlangsung dan praktikan dapat melakukan presensi.' : 'Sesi akan ditandai selesai. Praktikan tidak dapat melakukan presensi setelah sesi ditutup.'}</Text>
-            {session.status === 'UPCOMING' && (
+            <Text style={styles.modalTitle}>{session.status === 'dijadwalkan' ? 'Buka sesi praktikum?' : 'Tutup sesi praktikum?'}</Text>
+            <Text style={styles.modalDescription}>{session.status === 'dijadwalkan' ? 'Sesi akan berubah menjadi berlangsung dan praktikan dapat melakukan presensi.' : 'Sesi akan ditandai selesai. Praktikan tidak dapat melakukan presensi setelah sesi ditutup.'}</Text>
+            {session.status === 'dijadwalkan' && (
               <>
                 <Text style={styles.inputLabel}>Catatan / materi sesi (opsional)</Text>
                 <TextInput
@@ -71,8 +71,8 @@ export default function AssistantSessionDetailScreen() {
               <Pressable
                 style={styles.confirmButton}
                 onPress={() => {
-                  if (session.status === 'UPCOMING') openSession(session.id, sessionNote);
-                  else if (session.status === 'OPEN') closeSession(session.id);
+                  if (session.status === 'dijadwalkan') openSession(session.id, sessionNote);
+                  else if (session.status === 'dibuka') closeSession(session.id);
                   setSessionNote('');
                   setModalVisible(false);
                 }}>

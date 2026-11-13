@@ -26,14 +26,14 @@ export default function RoleSwitcherScreen() {
     useState<UserRole>(currentUser.role);
 
   const [selectedUserId, setSelectedUserId] =
-    useState(currentUser.id);
+    useState(currentUser.uid);
 
   const availableUsers = users.filter(
     (user) => user.role === selectedRole,
   );
 
   const selectedUser = availableUsers.find(
-    (user) => user.id === selectedUserId,
+    (user) => user.uid === selectedUserId,
   );
 
   function handleSelectRole(role: UserRole) {
@@ -44,7 +44,7 @@ export default function RoleSwitcherScreen() {
     );
 
     if (firstUser) {
-      setSelectedUserId(firstUser.id);
+      setSelectedUserId(firstUser.uid);
     }
   }
 
@@ -58,7 +58,7 @@ export default function RoleSwitcherScreen() {
     }
 
     try {
-      switchUser(selectedUser.id);
+      switchUser(selectedUser.uid);
       router.back();
     } catch (error) {
       Alert.alert(
@@ -102,11 +102,11 @@ export default function RoleSwitcherScreen() {
           </Text>
 
           <Text style={styles.currentName}>
-            {currentUser.name}
+            {currentUser.nama}
           </Text>
 
           <Text style={styles.currentDetails}>
-            {currentUser.role === 'ASISTEN'
+            {currentUser.role === 'asisten'
               ? 'Asisten Praktikum'
               : 'Praktikan'}
             {' · '}
@@ -121,7 +121,7 @@ export default function RoleSwitcherScreen() {
 
           <View style={styles.roleList}>
             {(
-              ['ASISTEN', 'PRAKTIKAN'] as UserRole[]
+              ['asisten', 'praktikan'] as UserRole[]
             ).map((role) => {
               const isSelected = selectedRole === role;
 
@@ -137,13 +137,13 @@ export default function RoleSwitcherScreen() {
                 >
                   <View style={styles.roleTextContainer}>
                     <Text style={styles.roleTitle}>
-                      {role === 'ASISTEN'
+                      {role === 'asisten'
                         ? 'Asisten'
                         : 'Praktikan'}
                     </Text>
 
                     <Text style={styles.roleDescription}>
-                      {role === 'ASISTEN'
+                      {role === 'asisten'
                         ? 'Mengelola sesi praktikum'
                         : 'Melakukan presensi'}
                     </Text>
@@ -177,12 +177,12 @@ export default function RoleSwitcherScreen() {
           <View style={styles.userList}>
             {availableUsers.map((user) => {
               const isSelected =
-                selectedUserId === user.id;
+                selectedUserId === user.uid;
 
               return (
                 <Pressable
-                  key={user.id}
-                  onPress={() => setSelectedUserId(user.id)}
+                  key={user.uid}
+                  onPress={() => setSelectedUserId(user.uid)}
                   style={({ pressed }) => [
                     styles.userCard,
                     isSelected && styles.selectedCard,
@@ -191,13 +191,13 @@ export default function RoleSwitcherScreen() {
                 >
                   <View style={styles.avatar}>
                     <Text style={styles.avatarText}>
-                      {user.name.charAt(0).toUpperCase()}
+                      {user.nama.charAt(0).toUpperCase()}
                     </Text>
                   </View>
 
                   <View style={styles.userDetails}>
                     <Text style={styles.userName}>
-                      {user.name}
+                      {user.nama}
                     </Text>
 
                     <Text style={styles.userNim}>

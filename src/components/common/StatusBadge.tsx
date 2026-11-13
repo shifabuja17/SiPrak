@@ -9,17 +9,17 @@ const BADGE_CONFIG: Record<
   SessionStatus,
   { label: string; background: string; color: string }
 > = {
-  UPCOMING: {
+  dijadwalkan: {
     label: 'BELUM DIBUKA',
     background: '#F2F2F2',
     color: '#404040',
   },
-  OPEN: {
+  dibuka: {
     label: 'BERLANGSUNG',
     background: '#DCFCE7',
     color: '#15803D',
   },
-  CLOSED: {
+  ditutup: {
     label: 'SELESAI',
     background: '#FEE2E2',
     color: '#B91C1C',

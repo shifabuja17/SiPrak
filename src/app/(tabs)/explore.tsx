@@ -26,9 +26,9 @@ function AttendanceBadge({
 
   if (isPresent) {
     label = 'HADIR';
-  } else if (sessionStatus === 'OPEN') {
+  } else if (sessionStatus === 'dibuka') {
     label = 'BELUM PRESENSI';
-  } else if (sessionStatus === 'CLOSED') {
+  } else if (sessionStatus === 'ditutup') {
     label = 'TIDAK HADIR';
   }
 
@@ -42,19 +42,19 @@ function AttendanceBadge({
 export default function AttendanceHistoryScreen() {
   const { currentUser, sessions } = usePracticum();
 
-  const isPraktikan = currentUser.role === 'PRAKTIKAN';
+  const isPraktikan = currentUser.role === 'praktikan';
 
   const presentCount = sessions.filter((session) =>
     session.attendances.some(
-      (record) => record.userId === currentUser.id,
+      (record) => record.uid === currentUser.uid,
     ),
   ).length;
 
   const absentCount = sessions.filter(
     (session) =>
-      session.status === 'CLOSED' &&
+      session.status === 'ditutup' &&
       !session.attendances.some(
-        (record) => record.userId === currentUser.id,
+        (record) => record.uid === currentUser.uid,
       ),
   ).length;
 
@@ -130,7 +130,7 @@ export default function AttendanceHistoryScreen() {
         }
         renderItem={({ item }) => {
           const attendance = item.attendances.find(
-            (record) => record.userId === currentUser.id,
+            (record) => record.uid === currentUser.uid,
           );
 
           return (
@@ -176,22 +176,10 @@ export default function AttendanceHistoryScreen() {
 
                 {attendance && (
                   <Text style={styles.timestamp}>
-                    {attendance.timestamp}
+                    {attendance.waktu}
                   </Text>
                 )}
               </View>
-
-              {attendance?.note ? (
-                <View style={styles.noteContainer}>
-                  <Text style={styles.metadataLabel}>
-                    Catatan Presensi
-                  </Text>
-
-                  <Text style={styles.note}>
-                    {attendance.note}
-                  </Text>
-                </View>
-              ) : null}
             </View>
           );
         }}
@@ -351,17 +339,6 @@ const styles = StyleSheet.create({
     color: '#666666',
     fontSize: 12,
     fontWeight: '600',
-  },
-  noteContainer: {
-    backgroundColor: '#F2F2F2',
-    borderRadius: 12,
-    gap: 5,
-    padding: 12,
-  },
-  note: {
-    color: '#404040',
-    fontSize: 13,
-    lineHeight: 20,
   },
   emptyCard: {
     alignItems: 'center',

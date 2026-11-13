@@ -61,14 +61,14 @@ export default function SessionDetailScreen() {
 
   function handleConfirmAction() {
     const actionLabel =
-      currentSessionStatus === 'UPCOMING'
+      currentSessionStatus === 'dijadwalkan'
         ? 'dibuka'
         : 'ditutup';
 
     try {
-      if (currentSessionStatus === 'UPCOMING') {
+      if (currentSessionStatus === 'dijadwalkan') {
         openSession(sessionId, sessionNote);
-      } else if (currentSessionStatus === 'OPEN') {
+      } else if (currentSessionStatus === 'dibuka') {
         closeSession(sessionId);
       } else {
         throw new Error(
@@ -141,8 +141,8 @@ export default function SessionDetailScreen() {
           />
         </View>
 
-        {currentUser.role === 'ASISTEN' &&
-          session.status === 'UPCOMING' && (
+        {currentUser.role === 'asisten' &&
+          session.status === 'dijadwalkan' && (
             <Pressable
               style={({ pressed }) => [
                 styles.primaryButton,
@@ -156,8 +156,8 @@ export default function SessionDetailScreen() {
             </Pressable>
           )}
 
-        {currentUser.role === 'ASISTEN' &&
-          session.status === 'OPEN' && (
+        {currentUser.role === 'asisten' &&
+          session.status === 'dibuka' && (
             <Pressable
               style={({ pressed }) => [
                 styles.secondaryButton,
@@ -171,8 +171,8 @@ export default function SessionDetailScreen() {
             </Pressable>
           )}
 
-        {currentUser.role === 'ASISTEN' &&
-          session.status === 'CLOSED' && (
+        {currentUser.role === 'asisten' &&
+          session.status === 'ditutup' && (
             <View style={styles.notice}>
               <Text style={styles.noticeText}>
                 Sesi ini sudah selesai.
@@ -180,11 +180,11 @@ export default function SessionDetailScreen() {
             </View>
           )}
 
-        {currentUser.role === 'PRAKTIKAN' && (
+        {currentUser.role === 'praktikan' && (
           <PraktikanAttendanceSection session={session} />
         )}
 
-        {currentUser.role === 'ASISTEN' ? (
+        {currentUser.role === 'asisten' ? (
           <AttendanceSummary records={session.attendances} />
         ) : (
           <View style={styles.summaryCard}>
@@ -208,18 +208,18 @@ export default function SessionDetailScreen() {
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>
-              {session.status === 'UPCOMING'
+              {session.status === 'dijadwalkan'
                 ? 'Buka sesi praktikum?'
                 : 'Tutup sesi praktikum?'}
             </Text>
 
             <Text style={styles.modalDescription}>
-              {session.status === 'UPCOMING'
+              {session.status === 'dijadwalkan'
                 ? 'Sesi akan berubah menjadi berlangsung sehingga praktikan dapat melakukan presensi.'
                 : 'Sesi akan ditandai selesai dan tidak dapat menerima presensi baru.'}
             </Text>
 
-            {session.status === 'UPCOMING' && (
+            {session.status === 'dijadwalkan' && (
               <>
                 <Text style={styles.inputLabel}>
                   Catatan / materi sesi (opsional)
