@@ -30,6 +30,8 @@ import {
   deleteSession,
   subscribeSessions,
   updateSession,
+  openSession,
+  closeSession,
   type SessionRecord,
   type SessionInput,
 } from '@/features/assistant/services/session-service';
@@ -111,6 +113,7 @@ export default function AssistantSessionsScreen() {
     }
 
     setEditingId(null);
+
     setForm({
       scheduleId: schedules[0].id,
       sessionNote: '',
@@ -141,6 +144,7 @@ export default function AssistantSessionsScreen() {
     }
 
     setEditingId(item.id);
+
     setForm({
       scheduleId: item.scheduleId,
       sessionNote: item.sessionNote || '',
@@ -163,6 +167,7 @@ export default function AssistantSessionsScreen() {
     );
   }
 
+  // Menambah atau mengubah sesi.
   async function handleSave() {
     if (!profile?.uid) {
       Alert.alert('Gagal', 'Identitas Asisten tidak ditemukan.');
@@ -214,6 +219,7 @@ export default function AssistantSessionsScreen() {
     }
   }
 
+  // Menghapus sesi.
   function confirmDelete(item: SessionRecord) {
     Alert.alert(
       'Hapus Sesi',
@@ -247,13 +253,85 @@ export default function AssistantSessionsScreen() {
     }
   }
 
-  function renderSession({ item }: { item: SessionRecord }) {
-    const selectedSchedule = schedules.find(
-      (schedule) => schedule.id === item.scheduleId,
+  // Meminta konfirmasi sebelum membuka sesi.
+  function confirmOpenSession(item: SessionRecord) {
+    Alert.alert(
+      'Buka Sesi Praktikum',
+      `Buka sesi "${item.practicumName}" sekarang?`,
+      [
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: 'Buka Sesi',
+          onPress: () => {
+            void handleOpenSession(item.id);
+          },
+        },
+      ],
     );
+  }
 
-    const isEditable = item.status === 'dijadwalkan';
+  // Mengubah status sesi menjadi dibuka di Firestore.
+  async function handleOpenSession(sessionId: string) {
+    try {
+      await openSession(sessionId);
 
+      Alert.alert(
+        'Berhasil',
+        'Sesi praktikum berhasil dibuka.',
+      );
+    } catch (firebaseError) {
+      console.error('Gagal membuka sesi:', firebaseError);
+
+      Alert.alert(
+        'Gagal Membuka Sesi',
+        firebaseError instanceof Error
+          ? firebaseError.message
+          : 'Terjadi kesalahan saat membuka sesi.',
+      );
+    }
+  }
+
+  // Meminta konfirmasi sebelum menutup sesi.
+  function confirmCloseSession(item: SessionRecord) {
+    Alert.alert(
+      'Tutup Sesi Praktikum',
+      `Yakin ingin menutup sesi "${item.practicumName}"? Praktikan tidak dapat melakukan presensi lagi setelah sesi ditutup.`,
+      [
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: 'Tutup Sesi',
+          style: 'destructive',
+          onPress: () => {
+            void handleCloseSession(item.id);
+          },
+        },
+      ],
+    );
+  }
+
+  // Mengubah status sesi menjadi ditutup di Firestore.
+  async function handleCloseSession(sessionId: string) {
+    try {
+      await closeSession(sessionId);
+
+      Alert.alert(
+        'Berhasil',
+        'Sesi praktikum berhasil ditutup.',
+      );
+    } catch (firebaseError) {
+      console.error('Gagal menutup sesi:', firebaseError);
+
+      Alert.alert(
+        'Gagal Menutup Sesi',
+        firebaseError instanceof Error
+          ? firebaseError.message
+          : 'Terjadi kesalahan saat menutup sesi.',
+      );
+    }
+  }
+
+  // Menampilkan kartu berdasarkan status sesi.
+  function renderSession({ item }: { item: SessionRecord }) {
     return (
       <View style={styles.card}>
         <View style={styles.cardHeader}>
@@ -283,9 +361,11 @@ export default function AssistantSessionsScreen() {
         </Text>
 
         <Text style={styles.detail}>
-          Kelas: {selectedSchedule?.classId === item.classId
-            ? item.classRoom
-            : item.classRoom}
+          ID Kelas: {item.classId}
+        </Text>
+
+        <Text style={styles.detail}>
+          Ruangan: {item.classRoom}
         </Text>
 
         <Text style={styles.detail}>
@@ -296,25 +376,56 @@ export default function AssistantSessionsScreen() {
           Catatan: {item.sessionNote || '-'}
         </Text>
 
-        {isEditable ? (
-          <View style={styles.actionRow}>
-            <Pressable
-              style={styles.editButton}
-              onPress={() => openEditModal(item)}
-            >
-              <Text style={styles.editButtonText}>Edit</Text>
-            </Pressable>
+        {/* Sesi yang belum dibuka */}
+        {item.status === 'dijadwalkan' && (
+          <>
+            <View style={styles.actionRow}>
+              <Pressable
+                style={styles.editButton}
+                onPress={() => openEditModal(item)}
+              >
+                <Text style={styles.editButtonText}>
+                  Edit
+                </Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.deleteButton}
+                onPress={() => confirmDelete(item)}
+              >
+                <Text style={styles.deleteButtonText}>
+                  Hapus
+                </Text>
+              </Pressable>
+            </View>
 
             <Pressable
-              style={styles.deleteButton}
-              onPress={() => confirmDelete(item)}
+              style={styles.openButton}
+              onPress={() => confirmOpenSession(item)}
             >
-              <Text style={styles.deleteButtonText}>Hapus</Text>
+              <Text style={styles.openButtonText}>
+                Buka Sesi
+              </Text>
             </Pressable>
-          </View>
-        ) : (
+          </>
+        )}
+
+        {/* Sesi yang sedang berlangsung */}
+        {item.status === 'dibuka' && (
+          <Pressable
+            style={styles.closeButton}
+            onPress={() => confirmCloseSession(item)}
+          >
+            <Text style={styles.closeButtonText}>
+              Tutup Sesi
+            </Text>
+          </Pressable>
+        )}
+
+        {/* Sesi yang sudah selesai */}
+        {item.status === 'ditutup' && (
           <Text style={styles.lockedText}>
-            Sesi sudah dimulai atau selesai. Edit dan hapus dinonaktifkan.
+            Sesi telah selesai. Presensi sudah ditutup.
           </Text>
         )}
       </View>
@@ -339,7 +450,9 @@ export default function AssistantSessionsScreen() {
               <Text style={styles.backText}>‹ Kembali</Text>
             </Pressable>
 
-            <Text style={styles.title}>Manajemen Sesi</Text>
+            <Text style={styles.title}>
+              Manajemen Sesi
+            </Text>
 
             <Text style={styles.subtitle}>
               Buat dan kelola sesi berdasarkan jadwal praktikum.
@@ -358,7 +471,10 @@ export default function AssistantSessionsScreen() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             {loading ? (
-              <ActivityIndicator size="large" color="#000000" />
+              <ActivityIndicator
+                size="large"
+                color="#000000"
+              />
             ) : (
               <>
                 <Text style={styles.emptyTitle}>
@@ -366,7 +482,8 @@ export default function AssistantSessionsScreen() {
                 </Text>
 
                 <Text style={styles.emptyText}>
-                  {error || 'Tekan Tambah Sesi untuk membuat sesi praktikum.'}
+                  {error ||
+                    'Tekan Tambah Sesi untuk membuat sesi praktikum.'}
                 </Text>
               </>
             )}
@@ -374,6 +491,7 @@ export default function AssistantSessionsScreen() {
         }
       />
 
+      {/* Modal tambah dan edit sesi */}
       <Modal
         visible={modalVisible}
         transparent
@@ -393,7 +511,9 @@ export default function AssistantSessionsScreen() {
                 {editingId ? 'Edit Sesi' : 'Tambah Sesi'}
               </Text>
 
-              <Text style={styles.label}>Pilih Jadwal Praktikum</Text>
+              <Text style={styles.label}>
+                Pilih Jadwal Praktikum
+              </Text>
 
               <View style={styles.scheduleOptions}>
                 {schedules.map((item) => {
@@ -434,7 +554,9 @@ export default function AssistantSessionsScreen() {
                 })}
               </View>
 
-              <Text style={styles.label}>Catatan Sesi (Opsional)</Text>
+              <Text style={styles.label}>
+                Catatan Sesi (Opsional)
+              </Text>
 
               <TextInput
                 style={styles.input}
@@ -457,7 +579,9 @@ export default function AssistantSessionsScreen() {
                   onPress={closeModal}
                   disabled={saving}
                 >
-                  <Text style={styles.cancelButtonText}>Batal</Text>
+                  <Text style={styles.cancelButtonText}>
+                    Batal
+                  </Text>
                 </Pressable>
 
                 <Pressable
@@ -469,7 +593,9 @@ export default function AssistantSessionsScreen() {
                     <ActivityIndicator color="#FFFFFF" />
                   ) : (
                     <Text style={styles.saveButtonText}>
-                      {editingId ? 'Simpan Perubahan' : 'Simpan Sesi'}
+                      {editingId
+                        ? 'Simpan Perubahan'
+                        : 'Simpan Sesi'}
                     </Text>
                   )}
                 </Pressable>
@@ -609,6 +735,32 @@ const styles = StyleSheet.create({
     padding: 11,
   },
   deleteButtonText: {
+    color: '#B91C1C',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  openButton: {
+    alignItems: 'center',
+    backgroundColor: '#000000',
+    borderRadius: 9,
+    marginTop: 8,
+    padding: 12,
+  },
+  openButtonText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  closeButton: {
+    alignItems: 'center',
+    backgroundColor: '#FEE2E2',
+    borderColor: '#DC2626',
+    borderRadius: 9,
+    borderWidth: 1,
+    marginTop: 8,
+    padding: 12,
+  },
+  closeButtonText: {
     color: '#B91C1C',
     fontSize: 13,
     fontWeight: '700',

@@ -1,4 +1,3 @@
-
 import {
   addDoc,
   collection,
@@ -9,6 +8,7 @@ import {
   onSnapshot,
   orderBy,
   query,
+  runTransaction,
   serverTimestamp,
   updateDoc,
 } from 'firebase/firestore';
@@ -43,7 +43,7 @@ export interface SessionInput {
   sessionNote: string;
 }
 
-// Mengambil semua sesi dari Firestore secara real-time.
+// Mengambil semua sesi secara real-time.
 export function subscribeSessions(
   onData: (sessions: SessionRecord[]) => void,
   onError: (error: Error) => void,
@@ -67,7 +67,7 @@ export function subscribeSessions(
   );
 }
 
-// Membuat sesi berdasarkan jadwal yang dipilih.
+// Membuat sesi baru.
 export async function createSession(
   input: SessionInput,
   createdBy: string,
@@ -81,13 +81,13 @@ export async function createSession(
   });
 }
 
-// Mengubah informasi sesi.
-// Sesi yang sudah dibuka atau ditutup tidak dapat diedit.
+// Mengubah informasi sesi yang belum dibuka.
 export async function updateSession(
   sessionId: string,
   input: SessionInput,
 ) {
   const sessionRef = doc(db, 'sessions', sessionId);
+
   const sessionSnapshot = await getDoc(sessionRef);
 
   if (!sessionSnapshot.exists()) {
@@ -106,7 +106,61 @@ export async function updateSession(
   });
 }
 
-// Menghapus sesi yang belum memiliki aktivitas presensi.
+// Membuka sesi.
+export async function openSession(
+  sessionId: string,
+) {
+  const sessionRef = doc(db, 'sessions', sessionId);
+
+  await runTransaction(db, async (transaction) => {
+    const sessionSnapshot = await transaction.get(sessionRef);
+
+    if (!sessionSnapshot.exists()) {
+      throw new Error('Sesi tidak ditemukan.');
+    }
+
+    if (sessionSnapshot.data().status !== 'dijadwalkan') {
+      throw new Error(
+        'Hanya sesi yang belum dibuka yang dapat dimulai.',
+      );
+    }
+
+    transaction.update(sessionRef, {
+      status: 'dibuka',
+      openedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  });
+}
+
+// Menutup sesi.
+export async function closeSession(
+  sessionId: string,
+) {
+  const sessionRef = doc(db, 'sessions', sessionId);
+
+  await runTransaction(db, async (transaction) => {
+    const sessionSnapshot = await transaction.get(sessionRef);
+
+    if (!sessionSnapshot.exists()) {
+      throw new Error('Sesi tidak ditemukan.');
+    }
+
+    if (sessionSnapshot.data().status !== 'dibuka') {
+      throw new Error(
+        'Hanya sesi yang sedang berlangsung yang dapat ditutup.',
+      );
+    }
+
+    transaction.update(sessionRef, {
+      status: 'ditutup',
+      closedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  });
+}
+
+// Menghapus sesi yang belum dibuka dan belum memiliki presensi.
 export async function deleteSession(sessionId: string) {
   const sessionRef = doc(db, 'sessions', sessionId);
   const sessionSnapshot = await getDoc(sessionRef);
@@ -127,7 +181,7 @@ export async function deleteSession(sessionId: string) {
 
   if (!attendanceSnapshot.empty) {
     throw new Error(
-      'Sesi yang sudah memiliki data presensi tidak dapat dihapus.',
+      'Sesi yang sudah memiliki presensi tidak dapat dihapus.',
     );
   }
 
