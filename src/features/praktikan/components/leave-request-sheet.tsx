@@ -12,12 +12,14 @@ import {
   View,
 } from 'react-native';
 
+import type { LeaveSubmittingStep } from '@/features/praktikan/hooks/use-praktikan-leave-requests';
 import type {
   FirestoreSessionStatus,
   LeaveRequestDoc,
   LeaveRequestStatus,
   PraktikanSession,
   SessionAttendanceDoc,
+  SubmitLeaveRequestOutcome,
 } from '@/features/praktikan/types';
 import { formatMeetingTitle } from '@/features/praktikan/utils/format';
 import {
@@ -33,15 +35,22 @@ export interface LeaveRequestSheetProps {
   attendanceBySessionId: Record<string, SessionAttendanceDoc | null | undefined>;
   leaveBySessionId: Record<string, LeaveRequestDoc | null | undefined>;
   submitting: boolean;
+  submittingStep?: LeaveSubmittingStep;
   error?: string | null;
   onCancel: () => void;
-  onSubmit: (sessionId: string, alasan: string) => Promise<boolean>;
+  onSubmit: (sessionId: string, alasan: string) => Promise<SubmitLeaveRequestOutcome>;
 }
 
 const LEAVE_STATUS_LABELS: Record<LeaveRequestStatus, string> = {
   menunggu: 'Menunggu',
   diterima: 'Diterima',
   ditolak: 'Ditolak',
+};
+
+const SUBMITTING_STEP_LABELS: Record<LeaveSubmittingStep, string> = {
+  idle: 'Mengirim...',
+  classifying_ai: 'Mengklasifikasi alasan dengan AI...',
+  saving_firestore: 'Menyimpan pengajuan izin...',
 };
 
 const SESSION_STATUS_LABELS: Record<FirestoreSessionStatus, string> = {
@@ -78,6 +87,7 @@ export function LeaveRequestSheet({
   attendanceBySessionId,
   leaveBySessionId,
   submitting,
+  submittingStep = 'idle',
   error = null,
   onCancel,
   onSubmit,
@@ -178,8 +188,8 @@ export function LeaveRequestSheet({
 
     localSubmittingRef.current = true;
     try {
-      const ok = await onSubmit(activeSession.id, alasan.trim());
-      if (!ok && mountedRef.current) {
+      const outcome = await onSubmit(activeSession.id, alasan.trim());
+      if (!outcome.ok && mountedRef.current) {
         setSubmitError(
           'Pengajuan izin gagal dikirim. Periksa pesan error yang tampil atau coba kembali.',
         );
@@ -371,6 +381,12 @@ export function LeaveRequestSheet({
                 karakter.
               </Text>
 
+              <View style={styles.aiNoticeBox}>
+                <Text style={styles.aiNoticeText}>
+                  Alasan izin akan diklasifikasikan oleh AI sebagai informasi pendukung bagi Asisten. Keputusan tetap ditentukan oleh Asisten.
+                </Text>
+              </View>
+
               {visibleValidationError ? (
                 <Text style={styles.inlineErrorText}>{visibleValidationError}</Text>
               ) : null}
@@ -411,7 +427,9 @@ export function LeaveRequestSheet({
               {submitting ? (
                 <View style={styles.submittingRow}>
                   <ActivityIndicator size="small" color="#FFFFFF" />
-                  <Text style={styles.submitText}>Mengirim...</Text>
+                  <Text numberOfLines={2} style={[styles.submitText, styles.submittingText]}>
+                    {SUBMITTING_STEP_LABELS[submittingStep]}
+                  </Text>
                 </View>
               ) : (
                 <Text style={styles.submitText}>Kirim Pengajuan Izin</Text>
@@ -640,6 +658,19 @@ const styles = StyleSheet.create({
     color: '#666666',
     fontSize: 12,
   },
+  aiNoticeBox: {
+    backgroundColor: '#F5F5F5',
+    borderColor: '#E5E5E5',
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  aiNoticeText: {
+    color: '#404040',
+    fontSize: 12,
+    lineHeight: 17,
+  },
   inlineErrorText: {
     color: '#B91C1C',
     fontSize: 12,
@@ -693,12 +724,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: 8,
+    justifyContent: 'center',
   },
   submitText: {
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '700',
     textAlign: 'center',
+  },
+  submittingText: {
+    flexShrink: 1,
+    fontSize: 12,
+    lineHeight: 16,
   },
   disabled: {
     opacity: 0.6,

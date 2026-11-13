@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
+import { LeaveAiInfoBox } from '@/features/praktikan/components/leave-ai-info-box';
 import { LeaveStatusBadge } from '@/features/praktikan/components/leave-status-badge';
 import type {
   LeaveRequestDoc,
@@ -17,16 +18,12 @@ export interface LeaveRequestCardProps {
 
 /**
  * Kartu item daftar pengajuan izin Praktikan (FR-17).
- * Menampilkan metadata sesi, alasan, timestamp pengajuan WIB, badge kategori AI
- * bila tersedia, serta blok keputusan Asisten saat sudah ditinjau.
+ * Menampilkan metadata sesi, alasan, timestamp pengajuan WIB, info kategori AI
+ * (atau status fallback saat tidak tersedia), serta blok keputusan Asisten saat sudah ditinjau.
  */
 export function LeaveRequestCard({ leave, session = null }: LeaveRequestCardProps) {
   const createdAtLabel =
     formatDateTimeWIB(leave.createdAt) ?? 'Menunggu sinkronisasi waktu...';
-  const kategoriAI =
-    typeof leave.kategoriAI === 'string' && leave.kategoriAI.trim().length > 0
-      ? leave.kategoriAI.trim()
-      : null;
 
   const isReviewed = leave.status === 'diterima' || leave.status === 'ditolak';
   const isAccepted = leave.status === 'diterima';
@@ -79,13 +76,7 @@ export function LeaveRequestCard({ leave, session = null }: LeaveRequestCardProp
         <Text style={styles.reasonText}>{leave.alasan}</Text>
       </View>
 
-      {kategoriAI ? (
-        <View style={styles.aiBadge}>
-          <Text style={styles.aiBadgeText}>
-            Kategori AI (Info Pendukung): {kategoriAI}
-          </Text>
-        </View>
-      ) : null}
+      <LeaveAiInfoBox kategoriAI={leave.kategoriAI} />
 
       {isReviewed ? (
         <View
@@ -196,21 +187,6 @@ const styles = StyleSheet.create({
     color: '#171717',
     fontSize: 13,
     lineHeight: 19,
-  },
-  aiBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#EEF2FF',
-    borderColor: '#C7D2FE',
-    borderRadius: 10,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  aiBadgeText: {
-    color: '#3730A3',
-    fontSize: 12,
-    fontWeight: '600',
-    lineHeight: 17,
   },
   decisionBox: {
     borderRadius: 12,

@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Pressable,
   StatusBar,
@@ -18,7 +17,11 @@ import { LeaveRequestSheet } from '@/features/praktikan/components/leave-request
 import { usePraktikanLeaveRequests } from '@/features/praktikan/hooks/use-praktikan-leave-requests';
 import { usePraktikanSessions } from '@/features/praktikan/hooks/use-praktikan-sessions';
 import { useMyAttendanceMap } from '@/features/praktikan/hooks/use-session-attendance';
-import type { PraktikanSession } from '@/features/praktikan/types';
+import type {
+  PraktikanSession,
+  SubmitLeaveRequestOutcome,
+} from '@/features/praktikan/types';
+import { showLeaveSubmitSuccessAlert } from '@/features/praktikan/utils/leave-feedback';
 
 export default function LeaveScreen() {
   const {
@@ -117,6 +120,7 @@ function PraktikanLeaveList() {
     leaveBySessionId,
     loading: leaveLoading,
     submitting,
+    submittingStep,
     error: leaveError,
     submitLeaveRequest,
     clearError: clearLeaveError,
@@ -175,13 +179,16 @@ function PraktikanLeaveList() {
     setSheetVisible(false);
   }
 
-  async function handleSubmitLeave(sessionId: string, alasan: string): Promise<boolean> {
+  async function handleSubmitLeave(
+    sessionId: string,
+    alasan: string,
+  ): Promise<SubmitLeaveRequestOutcome> {
     const outcome = await submitLeaveRequest({ sessionId, alasan });
     if (outcome.ok) {
       setSheetVisible(false);
-      Alert.alert('Berhasil', 'Pengajuan izin Anda berhasil dikirim.');
+      showLeaveSubmitSuccessAlert(outcome);
     }
-    return outcome.ok;
+    return outcome;
   }
 
   function renderEmptyState() {
@@ -334,6 +341,7 @@ function PraktikanLeaveList() {
         attendanceBySessionId={attendanceBySessionId}
         leaveBySessionId={leaveBySessionId}
         submitting={submitting}
+        submittingStep={submittingStep}
         error={leaveError}
         onCancel={handleCloseSheet}
         onSubmit={handleSubmitLeave}

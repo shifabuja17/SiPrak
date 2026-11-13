@@ -20,6 +20,7 @@ import StatusBadge, {
 import { useAuth } from '@/context/AuthContext';
 import { usePracticum } from '@/context/PracticumContext';
 import { AttendanceSummary } from '@/features/assistant/components/attendance-summary';
+import { LeaveAiInfoBox } from '@/features/praktikan/components/leave-ai-info-box';
 import { LeaveRequestSheet } from '@/features/praktikan/components/leave-request-sheet';
 import { LeaveStatusBadge } from '@/features/praktikan/components/leave-status-badge';
 import PraktikanAttendanceSection from '@/features/praktikan/components/praktikan-attendance-section';
@@ -31,6 +32,7 @@ import {
   formatDateTimeWIB,
   formatMeetingTitle,
 } from '@/features/praktikan/utils/format';
+import { showLeaveSubmitSuccessAlert } from '@/features/praktikan/utils/leave-feedback';
 
 export default function SessionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -109,6 +111,7 @@ function PraktikanSessionDetail({
     leaveBySessionId,
     loading: leaveLoading,
     submitting: leaveSubmitting,
+    submittingStep: leaveSubmittingStep,
     error: leaveError,
     submitLeaveRequest,
     clearError: clearLeaveError,
@@ -245,6 +248,8 @@ function PraktikanSessionDetail({
               <Text style={styles.leaveReasonText}>{sessionLeave.alasan}</Text>
             </View>
 
+            <LeaveAiInfoBox kategoriAI={sessionLeave.kategoriAI} />
+
             {assistantNote ? (
               <View
                 style={[
@@ -320,6 +325,7 @@ function PraktikanSessionDetail({
         attendanceBySessionId={attendance ? { [session.id]: attendance } : {}}
         leaveBySessionId={leaveBySessionId}
         submitting={leaveSubmitting}
+        submittingStep={leaveSubmittingStep}
         error={leaveError}
         onCancel={() => {
           if (!leaveSubmitting) {
@@ -334,9 +340,9 @@ function PraktikanSessionDetail({
           });
           if (outcome.ok) {
             setLeaveSheetVisible(false);
-            Alert.alert('Berhasil', 'Pengajuan izin untuk sesi ini berhasil dikirim.');
+            showLeaveSubmitSuccessAlert(outcome);
           }
-          return outcome.ok;
+          return outcome;
         }}
       />
     </SafeAreaView>
