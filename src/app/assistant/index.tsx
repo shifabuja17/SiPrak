@@ -47,6 +47,7 @@ export default function AssistantScheduleScreen() {
               Kelola sesi dan pantau kehadiran praktikan.
             </Text>
 
+            {/* Tombol Manajemen Kelas dan Jadwal */}
             <View style={styles.managementButtons}>
               <Pressable
                 style={styles.manageClassButton}
@@ -66,6 +67,16 @@ export default function AssistantScheduleScreen() {
                 </Text>
               </Pressable>
             </View>
+
+            {/* Tombol Manajemen Sesi */}
+            <Pressable
+              style={styles.manageSessionButton}
+              onPress={() => router.push('/assistant/sessions')}
+            >
+              <Text style={styles.manageSessionButtonText}>
+                + Manajemen Sesi
+              </Text>
+            </Pressable>
 
             <View style={styles.profile}>
               <View style={styles.profileAvatar}>
@@ -153,6 +164,23 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
   },
   manageScheduleButtonText: {
+    color: '#000000',
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  manageSessionButton: {
+    alignItems: 'center',
+    backgroundColor: '#EEEEEE',
+    borderColor: '#000000',
+    borderRadius: 11,
+    borderWidth: 1,
+    justifyContent: 'center',
+    marginTop: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 13,
+  },
+  manageSessionButtonText: {
     color: '#000000',
     fontSize: 12,
     fontWeight: '700',
