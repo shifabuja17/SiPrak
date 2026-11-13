@@ -328,15 +328,15 @@ function PraktikanSessionDetail({
           }
         }}
         onSubmit={async (targetSessionId, alasan) => {
-          const ok = await submitLeaveRequest({
+          const outcome = await submitLeaveRequest({
             sessionId: targetSessionId,
             alasan,
           });
-          if (ok) {
+          if (outcome.ok) {
             setLeaveSheetVisible(false);
             Alert.alert('Berhasil', 'Pengajuan izin untuk sesi ini berhasil dikirim.');
           }
-          return ok;
+          return outcome.ok;
         }}
       />
     </SafeAreaView>

@@ -176,12 +176,12 @@ function PraktikanLeaveList() {
   }
 
   async function handleSubmitLeave(sessionId: string, alasan: string): Promise<boolean> {
-    const ok = await submitLeaveRequest({ sessionId, alasan });
-    if (ok) {
+    const outcome = await submitLeaveRequest({ sessionId, alasan });
+    if (outcome.ok) {
       setSheetVisible(false);
       Alert.alert('Berhasil', 'Pengajuan izin Anda berhasil dikirim.');
     }
-    return ok;
+    return outcome.ok;
   }
 
   function renderEmptyState() {

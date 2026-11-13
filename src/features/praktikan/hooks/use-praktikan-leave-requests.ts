@@ -1,16 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useAuth } from '@/context/AuthContext';
+import { classifyLeaveReason } from '@/features/praktikan/services/ai-leave-classifier';
 import {
   subscribeMyLeaveRequests,
   submitPraktikanLeaveRequest,
 } from '@/features/praktikan/services/praktikan-leave-requests';
-import type { LeaveRequestDoc } from '@/features/praktikan/types';
+import type {
+  LeaveAiClassificationResult,
+  LeaveRequestDoc,
+  SubmitLeaveRequestOutcome,
+} from '@/features/praktikan/types';
+import { validateLeaveReason } from '@/features/praktikan/utils/leave-validation';
+
+export type LeaveSubmittingStep = 'idle' | 'classifying_ai' | 'saving_firestore';
 
 export interface SubmitPraktikanLeaveInput {
   sessionId: string;
   alasan: string;
-  kategoriAI?: string | null;
 }
 
 export interface UsePraktikanLeaveRequestsResult {
@@ -18,8 +25,9 @@ export interface UsePraktikanLeaveRequestsResult {
   leaveBySessionId: Record<string, LeaveRequestDoc>;
   loading: boolean;
   submitting: boolean;
+  submittingStep: LeaveSubmittingStep;
   error: string | null;
-  submitLeaveRequest: (input: SubmitPraktikanLeaveInput) => Promise<boolean>;
+  submitLeaveRequest: (input: SubmitPraktikanLeaveInput) => Promise<SubmitLeaveRequestOutcome>;
   clearError: () => void;
   retry: () => void;
 }
@@ -37,6 +45,15 @@ const INITIAL_SUBSCRIPTION_STATE: LeaveSubscriptionState = {
   error: null,
 };
 
+function buildRejectedOutcome(): SubmitLeaveRequestOutcome {
+  return {
+    ok: false,
+    aiClassified: false,
+    kategoriAI: null,
+    aiWarning: null,
+  };
+}
+
 /**
  * Custom hook untuk mengelola langganan real-time daftar izin Praktikan (FR-17)
  * dan pengiriman pengajuan izin baru ke Firestore (FR-15).
@@ -52,6 +69,7 @@ export function usePraktikanLeaveRequests(): UsePraktikanLeaveRequestsResult {
   const [subscriptionState, setSubscriptionState] =
     useState<LeaveSubscriptionState>(INITIAL_SUBSCRIPTION_STATE);
   const [submitting, setSubmitting] = useState(false);
+  const [submittingStep, setSubmittingStep] = useState<LeaveSubmittingStep>('idle');
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [retryNonce, setRetryNonce] = useState(0);
 
@@ -156,62 +174,106 @@ export function usePraktikanLeaveRequests(): UsePraktikanLeaveRequestsResult {
   }, [leaveRequests]);
 
   const submitLeaveRequest = useCallback(
-    async (input: SubmitPraktikanLeaveInput): Promise<boolean> => {
+    async (input: SubmitPraktikanLeaveInput): Promise<SubmitLeaveRequestOutcome> => {
       if (submittingRef.current) {
-        return false;
+        return buildRejectedOutcome();
       }
 
       if (status !== 'authenticated' || !uid) {
         setSubmitError('Anda harus login sebagai Praktikan untuk mengajukan izin.');
-        return false;
+        return buildRejectedOutcome();
       }
 
       if (profileError) {
         setSubmitError(profileError);
-        return false;
+        return buildRejectedOutcome();
       }
 
       if (role !== 'praktikan') {
         setSubmitError('Hanya akun Praktikan yang dapat mengajukan izin.');
-        return false;
+        return buildRejectedOutcome();
       }
 
       if (!nama) {
         setSubmitError('Nama profil Praktikan belum tersedia. Silakan login kembali.');
-        return false;
+        return buildRejectedOutcome();
+      }
+
+      const trimmedSessionId = typeof input.sessionId === 'string' ? input.sessionId.trim() : '';
+      if (!trimmedSessionId) {
+        setSubmitError('ID sesi wajib diisi untuk mengajukan izin.');
+        return buildRejectedOutcome();
+      }
+
+      const reasonError = validateLeaveReason(input.alasan);
+      if (reasonError) {
+        setSubmitError(reasonError);
+        return buildRejectedOutcome();
+      }
+
+      if (Object.prototype.hasOwnProperty.call(leaveBySessionId, trimmedSessionId)) {
+        setSubmitError('Anda sudah pernah mengajukan izin untuk sesi ini.');
+        return buildRejectedOutcome();
       }
 
       submittingRef.current = true;
       setSubmitting(true);
+      setSubmittingStep('classifying_ai');
       setSubmitError(null);
 
+      let aiResult: LeaveAiClassificationResult = {
+        ok: false,
+        category: null,
+        reason: 'Layanan klasifikasi AI belum dijalankan.',
+      };
+
       try {
+        aiResult = await classifyLeaveReason(input.alasan);
+
+        if (mountedRef.current) {
+          setSubmittingStep('saving_firestore');
+        }
+
         await submitPraktikanLeaveRequest({
-          sessionId: input.sessionId,
+          sessionId: trimmedSessionId,
           uid,
           nama,
           alasan: input.alasan,
-          kategoriAI: input.kategoriAI,
+          kategoriAI: aiResult.category,
         });
+
         if (mountedRef.current) {
           setSubmitError(null);
         }
-        return true;
+
+        return {
+          ok: true,
+          aiClassified: aiResult.ok,
+          kategoriAI: aiResult.category,
+          aiWarning: aiResult.ok ? null : aiResult.reason,
+        };
       } catch (err) {
         if (mountedRef.current) {
           setSubmitError(
             err instanceof Error ? err.message : 'Gagal mengirim pengajuan izin.',
           );
         }
-        return false;
+
+        return {
+          ok: false,
+          aiClassified: aiResult.ok,
+          kategoriAI: aiResult.category,
+          aiWarning: null,
+        };
       } finally {
         submittingRef.current = false;
         if (mountedRef.current) {
           setSubmitting(false);
+          setSubmittingStep('idle');
         }
       }
     },
-    [nama, profileError, role, status, uid],
+    [leaveBySessionId, nama, profileError, role, status, uid],
   );
 
   const clearError = useCallback(() => {
@@ -231,6 +293,7 @@ export function usePraktikanLeaveRequests(): UsePraktikanLeaveRequestsResult {
     leaveBySessionId,
     loading,
     submitting,
+    submittingStep,
     error,
     submitLeaveRequest,
     clearError,
