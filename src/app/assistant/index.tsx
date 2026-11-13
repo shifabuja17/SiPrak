@@ -47,15 +47,25 @@ export default function AssistantScheduleScreen() {
               Kelola sesi dan pantau kehadiran praktikan.
             </Text>
 
-            {/* Tombol menuju Manajemen Kelas */}
-            <Pressable
-              style={styles.manageClassButton}
-              onPress={() => router.push('/assistant/classes')}
-            >
-              <Text style={styles.manageClassButtonText}>
-                + Manajemen Kelas
-              </Text>
-            </Pressable>
+            <View style={styles.managementButtons}>
+              <Pressable
+                style={styles.manageClassButton}
+                onPress={() => router.push('/assistant/classes')}
+              >
+                <Text style={styles.manageButtonText}>
+                  + Manajemen Kelas
+                </Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.manageScheduleButton}
+                onPress={() => router.push('/assistant/schedules')}
+              >
+                <Text style={styles.manageScheduleButtonText}>
+                  + Manajemen Jadwal
+                </Text>
+              </Pressable>
+            </View>
 
             <View style={styles.profile}>
               <View style={styles.profileAvatar}>
@@ -111,23 +121,43 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 21,
   },
-
-  // Tombol Manajemen Kelas
+  managementButtons: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 10,
+  },
   manageClassButton: {
     alignItems: 'center',
-    alignSelf: 'flex-start',
     backgroundColor: '#000000',
     borderRadius: 11,
-    marginTop: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 13,
   },
-  manageClassButtonText: {
+  manageButtonText: {
     color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
+    textAlign: 'center',
   },
-
+  manageScheduleButton: {
+    alignItems: 'center',
+    backgroundColor: '#EEEEEE',
+    borderColor: '#000000',
+    borderRadius: 11,
+    borderWidth: 1,
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 13,
+  },
+  manageScheduleButtonText: {
+    color: '#000000',
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
   profile: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
