@@ -1,234 +1,397 @@
+import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
-import { useState } from 'react';
 import {
-  Alert,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import {
-  usePracticum,
-  type UserRole,
-} from '@/context/PracticumContext';
+import { useAuth } from '@/context/AuthContext';
+
+type FormMode = 'login' | 'register';
 
 export default function StartScreen() {
-  const { users, switchUser } = usePracticum();
+  const {
+    user,
+    profile,
+    loading,
+    profileError,
+    login,
+    register,
+    logout,
+  } = useAuth();
 
-  const [selectedRole, setSelectedRole] =
-    useState<UserRole | null>(null);
+  const [mode, setMode] = useState<FormMode>('login');
 
-  const [selectedUserId, setSelectedUserId] =
-    useState<string | null>(null);
+  const [nama, setNama] = useState('');
+  const [nim, setNim] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
-  const availableUsers = selectedRole
-    ? users.filter((user) => user.role === selectedRole)
-    : [];
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
-  const selectedUser = availableUsers.find(
-    (user) => user.uid === selectedUserId,
-  );
+  // Mengarahkan pengguna berdasarkan role dari Firestore.
+  useEffect(() => {
+    if (loading || !user || !profile) return;
 
-  function handleSelectRole(role: UserRole) {
-    setSelectedRole(role);
-    setSelectedUserId(null);
-  }
-
-  function handleContinue() {
-    if (!selectedUser) {
-      Alert.alert(
-        'Identitas belum dipilih',
-        'Pilih peran dan identitas terlebih dahulu.',
-      );
-      return;
+    if (profile.role === 'asisten') {
+      router.replace('/assistant');
+    } else {
+      router.replace('/(tabs)/schedule');
     }
+  }, [loading, user, profile]);
+
+  // Login atau registrasi.
+  async function handleSubmit() {
+    setError('');
 
     try {
-      switchUser(selectedUser.uid);
-      router.replace('/(tabs)/schedule');
-    } catch (error) {
-      Alert.alert(
-        'Gagal masuk',
-        error instanceof Error
-          ? error.message
-          : 'Terjadi kesalahan.',
+      setSubmitting(true);
+
+      if (mode === 'register') {
+        await register({
+          nama,
+          email,
+          password,
+          nim,
+        });
+      } else {
+        await login(email, password);
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Terjadi kesalahan. Silakan coba lagi.'
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  // Logout jika akun berhasil login tetapi profil Firestore tidak tersedia.
+  async function handleLogout() {
+    try {
+      await logout();
+      setError('');
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Gagal logout.'
       );
     }
+  }
+
+  function changeMode(nextMode: FormMode) {
+    setMode(nextMode);
+    setError('');
+  }
+
+  // Menunggu Firebase memulihkan sesi dan membaca profil.
+  if (loading || (user && profile)) {
+    return (
+      <SafeAreaView style={styles.centered}>
+        <StatusBar barStyle="dark-content" />
+
+        <View style={styles.logo}>
+          <Text style={styles.logoText}>S</Text>
+        </View>
+
+        <ActivityIndicator
+          size="large"
+          color="#000000"
+        />
+
+        <Text style={styles.loadingText}>
+          Memeriksa akun SiPrak...
+        </Text>
+      </SafeAreaView>
+    );
+  }
+
+  // Akun sudah login tetapi tidak memiliki profil Firestore.
+  if (user && !profile) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.centered}>
+          <View style={styles.logo}>
+            <Text style={styles.logoText}>S</Text>
+          </View>
+
+          <Text style={styles.title}>
+            Profil Tidak Ditemukan
+          </Text>
+
+          <Text style={styles.subtitle}>
+            Akun Firebase berhasil login, tetapi profil pengguna
+            belum tersedia atau gagal dibaca di Firestore.
+          </Text>
+
+          {profileError ? (
+            <Text style={styles.errorText}>
+              {profileError}
+            </Text>
+          ) : null}
+
+          <Pressable
+            style={styles.primaryButton}
+            onPress={handleLogout}
+          >
+            <Text style={styles.primaryButtonText}>
+              Logout
+            </Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
   }
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" />
 
-      <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={styles.brand}>
-          <View style={styles.logo}>
-            <Text style={styles.logoText}>S</Text>
-          </View>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Branding */}
+          <View style={styles.brand}>
+            <View style={styles.logo}>
+              <Text style={styles.logoText}>S</Text>
+            </View>
 
-          <Text style={styles.appName}>SiPrak</Text>
-
-          <Text style={styles.brandSubtitle}>
-            Sistem Informasi Praktikum
-          </Text>
-        </View>
-
-        <View style={styles.headingContainer}>
-          <Text style={styles.title}>
-            Selamat Datang!
-          </Text>
-
-          <Text style={styles.subtitle}>
-            Pilih peran dan identitasmu untuk melanjutkan
-            ke aplikasi.
-          </Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            Pilih Peran
-          </Text>
-
-          <View style={styles.roleList}>
-            {(
-              ['asisten', 'praktikan'] as UserRole[]
-            ).map((role) => {
-              const isSelected = selectedRole === role;
-
-              return (
-                <Pressable
-                  key={role}
-                  onPress={() => handleSelectRole(role)}
-                  style={({ pressed }) => [
-                    styles.roleCard,
-                    isSelected && styles.selectedCard,
-                    pressed && styles.pressed,
-                  ]}
-                >
-                  <View style={styles.roleDetails}>
-                    <Text style={styles.roleName}>
-                      {role === 'asisten'
-                        ? 'Asisten Praktikum'
-                        : 'Praktikan'}
-                    </Text>
-                  </View>
-
-                  <View
-                    style={[
-                      styles.radio,
-                      isSelected && styles.radioSelected,
-                    ]}
-                  >
-                    {isSelected && (
-                      <View style={styles.radioInner} />
-                    )}
-                  </View>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-
-        {selectedRole !== null && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
-              Pilih Identitas
+            <Text style={styles.appName}>
+              SiPrak
             </Text>
 
-            <View style={styles.userList}>
-              {availableUsers.map((user) => {
-                const isSelected =
-                  selectedUserId === user.uid;
+            <Text style={styles.brandSubtitle}>
+              Sistem Informasi Praktikum
+            </Text>
+          </View>
 
-                return (
-                  <Pressable
-                    key={user.uid}
-                    onPress={() => setSelectedUserId(user.uid)}
-                    style={({ pressed }) => [
-                      styles.userCard,
-                      isSelected && styles.selectedCard,
-                      pressed && styles.pressed,
-                    ]}
-                  >
-                    <View style={styles.avatar}>
-                      <Text style={styles.avatarText}>
-                        {user.nama.charAt(0).toUpperCase()}
-                      </Text>
-                    </View>
+          {/* Heading */}
+          <View style={styles.headingContainer}>
+            <Text style={styles.title}>
+              {mode === 'login'
+                ? 'Selamat Datang!'
+                : 'Buat Akun Baru'}
+            </Text>
 
-                    <View style={styles.userDetails}>
-                      <Text style={styles.userName}>
-                        {user.nama}
-                      </Text>
+            <Text style={styles.subtitle}>
+              {mode === 'login'
+                ? 'Masuk ke akun SiPrak untuk mengakses kegiatan praktikum.'
+                : 'Daftarkan akunmu untuk mulai menggunakan SiPrak.'}
+            </Text>
+          </View>
 
-                      <Text style={styles.userNim}>
-                        {user.nim}
-                      </Text>
-                    </View>
+          {/* Pilihan Login dan Registrasi */}
+          <View style={styles.modeContainer}>
+            <Pressable
+              style={[
+                styles.modeButton,
+                mode === 'login' && styles.modeActive,
+              ]}
+              onPress={() => changeMode('login')}
+              disabled={submitting}
+            >
+              <Text
+                style={[
+                  styles.modeText,
+                  mode === 'login' && styles.modeTextActive,
+                ]}
+              >
+                Login
+              </Text>
+            </Pressable>
 
-                    <View
-                      style={[
-                        styles.radio,
-                        isSelected && styles.radioSelected,
-                      ]}
-                    >
-                      {isSelected && (
-                        <View style={styles.radioInner} />
-                      )}
-                    </View>
-                  </Pressable>
-                );
-              })}
+            <Pressable
+              style={[
+                styles.modeButton,
+                mode === 'register' && styles.modeActive,
+              ]}
+              onPress={() => changeMode('register')}
+              disabled={submitting}
+            >
+              <Text
+                style={[
+                  styles.modeText,
+                  mode === 'register' && styles.modeTextActive,
+                ]}
+              >
+                Registrasi
+              </Text>
+            </Pressable>
+          </View>
+
+          {/* Form */}
+          <View style={styles.form}>
+            {mode === 'register' && (
+              <>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>
+                    Nama Lengkap
+                  </Text>
+
+                  <TextInput
+                    value={nama}
+                    onChangeText={setNama}
+                    placeholder="Masukkan nama lengkap"
+                    placeholderTextColor="#999999"
+                    style={styles.input}
+                    autoCapitalize="words"
+                    editable={!submitting}
+                    maxLength={100}
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>
+                    NIM
+                    <Text style={styles.optionalText}>
+                      {' '} (Opsional)
+                    </Text>
+                  </Text>
+
+                  <TextInput
+                    value={nim}
+                    onChangeText={setNim}
+                    placeholder="Masukkan NIM"
+                    placeholderTextColor="#999999"
+                    style={styles.input}
+                    keyboardType="numeric"
+                    editable={!submitting}
+                    maxLength={30}
+                  />
+                </View>
+              </>
+            )}
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>
+                Email
+              </Text>
+
+              <TextInput
+                value={email}
+                onChangeText={setEmail}
+                placeholder="nama@email.com"
+                placeholderTextColor="#999999"
+                style={styles.input}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!submitting}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>
+                Password
+              </Text>
+
+              <TextInput
+                value={password}
+                onChangeText={setPassword}
+                placeholder="Masukkan password"
+                placeholderTextColor="#999999"
+                style={styles.input}
+                secureTextEntry
+                autoCapitalize="none"
+                editable={!submitting}
+              />
             </View>
           </View>
-        )}
 
-        <Pressable
-          disabled={!selectedUser}
-          onPress={handleContinue}
-          style={({ pressed }) => [
-            styles.continueButton,
-            !selectedUser && styles.disabledButton,
-            pressed && selectedUser && styles.pressed,
-          ]}
-        >
-          <Text style={styles.continueButtonText}>
-            Lanjutkan
+          {/* Error */}
+          {error ? (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>
+                {error}
+              </Text>
+            </View>
+          ) : null}
+
+          {/* Informasi role registrasi */}
+          {mode === 'register' && (
+            <View style={styles.infoBox}>
+              <Text style={styles.infoText}>
+                Registrasi mandiri hanya tersedia untuk Praktikan.
+                Akun Asisten dibuat dan diberikan akses oleh admin.
+              </Text>
+            </View>
+          )}
+
+          {/* Submit */}
+          <Pressable
+            disabled={submitting}
+            onPress={handleSubmit}
+            style={({ pressed }) => [
+              styles.primaryButton,
+              submitting && styles.disabledButton,
+              pressed && !submitting && styles.pressed,
+            ]}
+          >
+            {submitting ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.primaryButtonText}>
+                {mode === 'login'
+                  ? 'Masuk'
+                  : 'Daftar Sebagai Praktikan'}
+              </Text>
+            )}
+          </Pressable>
+
+          {/* Footer */}
+          <Text style={styles.footer}>
+            SiPrak · Sistem Informasi Praktikum
           </Text>
-        </Pressable>
-
-        <Text style={styles.footer}>
-          Demo menggunakan akun dan data dummy.
-        </Text>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
-    flex: 1,
     backgroundColor: '#FFFFFF',
+    flex: 1,
+  },
+  flex: {
+    flex: 1,
   },
   content: {
     flexGrow: 1,
     justifyContent: 'center',
-    gap: 24,
+    gap: 22,
     padding: 22,
     paddingTop: 36,
     paddingBottom: 36,
   },
+  centered: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+    padding: 24,
+    gap: 16,
+  },
   brand: {
     alignItems: 'center',
     gap: 7,
-    marginBottom: 4,
   },
   logo: {
     alignItems: 'center',
@@ -253,6 +416,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   headingContainer: {
+    alignItems: 'center',
     gap: 7,
   },
   title: {
@@ -263,128 +427,106 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     color: '#666666',
-    fontSize: 12,
+    fontSize: 13,
     lineHeight: 21,
     textAlign: 'center',
   },
-  section: {
-    gap: 12,
-  },
-  sectionTitle: {
-    color: '#000000',
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  roleList: {
-    gap: 10,
-  },
-  roleCard: {
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#D9D9D9',
-    borderRadius: 16,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 12,
-    padding: 15,
-  },
-  roleDetails: {
-    flex: 1,
-    gap: 5,
-  },
-  roleName: {
-    color: '#000000',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  roleDescription: {
-    color: '#666666',
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  selectedCard: {
+  modeContainer: {
     backgroundColor: '#F2F2F2',
-    borderColor: '#000000',
-    borderWidth: 1.5,
-  },
-  radio: {
-    alignItems: 'center',
-    borderColor: '#999999',
-    borderRadius: 11,
-    borderWidth: 1.5,
-    height: 22,
-    justifyContent: 'center',
-    width: 22,
-  },
-  radioSelected: {
-    borderColor: '#000000',
-  },
-  radioInner: {
-    backgroundColor: '#000000',
-    borderRadius: 5,
-    height: 10,
-    width: 10,
-  },
-  userList: {
-    gap: 10,
-  },
-  userCard: {
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#D9D9D9',
-    borderRadius: 16,
-    borderWidth: 1,
+    borderRadius: 12,
     flexDirection: 'row',
-    gap: 12,
-    padding: 14,
+    padding: 4,
   },
-  avatar: {
+  modeButton: {
     alignItems: 'center',
-    backgroundColor: '#E5E5E5',
-    borderRadius: 20,
-    height: 40,
-    justifyContent: 'center',
-    width: 40,
+    borderRadius: 9,
+    flex: 1,
+    padding: 12,
   },
-  avatarText: {
+  modeActive: {
+    backgroundColor: '#FFFFFF',
+  },
+  modeText: {
+    color: '#777777',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  modeTextActive: {
     color: '#000000',
-    fontSize: 16,
     fontWeight: '800',
   },
-  userDetails: {
-    flex: 1,
-    gap: 4,
+  form: {
+    gap: 16,
   },
-  userName: {
+  inputGroup: {
+    gap: 8,
+  },
+  inputLabel: {
     color: '#000000',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
   },
-  userNim: {
-    color: '#666666',
-    fontSize: 12,
+  optionalText: {
+    color: '#888888',
+    fontSize: 11,
+    fontWeight: '400',
   },
-  continueButton: {
+  input: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#D9D9D9',
+    borderRadius: 12,
+    borderWidth: 1,
+    color: '#000000',
+    fontSize: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+  },
+  errorBox: {
+    backgroundColor: '#FEE2E2',
+    borderRadius: 10,
+    padding: 12,
+  },
+  errorText: {
+    color: '#B91C1C',
+    fontSize: 12,
+    lineHeight: 19,
+    textAlign: 'center',
+  },
+  infoBox: {
+    backgroundColor: '#F2F2F2',
+    borderRadius: 10,
+    padding: 12,
+  },
+  infoText: {
+    color: '#555555',
+    fontSize: 12,
+    lineHeight: 19,
+  },
+  primaryButton: {
     alignItems: 'center',
     backgroundColor: '#000000',
-    borderRadius: 14,
-    marginTop: 2,
+    borderRadius: 13,
+    justifyContent: 'center',
     padding: 16,
   },
-  disabledButton: {
-    backgroundColor: '#999999',
-  },
-  continueButtonText: {
+  primaryButtonText: {
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '700',
   },
+  disabledButton: {
+    opacity: 0.55,
+  },
   pressed: {
     opacity: 0.65,
   },
+  loadingText: {
+    color: '#666666',
+    fontSize: 13,
+  },
   footer: {
-    color: '#777777',
-    fontSize: 12,
+    color: '#888888',
+    fontSize: 11,
     textAlign: 'center',
   },
 });
