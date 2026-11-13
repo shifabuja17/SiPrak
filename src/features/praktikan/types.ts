@@ -103,3 +103,21 @@ export interface SubmitLeaveRequestInput {
   alasan: string;
   kategoriAI?: string | null;
 }
+
+/**
+ * Hasil klasifikasi kategori alasan izin oleh layanan AI eksternal (FR-16).
+ * Bersifat informasi pendukung dan tidak pernah menentukan keputusan izin.
+ */
+export type LeaveAiClassificationResult =
+  | { ok: true; category: string }
+  | { ok: false; category: null; reason: string };
+
+/**
+ * Ringkasan hasil pengiriman pengajuan izin termasuk status klasifikasi AI (NFR-06).
+ */
+export interface SubmitLeaveRequestOutcome {
+  ok: boolean;
+  aiClassified: boolean;
+  kategoriAI: string | null;
+  aiWarning: string | null;
+}
