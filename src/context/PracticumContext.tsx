@@ -1,11 +1,13 @@
-
 import {
   createContext,
   useContext,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
 } from 'react';
+
+import { useAuth } from '@/context/AuthContext';
 
 export type UserRole = 'ASISTEN' | 'PRAKTIKAN';
 
@@ -37,32 +39,14 @@ export interface PracticumSession {
   attendances: AttendanceRecord[];
 }
 
-const INITIAL_USERS: PracticumUser[] = [
-  {
-    id: 'ast-1',
-    name: 'Budi Santoso',
-    nim: '24060121130045',
-    role: 'ASISTEN',
-  },
-  {
-    id: 'prk-1',
-    name: 'Andi Pratama',
-    nim: '24060123120001',
-    role: 'PRAKTIKAN',
-  },
-  {
-    id: 'prk-2',
-    name: 'Siti Aminah',
-    nim: '24060123120002',
-    role: 'PRAKTIKAN',
-  },
-  {
-    id: 'prk-3',
-    name: 'Rizky Ramadhan',
-    nim: '24060123120003',
-    role: 'PRAKTIKAN',
-  },
-];
+// Placeholder hanya agar `currentUser` tidak pernah null. Layar aplikasi
+// dilindungi guard login (lihat app/_layout.tsx), jadi nilai ini tidak tampil.
+const SIGNED_OUT_USER: PracticumUser = {
+  id: '',
+  name: '',
+  nim: '',
+  role: 'PRAKTIKAN',
+};
 
 const INITIAL_SESSIONS: PracticumSession[] = [
   {
@@ -88,11 +72,9 @@ const INITIAL_SESSIONS: PracticumSession[] = [
 ];
 
 interface PracticumContextValue {
-  users: PracticumUser[];
   currentUser: PracticumUser;
   sessions: PracticumSession[];
 
-  switchUser: (userId: string) => void;
   openSession: (sessionId: string, note: string) => void;
   closeSession: (sessionId: string) => void;
   submitAttendance: (
@@ -124,8 +106,22 @@ function getTimestampWIB(): string {
 export function PracticumProvider({
   children,
 }: PracticumProviderProps) {
-  const [currentUser, setCurrentUser] =
-    useState<PracticumUser>(INITIAL_USERS[0]);
+  // Identitas & peran berasal dari akun Firebase Authentication (users/{uid}),
+  // bukan lagi dari daftar akun dummy.
+  const { profile } = useAuth();
+
+  const currentUser = useMemo<PracticumUser>(
+    () =>
+      profile
+        ? {
+            id: profile.uid,
+            name: profile.nama,
+            nim: profile.nim ?? '-',
+            role: profile.role === 'asisten' ? 'ASISTEN' : 'PRAKTIKAN',
+          }
+        : SIGNED_OUT_USER,
+    [profile],
+  );
 
   const [sessions, setSessions] =
     useState<PracticumSession[]>(INITIAL_SESSIONS);
@@ -133,18 +129,6 @@ export function PracticumProvider({
   const submittedAttendanceKeys = useRef<Set<string>>(
     new Set(),
   );
-
-  function switchUser(userId: string): void {
-    const selectedUser = INITIAL_USERS.find(
-      (user) => user.id === userId,
-    );
-
-    if (!selectedUser) {
-      throw new Error('Akun yang dipilih tidak ditemukan.');
-    }
-
-    setCurrentUser(selectedUser);
-  }
 
   function openSession(
     sessionId: string,
@@ -287,10 +271,8 @@ export function PracticumProvider({
   }
 
   const value: PracticumContextValue = {
-    users: INITIAL_USERS,
     currentUser,
     sessions,
-    switchUser,
     openSession,
     closeSession,
     submitAttendance,

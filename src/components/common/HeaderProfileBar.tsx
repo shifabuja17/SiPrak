@@ -1,15 +1,38 @@
-import { router } from 'expo-router';
 import {
+  Alert,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 
+import { useAuth } from '@/context/AuthContext';
 import { usePracticum } from '@/context/PracticumContext';
 
 export default function HeaderProfileBar() {
   const { currentUser } = usePracticum();
+  const { logout } = useAuth();
+
+  function handleLogout() {
+    Alert.alert('Keluar', 'Yakin ingin keluar dari akun ini?', [
+      { text: 'Batal', style: 'cancel' },
+      {
+        text: 'Keluar',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            // Setelah logout, guard di _layout mengarahkan ke layar login.
+            await logout();
+          } catch (error) {
+            Alert.alert(
+              'Gagal keluar',
+              error instanceof Error ? error.message : 'Terjadi kesalahan.',
+            );
+          }
+        },
+      },
+    ]);
+  }
 
   const roleLabel =
     currentUser.role === 'ASISTEN'
@@ -39,14 +62,14 @@ export default function HeaderProfileBar() {
       </View>
 
       <Pressable
-        onPress={() => router.push('/role-switcher')}
+        onPress={handleLogout}
         style={({ pressed }) => [
           styles.switchButton,
           pressed && styles.pressed,
         ]}
       >
         <Text style={styles.switchText}>
-          Ganti akun
+          Keluar
         </Text>
       </Pressable>
     </View>
