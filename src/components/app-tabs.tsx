@@ -35,6 +35,16 @@ export default function AppTabs() {
           renderingMode="template"
         />
       </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="leave">
+        <NativeTabs.Trigger.Label>
+          Izin
+        </NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          sf={{ default: 'doc.text', selected: 'doc.text.fill' }}
+          md="event_note"
+        />
+      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }

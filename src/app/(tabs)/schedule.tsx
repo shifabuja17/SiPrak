@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { useMemo } from 'react';
 import {
   FlatList,
   Pressable,
@@ -10,10 +11,238 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import HeaderProfileBar from '@/components/common/HeaderProfileBar';
-import StatusBadge from '@/components/common/StatusBadge';
+import StatusBadge, {
+  type StatusBadgeStatus,
+} from '@/components/common/StatusBadge';
+import { useAuth } from '@/context/AuthContext';
 import { usePracticum } from '@/context/PracticumContext';
+import {
+  PraktikanEmptyState,
+  PraktikanErrorState,
+  PraktikanInlineErrorBanner,
+  PraktikanLoadingState,
+  PraktikanProfileErrorScreen,
+} from '@/features/praktikan/components/praktikan-state-view';
+import { usePraktikanSessions } from '@/features/praktikan/hooks/use-praktikan-sessions';
+import { useMyAttendanceMap } from '@/features/praktikan/hooks/use-session-attendance';
+import type {
+  PraktikanSession,
+  SessionAttendanceDoc,
+} from '@/features/praktikan/types';
+import {
+  formatAttendanceTimeWIB,
+  formatMeetingTitle,
+} from '@/features/praktikan/utils/format';
+
+function getPersonalAttendanceSummary(
+  session: PraktikanSession,
+  attendance: SessionAttendanceDoc | null | undefined,
+  attendanceLoading: boolean,
+  attendanceError: string | null,
+): { text: string; tone: 'present' | 'open' | 'absent' | 'neutral' } {
+  if (attendance) {
+    const timeLabel = formatAttendanceTimeWIB(attendance.waktu);
+    return {
+      text: timeLabel ? `Sudah presensi · ${timeLabel}` : 'Sudah presensi',
+      tone: 'present',
+    };
+  }
+
+  if (attendanceLoading) {
+    return { text: 'Memeriksa presensi...', tone: 'neutral' };
+  }
+
+  if (attendanceError) {
+    return { text: 'Status presensi gagal dimuat', tone: 'neutral' };
+  }
+
+  if (session.status === 'dibuka') {
+    return { text: 'Belum presensi · Sesi dibuka', tone: 'open' };
+  }
+
+  if (session.status === 'ditutup') {
+    return { text: 'Tidak hadir', tone: 'absent' };
+  }
+
+  return { text: 'Sesi belum dibuka', tone: 'neutral' };
+}
 
 export default function ScheduleScreen() {
+  const {
+    user,
+    profile,
+    role: authRole,
+    status: authStatus,
+    loading: authLoading,
+    profileError,
+  } = useAuth();
+
+  if (authLoading || authStatus === 'loading') {
+    return <PraktikanLoadingState fullScreen message="Memeriksa sesi akun..." />;
+  }
+
+  if (user && (profileError || !profile)) {
+    return (
+      <PraktikanProfileErrorScreen
+        title="Jadwal Praktikum"
+        subtitle="Pantau jadwal sesi dan lakukan presensi saat sesi dibuka Asisten."
+      />
+    );
+  }
+
+  if (authRole === 'praktikan') {
+    return <PraktikanScheduleList />;
+  }
+
+  return <LegacyScheduleList />;
+}
+
+function PraktikanScheduleList() {
+  const {
+    classes,
+    sessions,
+    totalClassCount,
+    loading: sessionsLoading,
+    error: sessionsError,
+    retry: retrySessions,
+  } = usePraktikanSessions();
+
+  const sessionIds = useMemo(
+    () => sessions.map((item) => item.id),
+    [sessions],
+  );
+
+  const {
+    attendanceBySessionId,
+    loading: attendanceLoading,
+    error: attendanceError,
+    retry: retryAttendance,
+  } = useMyAttendanceMap(sessionIds);
+
+  const showInitialLoading = sessionsLoading && sessions.length === 0;
+  const showFatalError =
+    Boolean(sessionsError) && sessions.length === 0 && !sessionsLoading;
+
+  function renderEmptyState() {
+    if (showInitialLoading) {
+      return (
+        <PraktikanLoadingState
+          title="Memuat Jadwal"
+          message="Mengambil data kelas dan sesi praktikum kamu..."
+        />
+      );
+    }
+
+    if (showFatalError && sessionsError) {
+      return (
+        <PraktikanErrorState
+          title="Gagal Memuat Jadwal"
+          message={sessionsError}
+          onRetry={retrySessions}
+        />
+      );
+    }
+
+    if (totalClassCount === 0) {
+      return (
+        <PraktikanEmptyState
+          title="Belum Ada Kelas"
+          message="Belum ada kelas praktikum yang tersedia saat ini."
+        />
+      );
+    }
+
+    if (classes.length === 0) {
+      return (
+        <PraktikanEmptyState
+          title="Belum Terdaftar di Kelas"
+          message="Akunmu belum terdaftar sebagai peserta di kelas praktikum mana pun. Hubungi Asisten untuk ditambahkan ke daftar peserta."
+        />
+      );
+    }
+
+    return (
+      <PraktikanEmptyState
+        title="Belum Ada Sesi"
+        message="Jadwal sesi praktikum untuk kelas kamu belum tersedia."
+      />
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" />
+
+      <FlatList
+        contentContainerStyle={styles.content}
+        data={showInitialLoading || showFatalError ? [] : sessions}
+        keyExtractor={(item) => item.id}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        ListHeaderComponent={
+          <View style={styles.header}>
+            <Text style={styles.title}>Jadwal Praktikum</Text>
+
+            <Text style={styles.subtitle}>
+              Pantau jadwal sesi dan lakukan presensi saat sesi dibuka Asisten.
+            </Text>
+
+            <HeaderProfileBar />
+
+            {!showFatalError && sessions.length > 0 && (sessionsError || attendanceError) ? (
+              <View style={styles.bannerStack}>
+                {sessionsError ? (
+                  <PraktikanInlineErrorBanner
+                    title="Gagal Memperbarui Jadwal"
+                    message={sessionsError}
+                    onRetry={retrySessions}
+                  />
+                ) : null}
+
+                {attendanceError ? (
+                  <PraktikanInlineErrorBanner
+                    title="Gagal Memuat Status Presensi"
+                    message={attendanceError}
+                    onRetry={retryAttendance}
+                  />
+                ) : null}
+              </View>
+            ) : null}
+
+            <Text style={styles.sectionTitle}>Sesi Praktikum</Text>
+          </View>
+        }
+        renderItem={({ item }) => {
+          const summary = getPersonalAttendanceSummary(
+            item,
+            attendanceBySessionId[item.id],
+            attendanceLoading,
+            attendanceError,
+          );
+
+          return (
+            <ScheduleSessionCard
+              id={item.id}
+              practicumName={item.practicumName}
+              status={item.status}
+              moduleTitle={item.moduleTitle}
+              classRoom={item.classRoom}
+              scheduleTime={item.scheduleTime}
+              footerText={summary.text}
+              footerTone={summary.tone}
+            />
+          );
+        }}
+        ListEmptyComponent={renderEmptyState}
+      />
+    </SafeAreaView>
+  );
+}
+
+/**
+ * Tampilan fallback Sprint 1 saat belum menggunakan Firebase Auth Praktikan
+ * agar alur demo/P2 yang belum bermigrasi tetap berjalan.
+ */
+function LegacyScheduleList() {
   const { sessions } = usePracticum();
 
   return (
@@ -24,14 +253,10 @@ export default function ScheduleScreen() {
         contentContainerStyle={styles.content}
         data={sessions}
         keyExtractor={(item) => item.id}
-        ItemSeparatorComponent={() => (
-          <View style={styles.separator} />
-        )}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListHeaderComponent={
           <View style={styles.header}>
-            <Text style={styles.title}>
-              Jadwal Praktikum
-            </Text>
+            <Text style={styles.title}>Jadwal Praktikum</Text>
 
             <Text style={styles.subtitle}>
               Kelola sesi dan pantau kehadiran praktikan.
@@ -39,85 +264,98 @@ export default function ScheduleScreen() {
 
             <HeaderProfileBar />
 
-            <Text style={styles.sectionTitle}>
-              Sesi Praktikum
-            </Text>
+            <Text style={styles.sectionTitle}>Sesi Praktikum</Text>
           </View>
         }
         renderItem={({ item }) => (
-          <Pressable
-            onPress={() =>
-              router.push({
-                pathname: '/session/[id]',
-                params: { id: item.id },
-              })
-            }
-            style={({ pressed }) => [
-              styles.card,
-              pressed && styles.pressed,
-            ]}
-          >
-            <View style={styles.cardHeader}>
-              <Text style={styles.sessionName}>
-                {item.practicumName}
-              </Text>
-
-              <StatusBadge status={item.status} />
-            </View>
-
-            <Text style={styles.module}>
-              {item.moduleTitle.replace(
-                /^Modul\s*(\d+)\s*:\s*/i,
-                'Pertemuan $1: ',
-              )}
-            </Text>
-
-            <View style={styles.metadata}>
-              <View style={styles.metadataRow}>
-                <Text style={styles.metadataLabel}>
-                  Lokasi
-                </Text>
-
-                <Text style={styles.metadataValue}>
-                  {item.classRoom}
-                </Text>
-              </View>
-
-              <View style={styles.metadataRow}>
-                <Text style={styles.metadataLabel}>
-                  Jadwal
-                </Text>
-
-                <Text style={styles.metadataValue}>
-                  {item.scheduleTime}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.footer}>
-              <Text style={styles.attendance}>
-                {item.attendances.length} praktikan hadir
-              </Text>
-
-              <Text style={styles.detailText}>
-                Lihat detail ›
-              </Text>
-            </View>
-          </Pressable>
+          <ScheduleSessionCard
+            id={item.id}
+            practicumName={item.practicumName}
+            status={item.status}
+            moduleTitle={item.moduleTitle}
+            classRoom={item.classRoom}
+            scheduleTime={item.scheduleTime}
+            footerText={`${item.attendances.length} praktikan hadir`}
+            footerTone="neutral"
+          />
         )}
         ListEmptyComponent={
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>
-              Belum Ada Sesi
-            </Text>
-
-            <Text style={styles.emptyText}>
-              Jadwal praktikum belum tersedia.
-            </Text>
-          </View>
+          <PraktikanEmptyState
+            title="Belum Ada Sesi"
+            message="Jadwal praktikum belum tersedia."
+          />
         }
       />
     </SafeAreaView>
+  );
+}
+
+function ScheduleSessionCard({
+  id,
+  practicumName,
+  status,
+  moduleTitle,
+  classRoom,
+  scheduleTime,
+  footerText,
+  footerTone,
+}: {
+  id: string;
+  practicumName: string;
+  status: StatusBadgeStatus;
+  moduleTitle: string;
+  classRoom: string;
+  scheduleTime: string;
+  footerText: string;
+  footerTone: 'present' | 'open' | 'absent' | 'neutral';
+}) {
+  return (
+    <Pressable
+      onPress={() =>
+        router.push({
+          pathname: '/session/[id]',
+          params: { id },
+        })
+      }
+      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+    >
+      <View style={styles.cardHeader}>
+        <Text style={styles.sessionName}>{practicumName}</Text>
+
+        <StatusBadge status={status} />
+      </View>
+
+      <Text style={styles.module}>{formatMeetingTitle(moduleTitle)}</Text>
+
+      <View style={styles.metadata}>
+        <View style={styles.metadataRow}>
+          <Text style={styles.metadataLabel}>Lokasi</Text>
+
+          <Text style={styles.metadataValue}>{classRoom}</Text>
+        </View>
+
+        <View style={styles.metadataRow}>
+          <Text style={styles.metadataLabel}>Jadwal</Text>
+
+          <Text style={styles.metadataValue}>{scheduleTime}</Text>
+        </View>
+      </View>
+
+      <View style={styles.footer}>
+        <Text
+          style={[
+            styles.attendance,
+            footerTone === 'present' && styles.attendancePresent,
+            footerTone === 'open' && styles.attendanceOpen,
+            footerTone === 'absent' && styles.attendanceAbsent,
+          ]}
+        >
+          {footerText}
+        </Text>
+
+        <Text style={styles.detailText}>Lihat detail ›</Text>
+      </View>
+    </Pressable>
   );
 }
 
@@ -145,6 +383,10 @@ const styles = StyleSheet.create({
     color: '#666666',
     fontSize: 14,
     lineHeight: 21,
+  },
+  bannerStack: {
+    gap: 8,
+    marginTop: 6,
   },
   sectionTitle: {
     color: '#000000',
@@ -211,30 +453,22 @@ const styles = StyleSheet.create({
   },
   attendance: {
     color: '#404040',
+    flex: 1,
     fontSize: 13,
     fontWeight: '600',
+  },
+  attendancePresent: {
+    color: '#15803D',
+  },
+  attendanceOpen: {
+    color: '#B45309',
+  },
+  attendanceAbsent: {
+    color: '#B91C1C',
   },
   detailText: {
     color: '#000000',
     fontSize: 12,
     fontWeight: '700',
-  },
-  emptyCard: {
-    alignItems: 'center',
-    borderColor: '#D9D9D9',
-    borderRadius: 18,
-    borderWidth: 1,
-    gap: 8,
-    padding: 24,
-  },
-  emptyTitle: {
-    color: '#000000',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  emptyText: {
-    color: '#666666',
-    fontSize: 13,
-    textAlign: 'center',
   },
 });
