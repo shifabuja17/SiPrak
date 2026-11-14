@@ -62,11 +62,11 @@ function AttendanceBadge({
     label = 'PRESENSI GAGAL DIMUAT';
     background = '#FEE2E2';
     color = '#991B1B';
-  } else if (sessionStatus === 'dibuka' || sessionStatus === 'OPEN') {
+  } else if (sessionStatus === 'dibuka') {
     label = 'BELUM PRESENSI';
     background = '#FEF3C7';
     color = '#B45309';
-  } else if (sessionStatus === 'ditutup' || sessionStatus === 'CLOSED') {
+  } else if (sessionStatus === 'ditutup') {
     label = 'TIDAK HADIR';
     background = '#FEE2E2';
     color = '#B91C1C';
@@ -382,16 +382,16 @@ function PraktikanAttendanceHistory() {
 function LegacyAttendanceHistory() {
   const { currentUser, sessions } = usePracticum();
 
-  const isPraktikan = currentUser.role === 'PRAKTIKAN';
+  const isPraktikan = currentUser.role === 'praktikan';
 
   const presentCount = sessions.filter((session) =>
-    session.attendances.some((record) => record.userId === currentUser.id),
+    session.attendances.some((record) => record.uid === currentUser.uid),
   ).length;
 
   const absentCount = sessions.filter(
     (session) =>
-      session.status === 'CLOSED' &&
-      !session.attendances.some((record) => record.userId === currentUser.id),
+      session.status === 'ditutup' &&
+      !session.attendances.some((record) => record.uid === currentUser.uid),
   ).length;
 
   const pendingCount = sessions.length - presentCount - absentCount;
@@ -447,7 +447,7 @@ function LegacyAttendanceHistory() {
         }
         renderItem={({ item }) => {
           const attendance = item.attendances.find(
-            (record) => record.userId === currentUser.id,
+            (record) => record.uid === currentUser.uid,
           );
 
           return (
@@ -458,8 +458,7 @@ function LegacyAttendanceHistory() {
               scheduleTime={item.scheduleTime}
               sessionStatus={item.status}
               isPresent={Boolean(attendance)}
-              timeLabel={attendance?.timestamp ?? null}
-              note={attendance?.note}
+              timeLabel={attendance?.waktu ?? null}
             />
           );
         }}

@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import { useState } from 'react';
 import {
   Alert,
@@ -17,15 +16,15 @@ export default function HeaderProfileBar() {
   const [loggingOut, setLoggingOut] = useState(false);
 
   const isFirebaseAuthenticated = profile !== null;
-  const displayName = profile ? profile.nama : currentUser.name;
+  const displayName = profile ? profile.nama : currentUser.nama;
   const roleLabel = profile
     ? profile.role === 'asisten'
       ? 'Asisten Praktikum'
       : 'Praktikan'
-    : currentUser.role === 'ASISTEN'
+    : currentUser.role === 'asisten'
       ? 'Asisten Praktikum'
       : 'Praktikan';
-  const displayNim = profile ? (profile.nim ?? '-') : currentUser.nim;
+  const displayNim = (profile ? profile.nim : currentUser.nim) ?? '-';
 
   function confirmLogout() {
     Alert.alert('Keluar', 'Yakin ingin keluar dari akun ini?', [
@@ -86,19 +85,7 @@ export default function HeaderProfileBar() {
             {loggingOut ? 'Keluar...' : 'Keluar'}
           </Text>
         </Pressable>
-      ) : (
-        <Pressable
-          onPress={() => router.push('/role-switcher')}
-          style={({ pressed }) => [
-            styles.switchButton,
-            pressed && styles.pressed,
-          ]}
-        >
-          <Text style={styles.switchText}>
-            Ganti akun
-          </Text>
-        </Pressable>
-      )}
+      ) : null}
     </View>
   );
 }

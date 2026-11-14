@@ -73,7 +73,7 @@ export default function SessionDetailScreen() {
 
   if (
     authRole === 'asisten' ||
-    (authRole === null && currentUser.role === 'ASISTEN')
+    (authRole === null && currentUser.role === 'asisten')
   ) {
     return <AssistantSessionDetail sessionId={sessionIdParam} />;
   }
@@ -400,12 +400,12 @@ function AssistantSessionDetail({
 
   function handleConfirmAction() {
     const actionLabel =
-      currentSessionStatus === 'UPCOMING' ? 'dibuka' : 'ditutup';
+      currentSessionStatus === 'dijadwalkan' ? 'dibuka' : 'ditutup';
 
     try {
-      if (currentSessionStatus === 'UPCOMING') {
+      if (currentSessionStatus === 'dijadwalkan') {
         openSession(resolvedSessionId, sessionNote);
-      } else if (currentSessionStatus === 'OPEN') {
+      } else if (currentSessionStatus === 'dibuka') {
         closeSession(resolvedSessionId);
       } else {
         throw new Error('Sesi yang sudah selesai tidak dapat diubah.');
@@ -437,7 +437,7 @@ function AssistantSessionDetail({
           sessionNote={session.sessionNote}
         />
 
-        {session.status === 'UPCOMING' && (
+        {session.status === 'dijadwalkan' && (
           <Pressable
             style={({ pressed }) => [
               styles.primaryButton,
@@ -449,7 +449,7 @@ function AssistantSessionDetail({
           </Pressable>
         )}
 
-        {session.status === 'OPEN' && (
+        {session.status === 'dibuka' && (
           <Pressable
             style={({ pressed }) => [
               styles.secondaryButton,
@@ -461,7 +461,7 @@ function AssistantSessionDetail({
           </Pressable>
         )}
 
-        {session.status === 'CLOSED' && (
+        {session.status === 'ditutup' && (
           <View style={styles.notice}>
             <Text style={styles.noticeText}>Sesi ini sudah selesai.</Text>
           </View>
@@ -479,18 +479,18 @@ function AssistantSessionDetail({
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>
-              {session.status === 'UPCOMING'
+              {session.status === 'dijadwalkan'
                 ? 'Buka sesi praktikum?'
                 : 'Tutup sesi praktikum?'}
             </Text>
 
             <Text style={styles.modalDescription}>
-              {session.status === 'UPCOMING'
+              {session.status === 'dijadwalkan'
                 ? 'Sesi akan berubah menjadi berlangsung sehingga praktikan dapat melakukan presensi.'
                 : 'Sesi akan ditandai selesai dan tidak dapat menerima presensi baru.'}
             </Text>
 
-            {session.status === 'UPCOMING' && (
+            {session.status === 'dijadwalkan' && (
               <>
                 <Text style={styles.inputLabel}>
                   Catatan / materi sesi (opsional)
