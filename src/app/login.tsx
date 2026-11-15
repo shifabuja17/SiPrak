@@ -12,7 +12,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 
 export default function LoginScreen() {
-  const { user, profile, profileError, login, logout } = useAuth();
+  const { user, profile, profileError, loading, login, logout } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,8 +20,12 @@ export default function LoginScreen() {
   const [submitting, setSubmitting] = useState(false);
 
   // Akun ada di Firebase Auth tapi tidak punya dokumen profil (users/{uid}),
-  // misalnya dibuat manual lewat Console. Tanpa profil, role tidak diketahui.
-  const accountWithoutProfile = !!user && !profile;
+  // misalnya dibuat manual lewat Console. Hanya dinilai SETELAH loading selesai:
+  // sesaat setelah login, user sudah ada tetapi profil masih diambil dari Firestore.
+  const accountWithoutProfile = !loading && !!user && !profile;
+
+  // Tetap tampilkan indikator loading selama profil masih dimuat setelah login.
+  const busy = submitting || (loading && !!user);
 
   async function handleLogin() {
     setError('');
@@ -77,7 +81,7 @@ export default function LoginScreen() {
         autoCorrect={false}
         keyboardType="email-address"
         textContentType="emailAddress"
-        editable={!submitting}
+        editable={!busy}
       />
 
       <AuthField
@@ -89,14 +93,14 @@ export default function LoginScreen() {
         autoComplete="current-password"
         secureTextEntry
         textContentType="password"
-        editable={!submitting}
+        editable={!busy}
         onSubmitEditing={handleLogin}
         returnKeyType="go"
       />
 
       <AuthError message={error} />
 
-      <AuthButton title="Masuk" onPress={handleLogin} loading={submitting} />
+      <AuthButton title="Masuk" onPress={handleLogin} loading={busy} />
 
       <AuthLink
         prompt="Belum punya akun?"
