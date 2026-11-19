@@ -36,8 +36,10 @@ export function useLabRealtimeActivities(
 ): UseLabRealtimeActivitiesResult {
   const { user, status: authStatus, loading: authLoading } = useAuth();
 
-  const [snapshotData, setSnapshotData] =
-    useState<LabActivitiesSnapshotData | null>(null);
+  const [snapshotState, setSnapshotState] = useState<{
+    labId: LaboratoryId;
+    data: LabActivitiesSnapshotData;
+  } | null>(null);
   const [loading, setLoading] = useState(Boolean(labId));
   const [error, setError] = useState<string | null>(null);
   const [retryNonce, setRetryNonce] = useState(0);
@@ -45,8 +47,11 @@ export function useLabRealtimeActivities(
 
   const retry = useCallback(() => {
     setError(null);
+    if (labId && isLaboratoryId(labId)) {
+      setLoading(true);
+    }
     setRetryNonce((previous) => previous + 1);
-  }, []);
+  }, [labId]);
 
   useEffect(() => {
     if (!labId || !isLaboratoryId(labId)) {
@@ -66,35 +71,35 @@ export function useLabRealtimeActivities(
 
   useEffect(() => {
     if (!labId) {
-      setSnapshotData(null);
+      setSnapshotState(null);
       setLoading(false);
       setError(null);
       return;
     }
 
     if (!isLaboratoryId(labId)) {
-      setSnapshotData(null);
+      setSnapshotState(null);
       setLoading(false);
       setError('ID laboratorium tidak valid.');
       return;
     }
 
     if (authLoading || authStatus === 'loading') {
-      setSnapshotData(null);
+      setSnapshotState(null);
       setLoading(true);
       setError(null);
       return;
     }
 
     if (authStatus !== 'authenticated' || !user) {
-      setSnapshotData(null);
+      setSnapshotState(null);
       setLoading(false);
       setError('Silakan login terlebih dahulu untuk melihat aktivitas laboratorium.');
       return;
     }
 
     let active = true;
-    setSnapshotData(null);
+    setSnapshotState(null);
     setLoading(true);
     setError(null);
 
@@ -102,13 +107,13 @@ export function useLabRealtimeActivities(
       labId,
       (nextData) => {
         if (!active) return;
-        setSnapshotData(nextData);
+        setSnapshotState({ labId, data: nextData });
         setError(null);
         setLoading(false);
       },
       (firebaseError) => {
         if (!active) return;
-        setSnapshotData(null);
+        setSnapshotState(null);
         setError(firebaseError.message);
         setLoading(false);
       },
@@ -120,8 +125,24 @@ export function useLabRealtimeActivities(
     };
   }, [authLoading, authStatus, user, labId, retryNonce]);
 
+  const isMatchingLabSnapshot = Boolean(
+    labId && isLaboratoryId(labId) && snapshotState?.labId === labId,
+  );
+
+  const effectiveLoading = Boolean(
+    labId &&
+      isLaboratoryId(labId) &&
+      !error &&
+      (loading || !isMatchingLabSnapshot),
+  );
+
   const activities = useMemo(() => {
-    if (!snapshotData || !labId || !isLaboratoryId(labId)) {
+    if (
+      !snapshotState ||
+      !labId ||
+      !isLaboratoryId(labId) ||
+      snapshotState.labId !== labId
+    ) {
       return {
         ongoingActivity: null,
         nextActivity: null,
@@ -131,18 +152,18 @@ export function useLabRealtimeActivities(
     }
 
     return computeLabRealtimeActivities(
-      snapshotData,
+      snapshotState.data,
       labId,
       new Date(clockTick),
     );
-  }, [snapshotData, labId, clockTick]);
+  }, [snapshotState, labId, clockTick]);
 
   return {
     ongoingActivity: activities.ongoingActivity,
     nextActivity: activities.nextActivity,
     ongoingActivities: activities.ongoingActivities,
     upcomingActivities: activities.upcomingActivities,
-    loading,
+    loading: effectiveLoading,
     error,
     retry,
   };

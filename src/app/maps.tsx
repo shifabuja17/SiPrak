@@ -323,14 +323,27 @@ function LabDetailCard({
 
           {activitiesLoading ? (
             <View style={styles.activitiesLoadingBox}>
-              <ActivityIndicator size="small" color="#000000" />
-              <Text style={styles.activitiesStateText}>
-                Memuat aktivitas praktikum laboratorium...
-              </Text>
+              <View style={styles.activitiesLoadingHeader}>
+                <ActivityIndicator size="small" color="#000000" />
+                <Text style={styles.activitiesStateText}>
+                  Memuat aktivitas praktikum...
+                </Text>
+              </View>
+              <View style={styles.activitySkeletonRow}>
+                <View style={styles.activitySkeletonLineWide} />
+                <View style={styles.activitySkeletonLineShort} />
+              </View>
             </View>
           ) : activitiesError ? (
             <View style={styles.activitiesErrorBox}>
-              <Text style={styles.activitiesErrorText}>{activitiesError}</Text>
+              <View style={styles.activitiesErrorTextGroup}>
+                <Text style={styles.activitiesErrorTitle}>
+                  Gagal Memuat Aktivitas
+                </Text>
+                <Text style={styles.activitiesErrorText}>
+                  {activitiesError}
+                </Text>
+              </View>
               <Pressable
                 accessibilityRole="button"
                 onPress={onRetryActivities}
@@ -339,7 +352,7 @@ function LabDetailCard({
                   pressed && styles.pressed,
                 ]}
               >
-                <Text style={styles.activitiesRetryText}>Muat Ulang</Text>
+                <Text style={styles.activitiesRetryText}>Coba Lagi</Text>
               </Pressable>
             </View>
           ) : (
@@ -355,7 +368,7 @@ function LabDetailCard({
               <LabActivityBox
                 sectionTitle="Praktikum Berikutnya"
                 item={nextActivity}
-                emptyMessage="Belum ada jadwal praktikum berikutnya di lokasi ini."
+                emptyMessage="Belum ada jadwal praktikum berikutnya di laboratorium ini."
                 extraCount={Math.max(0, upcomingCount - 1)}
               />
             </View>
@@ -1526,14 +1539,32 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   activitiesLoadingBox: {
-    alignItems: 'center',
     backgroundColor: '#F8F8FA',
     borderColor: '#E5E5EA',
     borderRadius: 12,
     borderWidth: 1,
-    flexDirection: 'row',
     gap: 10,
     padding: 12,
+  },
+  activitiesLoadingHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  activitySkeletonRow: {
+    gap: 6,
+  },
+  activitySkeletonLineWide: {
+    backgroundColor: '#E5E5EA',
+    borderRadius: 6,
+    height: 11,
+    width: '78%',
+  },
+  activitySkeletonLineShort: {
+    backgroundColor: '#ECECF0',
+    borderRadius: 6,
+    height: 10,
+    width: '48%',
   },
   activitiesStateText: {
     color: '#555555',
@@ -1551,9 +1582,17 @@ const styles = StyleSheet.create({
     gap: 10,
     padding: 12,
   },
+  activitiesErrorTextGroup: {
+    flex: 1,
+    gap: 2,
+  },
+  activitiesErrorTitle: {
+    color: '#991B1B',
+    fontSize: 12,
+    fontWeight: '800',
+  },
   activitiesErrorText: {
     color: '#991B1B',
-    flex: 1,
     fontSize: 12,
     lineHeight: 17,
   },

@@ -337,15 +337,16 @@ function resolveScheduleTimeText(
   session: RawLabSessionRecord | undefined,
   schedule: RawLabScheduleRecord | undefined,
 ): string {
-  const rawSessionTime =
-    session?.scheduleTime ?? session?.dayTime;
-  if (rawSessionTime) return rawSessionTime;
+  // Prioritaskan data jadwal hidup agar perubahan di koleksi `schedules`
+  // langsung tercermin meski dokumen `sessions` menyimpan salinan lama.
+  if (schedule) {
+    if (schedule.scheduleTime) return schedule.scheduleTime;
+    if (schedule.dayTime) return schedule.dayTime;
+    if (schedule.day && schedule.time) return `${schedule.day}, ${schedule.time}`;
+    if (schedule.day ?? schedule.time) return (schedule.day ?? schedule.time)!;
+  }
 
-  if (!schedule) return '-';
-  if (schedule.scheduleTime) return schedule.scheduleTime;
-  if (schedule.dayTime) return schedule.dayTime;
-  if (schedule.day && schedule.time) return `${schedule.day}, ${schedule.time}`;
-  return schedule.day ?? schedule.time ?? '-';
+  return session?.scheduleTime ?? session?.dayTime ?? '-';
 }
 
 function resolvePracticumAndClassInfo(
@@ -358,8 +359,8 @@ function resolvePracticumAndClassInfo(
   classCode: string | null;
 } {
   const practicumName =
-    session?.practicumName ??
     schedule?.practicumName ??
+    session?.practicumName ??
     classRecord?.practicumName ??
     classRecord?.nama ??
     '-';
@@ -518,7 +519,7 @@ export function computeLabRealtimeActivities(
     const { practicumName, className, classCode } =
       resolvePracticumAndClassInfo(session, schedule, classRecord);
 
-    const rawModuleTitle = session.moduleTitle ?? schedule?.moduleTitle;
+    const rawModuleTitle = schedule?.moduleTitle ?? session.moduleTitle;
     const moduleTitle = rawModuleTitle
       ? formatMeetingTitle(rawModuleTitle)
       : null;
