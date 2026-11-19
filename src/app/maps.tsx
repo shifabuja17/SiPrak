@@ -8,6 +8,7 @@ import {
 } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Platform,
   Pressable,
   ScrollView,
@@ -23,7 +24,7 @@ import MapView, {
   type Region,
 } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Circle as SvgCircle, Path } from 'react-native-svg';
 
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -32,6 +33,8 @@ import {
   type LaboratoryId,
   type LaboratoryLocation,
 } from '@/features/assistant/services/laboratory-service';
+import { useUserLocationTracking } from '@/hooks/use-user-location-tracking';
+import { openAppLocationSettings } from '@/services/location-service';
 
 const INITIAL_REGION: Region = {
   latitude: -7.04825,
@@ -39,6 +42,8 @@ const INITIAL_REGION: Region = {
   latitudeDelta: 0.004,
   longitudeDelta: 0.004,
 };
+
+const USER_FOCUS_DELTA = 0.0025;
 
 const FIT_EDGE_PADDING = {
   top: 96,
@@ -134,6 +139,27 @@ function CloseIcon() {
   );
 }
 
+function MyLocationIcon({ color = '#0284C7' }: { color?: string }) {
+  return (
+    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+      <SvgCircle
+        cx={12}
+        cy={12}
+        r={7}
+        stroke={color}
+        strokeWidth={2}
+      />
+      <SvgCircle cx={12} cy={12} r={2.5} fill={color} />
+      <Path
+        d="M12 2V5M12 19V22M2 12H5M19 12H22"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
 function LabDetailCard({
   lab,
   onClose,
@@ -213,6 +239,21 @@ export default function MapsScreen() {
   const [selectedLabId, setSelectedLabId] = useState<LaboratoryId | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [mapLayoutReady, setMapLayoutReady] = useState(false);
+
+  const isUserLocationTrackingEnabled =
+    !authLoading && authStatus === 'authenticated' && Boolean(user);
+
+  const {
+    userLocation,
+    permissionStatus: locationPermissionStatus,
+    isLocationServiceEnabled,
+    isSearchingLocation,
+    errorMessage: locationError,
+    canAskPermissionAgain,
+    retryLocation,
+  } = useUserLocationTracking({
+    enabled: isUserLocationTrackingEnabled,
+  });
 
   const validLaboratories = useMemo(
     () => laboratories.filter(isValidLabLocation),
@@ -379,6 +420,40 @@ export default function MapsScreen() {
     }
   }
 
+  async function handleOpenLocationSettings() {
+    try {
+      await openAppLocationSettings();
+    } catch {
+      Alert.alert(
+        'Gagal Membuka Pengaturan',
+        'Buka pengaturan perangkat secara manual untuk mengaktifkan izin lokasi SiPrak.',
+      );
+    }
+  }
+
+  function handleFocusUserLocation() {
+    if (!userLocation) {
+      if (locationPermissionStatus === 'denied' && !canAskPermissionAgain) {
+        void handleOpenLocationSettings();
+        return;
+      }
+      retryLocation();
+      return;
+    }
+
+    if (Platform.OS !== 'web' && mapRef.current && mapReady) {
+      mapRef.current.animateToRegion(
+        {
+          latitude: userLocation.latitude,
+          longitude: userLocation.longitude,
+          latitudeDelta: USER_FOCUS_DELTA,
+          longitudeDelta: USER_FOCUS_DELTA,
+        },
+        400,
+      );
+    }
+  }
+
   const showInitialLoading = loading && validLaboratories.length === 0;
   const showFatalError =
     Boolean(error) && validLaboratories.length === 0 && !loading;
@@ -438,6 +513,36 @@ export default function MapsScreen() {
         </View>
       ) : null}
 
+      {/* BANNER STATUS LOKASI PENGGUNA (NON-BLOCKING) */}
+      {locationError ? (
+        <View style={styles.locationWarningBanner}>
+          <Text style={styles.locationWarningText}>{locationError}</Text>
+          {locationPermissionStatus === 'denied' && !canAskPermissionAgain ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => void handleOpenLocationSettings()}
+              style={({ pressed }) => [
+                styles.locationWarningButton,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={styles.locationWarningButtonText}>Pengaturan</Text>
+            </Pressable>
+          ) : (
+            <Pressable
+              accessibilityRole="button"
+              onPress={retryLocation}
+              style={({ pressed }) => [
+                styles.locationWarningButton,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={styles.locationWarningButtonText}>Coba Lagi</Text>
+            </Pressable>
+          )}
+        </View>
+      ) : null}
+
       {/* AREA PETA */}
       <View style={styles.mapContainer}>
         {Platform.OS === 'web' ? (
@@ -452,6 +557,24 @@ export default function MapsScreen() {
                   salah satu laboratorium di bawah untuk melihat detailnya:
                 </Text>
               </View>
+
+              {userLocation ? (
+                <View style={styles.webUserLocationCard}>
+                  <View style={styles.webUserLocationHeader}>
+                    <View style={styles.gpsLiveDot} />
+                    <Text style={styles.webUserLocationTitle}>
+                      Lokasi Anda (Real-time)
+                    </Text>
+                  </View>
+                  <Text style={styles.webUserLocationCoords}>
+                    {userLocation.latitude.toFixed(6)},{' '}
+                    {userLocation.longitude.toFixed(6)}
+                    {userLocation.accuracy !== null
+                      ? ` · Akurasi ±${Math.round(userLocation.accuracy)} m`
+                      : ''}
+                  </Text>
+                </View>
+              ) : null}
 
               {validLaboratories.length > 0 ? (
                 <View style={styles.webChipStripWrapper}>
@@ -586,10 +709,64 @@ export default function MapsScreen() {
                     description={`Radius presensi: ${lab.radius} meter`}
                     pinColor={isSelected ? 'blue' : 'red'}
                     stopPropagation
+                    zIndex={isSelected ? 5 : 4}
                     onPress={() => handleSelectLab(lab)}
                   />
                 );
               })}
+
+              {/* LINGKARAN AKURASI & MARKER POSISI PENGGUNA (FR-14) */}
+              {userLocation &&
+              userLocation.accuracy !== null &&
+              userLocation.accuracy > 0 ? (
+                <Circle
+                  key="user-accuracy-circle"
+                  center={{
+                    latitude: userLocation.latitude,
+                    longitude: userLocation.longitude,
+                  }}
+                  radius={userLocation.accuracy}
+                  strokeWidth={1}
+                  strokeColor="rgba(14, 165, 233, 0.55)"
+                  fillColor="rgba(14, 165, 233, 0.14)"
+                  zIndex={3}
+                />
+              ) : null}
+
+              {userLocation ? (
+                <Marker
+                  key="user-location-marker"
+                  identifier="user-location"
+                  coordinate={{
+                    latitude: userLocation.latitude,
+                    longitude: userLocation.longitude,
+                  }}
+                  anchor={{ x: 0.5, y: 0.73 }}
+                  title="Lokasi Anda"
+                  description={
+                    userLocation.accuracy !== null
+                      ? `Akurasi GPS ±${Math.round(userLocation.accuracy)} meter`
+                      : 'Posisi GPS perangkat saat ini'
+                  }
+                  stopPropagation
+                  tracksViewChanges
+                  zIndex={10}
+                >
+                  <View style={styles.userMarkerWrapper} collapsable={false}>
+                    <View style={styles.userMarkerLabelPill}>
+                      <Text
+                        allowFontScaling={false}
+                        style={styles.userMarkerLabelText}
+                      >
+                        Lokasi Anda
+                      </Text>
+                    </View>
+                    <View style={styles.userMarkerPulse}>
+                      <View style={styles.userMarkerCore} />
+                    </View>
+                  </View>
+                </Marker>
+              ) : null}
             </MapView>
 
             {/* BARISAN CHIP CEPAT DI BAGIAN ATAS PETA */}
@@ -603,6 +780,75 @@ export default function MapsScreen() {
                 />
               </View>
             ) : null}
+
+            {/* STATUS GPS & TOMBOL AKSI "LOKASI SAYA" (FR-14) */}
+            <View
+              style={[
+                styles.mapActionsOverlay,
+                validLaboratories.length === 0 &&
+                  styles.mapActionsOverlayNoChips,
+              ]}
+              pointerEvents="box-none"
+            >
+              {!isLocationServiceEnabled ? (
+                <View
+                  style={[
+                    styles.gpsStatusPill,
+                    styles.gpsWarningPill,
+                    styles.floatingChipShadow,
+                  ]}
+                >
+                  <View style={styles.gpsOffDot} />
+                  <Text style={styles.gpsStatusText}>GPS nonaktif</Text>
+                </View>
+              ) : isSearchingLocation && !userLocation ? (
+                <View style={[styles.gpsStatusPill, styles.floatingChipShadow]}>
+                  <ActivityIndicator size="small" color="#0284C7" />
+                  <Text style={styles.gpsStatusText}>Mencari lokasi...</Text>
+                </View>
+              ) : userLocation ? (
+                <View style={[styles.gpsStatusPill, styles.floatingChipShadow]}>
+                  <View style={styles.gpsLiveDot} />
+                  <Text style={styles.gpsStatusText}>
+                    {userLocation.accuracy !== null
+                      ? `GPS ±${Math.round(userLocation.accuracy)} m`
+                      : 'GPS aktif'}
+                  </Text>
+                </View>
+              ) : (
+                <View />
+              )}
+
+              <Pressable
+                accessibilityLabel="Arahkan peta ke lokasi saya"
+                accessibilityRole="button"
+                onPress={handleFocusUserLocation}
+                style={({ pressed }) => [
+                  styles.myLocationButton,
+                  styles.floatingChipShadow,
+                  (!userLocation || !isLocationServiceEnabled) &&
+                    styles.myLocationButtonMuted,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <MyLocationIcon
+                  color={
+                    userLocation && isLocationServiceEnabled
+                      ? '#0284C7'
+                      : '#555555'
+                  }
+                />
+                <Text
+                  style={[
+                    styles.myLocationButtonText,
+                    (!userLocation || !isLocationServiceEnabled) &&
+                      styles.myLocationButtonTextMuted,
+                  ]}
+                >
+                  Lokasi Saya
+                </Text>
+              </Pressable>
+            </View>
 
             {/* OVERLAY LOADING */}
             {showInitialLoading ? (
@@ -748,6 +994,33 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   inlineRetryText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  locationWarningBanner: {
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    borderBottomColor: '#FCD34D',
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+  },
+  locationWarningText: {
+    color: '#92400E',
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  locationWarningButton: {
+    backgroundColor: '#92400E',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  locationWarningButtonText: {
     color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '700',
@@ -1044,6 +1317,134 @@ const styles = StyleSheet.create({
   },
   webLabCoords: {
     color: '#666666',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  // MARKER LOKASI PENGGUNA & TOMBOL AKSI PETA (FR-14)
+  userMarkerWrapper: {
+    alignItems: 'center',
+    padding: 2,
+  },
+  userMarkerLabelPill: {
+    backgroundColor: '#0F172A',
+    borderColor: '#FFFFFF',
+    borderRadius: 999,
+    borderWidth: 1,
+    elevation: 3,
+    marginBottom: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  userMarkerLabelText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
+    lineHeight: 13,
+  },
+  userMarkerPulse: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(2, 132, 199, 0.24)',
+    borderRadius: 13,
+    height: 26,
+    justifyContent: 'center',
+    width: 26,
+  },
+  userMarkerCore: {
+    backgroundColor: '#0284C7',
+    borderColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 2.5,
+    elevation: 3,
+    height: 16,
+    width: 16,
+  },
+  mapActionsOverlay: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    left: 16,
+    position: 'absolute',
+    right: 14,
+    top: 58,
+    zIndex: 3,
+  },
+  mapActionsOverlayNoChips: {
+    top: 12,
+  },
+  gpsStatusPill: {
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#DCDCE0',
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+  },
+  gpsWarningPill: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#FCD34D',
+  },
+  gpsLiveDot: {
+    backgroundColor: '#0284C7',
+    borderRadius: 4,
+    height: 8,
+    width: 8,
+  },
+  gpsOffDot: {
+    backgroundColor: '#D97706',
+    borderRadius: 4,
+    height: 8,
+    width: 8,
+  },
+  gpsStatusText: {
+    color: '#111111',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  myLocationButton: {
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#0284C7',
+    borderRadius: 999,
+    borderWidth: 1.2,
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  myLocationButtonMuted: {
+    borderColor: '#DCDCE0',
+  },
+  myLocationButtonText: {
+    color: '#0369A1',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  myLocationButtonTextMuted: {
+    color: '#555555',
+  },
+  webUserLocationCard: {
+    backgroundColor: '#F0F9FF',
+    borderColor: '#BAE6FD',
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 4,
+    padding: 14,
+  },
+  webUserLocationHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 7,
+  },
+  webUserLocationTitle: {
+    color: '#0369A1',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  webUserLocationCoords: {
+    color: '#0C4A6E',
     fontSize: 12,
     fontWeight: '600',
   },
