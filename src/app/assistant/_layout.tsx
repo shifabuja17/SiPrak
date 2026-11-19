@@ -1,8 +1,15 @@
-import { Stack } from 'expo-router';
+import { Redirect, Stack } from 'expo-router';
 
+import { useAuth } from '@/context/AuthContext';
 import { AssistantSessionsProvider } from '@/features/assistant/state/assistant-sessions-context';
 
 export default function AssistantLayout() {
+  const { loading, status, role } = useAuth();
+
+  if (!loading && status === 'authenticated' && role !== 'asisten') {
+    return <Redirect href="/(tabs)/schedule" />;
+  }
+
   return (
     <AssistantSessionsProvider>
       <Stack screenOptions={{ headerShown: false }}>

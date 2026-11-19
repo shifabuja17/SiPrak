@@ -37,6 +37,9 @@ export interface PracticumSession {
   practicumName: string;
   moduleTitle: string;
   classRoom: string;
+  labId?: string | null;
+  labName?: string | null;
+  labRadius?: number | null;
   scheduleTime: string;
   status: SessionStatus;
   sessionNote: string;

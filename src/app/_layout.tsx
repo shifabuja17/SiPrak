@@ -32,11 +32,12 @@ function SplashScreenController() {
 }
 
 function RootNavigator() {
-  const { status } = useAuth();
+  const { status, role } = useAuth();
   const router = useRouter();
   const segments = useSegments();
   const navigationState = useRootNavigationState();
   const isLoggedIn = status === 'authenticated';
+  const isAssistant = isLoggedIn && role === 'asisten';
 
   useEffect(() => {
     if (!navigationState?.key || status === 'loading') {
@@ -74,8 +75,13 @@ function RootNavigator() {
 
         {/* Halaman pendukung */}
         <Stack.Screen name="session/[id]" />
+      </Stack.Protected>
 
-        {/* Navigasi khusus Asisten */}
+      {/* Navigasi khusus Asisten (Praktikan diarahkan kembali ke Jadwal) */}
+      <Stack.Protected
+        guard={isAssistant}
+        redirectTo={isLoggedIn ? '/(tabs)/schedule' : '/login'}
+      >
         <Stack.Screen name="assistant" />
       </Stack.Protected>
     </Stack>
