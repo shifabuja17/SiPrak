@@ -3,6 +3,9 @@ import {
   DefaultTheme,
   Stack,
   ThemeProvider,
+  useRootNavigationState,
+  useRouter,
+  useSegments,
 } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
@@ -30,18 +33,39 @@ function SplashScreenController() {
 
 function RootNavigator() {
   const { status } = useAuth();
+  const router = useRouter();
+  const segments = useSegments();
+  const navigationState = useRootNavigationState();
   const isLoggedIn = status === 'authenticated';
+
+  useEffect(() => {
+    if (!navigationState?.key || status === 'loading') {
+      return;
+    }
+
+    const firstSegment = segments[0];
+    const inAuthScreen = firstSegment === 'login' || firstSegment === 'register';
+
+    if (status === 'unauthenticated' && !inAuthScreen) {
+      router.replace('/login');
+      return;
+    }
+
+    if (status === 'authenticated' && inAuthScreen) {
+      router.replace('/');
+    }
+  }, [navigationState?.key, router, segments, status]);
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
       {/* Hanya untuk pengguna yang belum login */}
-      <Stack.Protected guard={!isLoggedIn}>
+      <Stack.Protected guard={!isLoggedIn} redirectTo="/">
         <Stack.Screen name="login" />
         <Stack.Screen name="register" />
       </Stack.Protected>
 
       {/* Hanya untuk pengguna yang sudah login */}
-      <Stack.Protected guard={isLoggedIn}>
+      <Stack.Protected guard={isLoggedIn} redirectTo="/login">
         {/* Pintu masuk: mengarahkan ke tab Jadwal */}
         <Stack.Screen name="index" />
 

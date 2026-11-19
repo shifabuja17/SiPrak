@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { router } from 'expo-router';
 
 import {
   ActivityIndicator,
@@ -212,9 +211,6 @@ export default function AssistantProfileScreen() {
       await logout();
 
       setModalVisible(false);
-
-      // Kembali ke halaman pemilihan peran.
-      router.replace('/');
     } catch (error) {
       console.error('Gagal logout:', error);
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   Alert,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -11,11 +12,11 @@ import { useAuth } from '@/context/AuthContext';
 import { usePracticum } from '@/context/PracticumContext';
 
 export default function HeaderProfileBar() {
-  const { profile, logout } = useAuth();
+  const { user, profile, logout } = useAuth();
   const { currentUser } = usePracticum();
   const [loggingOut, setLoggingOut] = useState(false);
 
-  const isFirebaseAuthenticated = profile !== null;
+  const isFirebaseAuthenticated = Boolean(user || profile);
   const displayName = profile ? profile.nama : currentUser.nama;
   const roleLabel = profile
     ? profile.role === 'asisten'
@@ -27,6 +28,17 @@ export default function HeaderProfileBar() {
   const displayNim = (profile ? profile.nim : currentUser.nim) ?? '-';
 
   function confirmLogout() {
+    if (Platform.OS === 'web') {
+      const confirmed =
+        typeof window !== 'undefined' && typeof window.confirm === 'function'
+          ? window.confirm('Yakin ingin keluar dari akun ini?')
+          : true;
+      if (confirmed) {
+        void handleLogout();
+      }
+      return;
+    }
+
     Alert.alert('Keluar', 'Yakin ingin keluar dari akun ini?', [
       { text: 'Batal', style: 'cancel' },
       { text: 'Keluar', style: 'destructive', onPress: () => void handleLogout() },
@@ -39,10 +51,17 @@ export default function HeaderProfileBar() {
     try {
       await logout();
     } catch (err) {
-      Alert.alert(
-        'Gagal keluar',
-        err instanceof Error ? err.message : 'Terjadi kesalahan saat logout.',
-      );
+      const message =
+        err instanceof Error ? err.message : 'Terjadi kesalahan saat logout.';
+      if (
+        Platform.OS === 'web' &&
+        typeof window !== 'undefined' &&
+        typeof window.alert === 'function'
+      ) {
+        window.alert(message);
+      } else {
+        Alert.alert('Gagal keluar', message);
+      }
     } finally {
       setLoggingOut(false);
     }
