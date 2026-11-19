@@ -37,7 +37,13 @@
       ],
       "expo-status-bar",
       "expo-web-browser",
-      "react-native-maps"
+      "react-native-maps",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Izinkan $(PRODUCT_NAME) mengakses lokasi Anda untuk menampilkan posisi Anda di peta laboratorium."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
