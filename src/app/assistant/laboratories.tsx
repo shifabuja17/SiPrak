@@ -509,6 +509,7 @@ export default function AssistantLaboratoriesScreen() {
             />
 
             <ScrollView
+              style={styles.modalScroll}
               contentContainerStyle={styles.modalScrollContent}
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="on-drag"
@@ -925,9 +926,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-end',
   },
+  modalScroll: {
+    flexGrow: 0,
+    maxHeight: '90%',
+    width: '100%',
+  },
   modalScrollContent: {
     flexGrow: 1,
-    justifyContent: 'flex-end',
   },
   modalCard: {
     backgroundColor: '#FFFFFF',
