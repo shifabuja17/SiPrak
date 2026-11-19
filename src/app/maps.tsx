@@ -23,6 +23,7 @@ import MapView, {
   type Region,
 } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -40,7 +41,7 @@ const INITIAL_REGION: Region = {
 };
 
 const FIT_EDGE_PADDING = {
-  top: 72,
+  top: 96,
   right: 56,
   bottom: 96,
   left: 56,
@@ -66,6 +67,130 @@ function isValidRadius(radius: unknown): radius is number {
 function isValidLabLocation(lab: LaboratoryLocation): boolean {
   return (
     isValidCoordinate(lab.latitude, lab.longitude) && isValidRadius(lab.radius)
+  );
+}
+
+function getFocusDeltaForRadius(radiusMeters: number): number {
+  return Math.max(0.002, (radiusMeters * 4.5) / 111000);
+}
+
+function LabChipStrip({
+  laboratories,
+  selectedLabId,
+  onSelect,
+  elevated = false,
+}: {
+  laboratories: LaboratoryLocation[];
+  selectedLabId: LaboratoryId | null;
+  onSelect: (lab: LaboratoryLocation) => void;
+  elevated?: boolean;
+}) {
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.topChipList}
+    >
+      {laboratories.map((lab) => {
+        const isSelected = selectedLabId === lab.id;
+
+        return (
+          <Pressable
+            key={lab.id}
+            accessibilityRole="button"
+            onPress={() => onSelect(lab)}
+            style={({ pressed }) => [
+              styles.labChip,
+              elevated && styles.floatingChipShadow,
+              isSelected && styles.labChipSelected,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text
+              style={[
+                styles.labChipText,
+                isSelected && styles.labChipTextSelected,
+              ]}
+            >
+              {lab.name}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M6 6L18 18M18 6L6 18"
+        stroke="#444444"
+        strokeWidth={2.2}
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
+function LabDetailCard({
+  lab,
+  onClose,
+}: {
+  lab: LaboratoryLocation;
+  onClose: () => void;
+}) {
+  return (
+    <View style={styles.detailCard}>
+      <View style={styles.detailHandle} />
+
+      <View style={styles.detailHeader}>
+        <View style={styles.detailTitleGroup}>
+          <Text style={styles.detailEyebrow}>DETAIL LABORATORIUM</Text>
+          <Text style={styles.detailName}>{lab.name}</Text>
+        </View>
+
+        <Pressable
+          accessibilityLabel="Tutup detail laboratorium"
+          accessibilityRole="button"
+          hitSlop={8}
+          onPress={onClose}
+          style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}
+        >
+          <CloseIcon />
+        </Pressable>
+      </View>
+
+      <View style={styles.metricBox}>
+        <View style={styles.metricItem}>
+          <Text style={styles.metricLabel}>LATITUDE</Text>
+          <Text style={styles.metricValue}>{lab.latitude.toFixed(6)}</Text>
+        </View>
+
+        <View style={styles.metricDivider} />
+
+        <View style={styles.metricItem}>
+          <Text style={styles.metricLabel}>LONGITUDE</Text>
+          <Text style={styles.metricValue}>{lab.longitude.toFixed(6)}</Text>
+        </View>
+
+        <View style={styles.metricDivider} />
+
+        <View style={styles.metricItem}>
+          <Text style={styles.metricLabel}>RADIUS PRESENSI</Text>
+          <Text style={styles.metricValue}>{lab.radius} meter</Text>
+        </View>
+      </View>
+
+      {/* TODO: FR-16 Real-time Lab Activities */}
+      <View style={styles.activitiesSection}>
+        <Text style={styles.activitiesTitle}>Aktivitas Praktikum</Text>
+        <Text style={styles.activitiesPlaceholder}>
+          Jadwal dan sesi praktikum aktif di lokasi ini akan ditampilkan di sini.
+        </Text>
+      </View>
+    </View>
   );
 }
 
@@ -225,16 +350,21 @@ export default function MapsScreen() {
     setSelectedLabId(lab.id);
 
     if (Platform.OS !== 'web' && mapRef.current && mapReady) {
+      const focusDelta = getFocusDeltaForRadius(lab.radius);
       mapRef.current.animateToRegion(
         {
           latitude: lab.latitude,
           longitude: lab.longitude,
-          latitudeDelta: 0.002,
-          longitudeDelta: 0.002,
+          latitudeDelta: focusDelta,
+          longitudeDelta: focusDelta,
         },
         350,
       );
     }
+  }
+
+  function handleCloseDetail() {
+    setSelectedLabId(null);
   }
 
   function handleResetMap() {
@@ -250,7 +380,8 @@ export default function MapsScreen() {
   }
 
   const showInitialLoading = loading && validLaboratories.length === 0;
-  const showFatalError = Boolean(error) && validLaboratories.length === 0 && !loading;
+  const showFatalError =
+    Boolean(error) && validLaboratories.length === 0 && !loading;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -310,64 +441,92 @@ export default function MapsScreen() {
       {/* AREA PETA */}
       <View style={styles.mapContainer}>
         {Platform.OS === 'web' ? (
-          <ScrollView contentContainerStyle={styles.webContent}>
-            <View style={styles.webNoticeCard}>
-              <Text style={styles.webNoticeTitle}>
-                Peta Interaktif Android & iOS
-              </Text>
-              <Text style={styles.webNoticeText}>
-                Komponen MapView aktif pada perangkat Android dan iOS. Berikut
-                data lokasi laboratorium real-time dari Firestore:
-              </Text>
-            </View>
+          <View style={styles.webWrapper}>
+            <ScrollView contentContainerStyle={styles.webContent}>
+              <View style={styles.webNoticeCard}>
+                <Text style={styles.webNoticeTitle}>
+                  Peta Interaktif Android & iOS
+                </Text>
+                <Text style={styles.webNoticeText}>
+                  Komponen MapView aktif pada perangkat Android dan iOS. Pilih
+                  salah satu laboratorium di bawah untuk melihat detailnya:
+                </Text>
+              </View>
 
-            {showInitialLoading ? (
-              <View style={styles.centerBox}>
-                <ActivityIndicator size="large" color="#000000" />
-                <Text style={styles.stateText}>
-                  Memuat titik lokasi laboratorium...
-                </Text>
-              </View>
-            ) : showFatalError && error ? (
-              <View style={styles.errorStateCard}>
-                <Text style={styles.errorStateTitle}>
-                  Gagal Memuat Data Laboratorium
-                </Text>
-                <Text style={styles.errorStateText}>{error}</Text>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={handleRetry}
-                  style={({ pressed }) => [
-                    styles.retryButton,
-                    pressed && styles.pressed,
-                  ]}
-                >
-                  <Text style={styles.retryButtonText}>Coba Lagi</Text>
-                </Pressable>
-              </View>
-            ) : validLaboratories.length === 0 ? (
-              <View style={styles.centerBox}>
-                <Text style={styles.stateTitle}>Lokasi Belum Tersedia</Text>
-                <Text style={styles.stateText}>
-                  Data titik laboratorium di Firestore belum tersedia.
-                </Text>
-              </View>
-            ) : (
-              validLaboratories.map((lab) => (
-                <View key={lab.id} style={styles.webLabCard}>
-                  <View style={styles.webLabHeader}>
-                    <Text style={styles.webLabName}>{lab.name}</Text>
-                    <View style={styles.radiusChip}>
-                      <Text style={styles.radiusChipText}>{lab.radius} m</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.webLabCoords}>
-                    {lab.latitude.toFixed(6)}, {lab.longitude.toFixed(6)}
+              {validLaboratories.length > 0 ? (
+                <View style={styles.webChipStripWrapper}>
+                  <LabChipStrip
+                    laboratories={validLaboratories}
+                    selectedLabId={selectedLabId}
+                    onSelect={handleSelectLab}
+                  />
+                </View>
+              ) : null}
+
+              {showInitialLoading ? (
+                <View style={styles.centerBox}>
+                  <ActivityIndicator size="large" color="#000000" />
+                  <Text style={styles.stateText}>
+                    Memuat titik lokasi laboratorium...
                   </Text>
                 </View>
-              ))
-            )}
-          </ScrollView>
+              ) : showFatalError && error ? (
+                <View style={styles.errorStateCard}>
+                  <Text style={styles.errorStateTitle}>
+                    Gagal Memuat Data Laboratorium
+                  </Text>
+                  <Text style={styles.errorStateText}>{error}</Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={handleRetry}
+                    style={({ pressed }) => [
+                      styles.retryButton,
+                      pressed && styles.pressed,
+                    ]}
+                  >
+                    <Text style={styles.retryButtonText}>Coba Lagi</Text>
+                  </Pressable>
+                </View>
+              ) : validLaboratories.length === 0 ? (
+                <View style={styles.centerBox}>
+                  <Text style={styles.stateTitle}>Lokasi Belum Tersedia</Text>
+                  <Text style={styles.stateText}>
+                    Data titik laboratorium di Firestore belum tersedia.
+                  </Text>
+                </View>
+              ) : (
+                validLaboratories.map((lab) => (
+                  <Pressable
+                    key={lab.id}
+                    onPress={() => handleSelectLab(lab)}
+                    style={({ pressed }) => [
+                      styles.webLabCard,
+                      selectedLabId === lab.id && styles.webLabCardSelected,
+                      pressed && styles.pressed,
+                    ]}
+                  >
+                    <View style={styles.webLabHeader}>
+                      <Text style={styles.webLabName}>{lab.name}</Text>
+                      <View style={styles.radiusChip}>
+                        <Text style={styles.radiusChipText}>
+                          {lab.radius} m
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.webLabCoords}>
+                      {lab.latitude.toFixed(6)}, {lab.longitude.toFixed(6)}
+                    </Text>
+                  </Pressable>
+                ))
+              )}
+            </ScrollView>
+
+            {selectedLab ? (
+              <View style={styles.floatingDetailContainer}>
+                <LabDetailCard lab={selectedLab} onClose={handleCloseDetail} />
+              </View>
+            ) : null}
+          </View>
         ) : (
           <>
             <MapView
@@ -380,7 +539,7 @@ export default function MapsScreen() {
               onLayout={() => setMapLayoutReady(true)}
               onPress={(event) => {
                 if (event.nativeEvent.action !== 'marker-press') {
-                  setSelectedLabId(null);
+                  handleCloseDetail();
                 }
               }}
             >
@@ -432,6 +591,18 @@ export default function MapsScreen() {
                 );
               })}
             </MapView>
+
+            {/* BARISAN CHIP CEPAT DI BAGIAN ATAS PETA */}
+            {validLaboratories.length > 0 ? (
+              <View style={styles.topChipsOverlay} pointerEvents="box-none">
+                <LabChipStrip
+                  laboratories={validLaboratories}
+                  selectedLabId={selectedLabId}
+                  onSelect={handleSelectLab}
+                  elevated
+                />
+              </View>
+            ) : null}
 
             {/* OVERLAY LOADING */}
             {showInitialLoading ? (
@@ -489,62 +660,13 @@ export default function MapsScreen() {
               </View>
             ) : null}
 
-            {/* PANEL BAWAH: PILIH LAB & DETAIL RADIUS */}
-            {validLaboratories.length > 0 ? (
-              <View style={styles.bottomPanel}>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.labChipList}
-                >
-                  {validLaboratories.map((lab) => {
-                    const isSelected = selectedLabId === lab.id;
-
-                    return (
-                      <Pressable
-                        key={lab.id}
-                        accessibilityRole="button"
-                        onPress={() => handleSelectLab(lab)}
-                        style={({ pressed }) => [
-                          styles.labChip,
-                          isSelected && styles.labChipSelected,
-                          pressed && styles.pressed,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.labChipText,
-                            isSelected && styles.labChipTextSelected,
-                          ]}
-                        >
-                          {lab.name}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </ScrollView>
-
-                {selectedLab ? (
-                  <View style={styles.selectedCard}>
-                    <View style={styles.selectedHeader}>
-                      <Text style={styles.selectedName}>{selectedLab.name}</Text>
-                      <View style={styles.radiusChip}>
-                        <Text style={styles.radiusChipText}>
-                          Radius {selectedLab.radius} m
-                        </Text>
-                      </View>
-                    </View>
-                    <Text style={styles.selectedCoords}>
-                      Koordinat: {selectedLab.latitude.toFixed(6)},{' '}
-                      {selectedLab.longitude.toFixed(6)}
-                    </Text>
-                  </View>
-                ) : (
-                  <Text style={styles.hintText}>
-                    Ketuk marker atau pilih laboratorium di atas untuk melihat
-                    detail area radius.
-                  </Text>
-                )}
+            {/* FLOATING DETAIL CARD / BOTTOM SHEET DI BAGIAN BAWAH PETA */}
+            {selectedLab ? (
+              <View
+                style={styles.floatingDetailContainer}
+                pointerEvents="box-none"
+              >
+                <LabDetailCard lab={selectedLab} onClose={handleCloseDetail} />
               </View>
             ) : null}
           </>
@@ -638,6 +760,152 @@ const styles = StyleSheet.create({
     height: '100%',
     width: '100%',
   },
+
+  // CHIP CEPAT DI ATAS PETA
+  topChipsOverlay: {
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 12,
+    zIndex: 3,
+  },
+  topChipList: {
+    gap: 8,
+    paddingHorizontal: 16,
+  },
+  labChip: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#DCDCE0',
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  floatingChipShadow: {
+    elevation: 3,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+  },
+  labChipSelected: {
+    backgroundColor: '#000000',
+    borderColor: '#000000',
+  },
+  labChipText: {
+    color: '#111111',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  labChipTextSelected: {
+    color: '#FFFFFF',
+  },
+
+  // FLOATING BOTTOM DETAIL CARD
+  floatingDetailContainer: {
+    bottom: 16,
+    left: 14,
+    position: 'absolute',
+    right: 14,
+    zIndex: 4,
+  },
+  detailCard: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E5E5E5',
+    borderRadius: 22,
+    borderWidth: 1,
+    elevation: 8,
+    gap: 12,
+    padding: 16,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.14,
+    shadowRadius: 10,
+  },
+  detailHandle: {
+    alignSelf: 'center',
+    backgroundColor: '#DDDDDD',
+    borderRadius: 3,
+    height: 4,
+    width: 38,
+  },
+  detailHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'space-between',
+  },
+  detailTitleGroup: {
+    flex: 1,
+    gap: 3,
+  },
+  detailEyebrow: {
+    color: '#777777',
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  detailName: {
+    color: '#000000',
+    fontSize: 18,
+    fontWeight: '800',
+    lineHeight: 24,
+  },
+  closeButton: {
+    alignItems: 'center',
+    backgroundColor: '#F1F1F3',
+    borderRadius: 18,
+    height: 34,
+    justifyContent: 'center',
+    width: 34,
+  },
+  metricBox: {
+    backgroundColor: '#F1F1F3',
+    borderRadius: 12,
+    flexDirection: 'row',
+    padding: 12,
+  },
+  metricItem: {
+    flex: 1,
+    gap: 4,
+  },
+  metricDivider: {
+    backgroundColor: '#DCDCE0',
+    marginHorizontal: 8,
+    width: 1,
+  },
+  metricLabel: {
+    color: '#777777',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+  },
+  metricValue: {
+    color: '#000000',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  activitiesSection: {
+    backgroundColor: '#F8F8FA',
+    borderColor: '#E5E5EA',
+    borderRadius: 12,
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    gap: 4,
+    padding: 12,
+  },
+  activitiesTitle: {
+    color: '#000000',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  activitiesPlaceholder: {
+    color: '#666666',
+    fontSize: 12,
+    lineHeight: 17,
+  },
+
+  // OVERLAY STATES
   overlayCenter: {
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.78)',
@@ -648,6 +916,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 0,
     top: 0,
+    zIndex: 5,
   },
   overlayCard: {
     alignItems: 'center',
@@ -704,83 +973,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
   },
-  bottomPanel: {
-    backgroundColor: '#FFFFFF',
-    borderTopColor: '#E5E5E5',
-    borderTopWidth: 1,
-    gap: 10,
-    paddingBottom: 14,
-    paddingTop: 12,
-  },
-  labChipList: {
-    gap: 8,
-    paddingHorizontal: 16,
-  },
-  labChip: {
-    backgroundColor: '#F2F2F5',
-    borderColor: '#DDDDDD',
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  labChipSelected: {
-    backgroundColor: '#000000',
-    borderColor: '#000000',
-  },
-  labChipText: {
-    color: '#222222',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  labChipTextSelected: {
-    color: '#FFFFFF',
-  },
-  selectedCard: {
-    backgroundColor: '#F7F7F9',
-    borderColor: '#E5E5E5',
-    borderRadius: 14,
-    borderWidth: 1,
-    gap: 5,
-    marginHorizontal: 16,
-    padding: 12,
-  },
-  selectedHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 8,
-    justifyContent: 'space-between',
-  },
-  selectedName: {
-    color: '#000000',
+
+  // WEB FALLBACK
+  webWrapper: {
     flex: 1,
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  radiusChip: {
-    backgroundColor: '#000000',
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  radiusChipText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  selectedCoords: {
-    color: '#555555',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  hintText: {
-    color: '#666666',
-    fontSize: 12,
-    paddingHorizontal: 16,
+    position: 'relative',
   },
   webContent: {
     gap: 12,
     padding: 20,
+    paddingBottom: 240,
+  },
+  webChipStripWrapper: {
+    marginHorizontal: -16,
   },
   webNoticeCard: {
     backgroundColor: '#F2F2F5',
@@ -811,16 +1016,31 @@ const styles = StyleSheet.create({
     gap: 6,
     padding: 15,
   },
+  webLabCardSelected: {
+    borderColor: '#000000',
+    borderWidth: 1.5,
+  },
   webLabHeader: {
     alignItems: 'center',
     flexDirection: 'row',
-    justifyContent: 'space-between',
     gap: 8,
+    justifyContent: 'space-between',
   },
   webLabName: {
     color: '#000000',
     fontSize: 15,
     fontWeight: '800',
+  },
+  radiusChip: {
+    backgroundColor: '#000000',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  radiusChipText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
   },
   webLabCoords: {
     color: '#666666',
