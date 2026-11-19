@@ -15,6 +15,7 @@ import {
   StatusBar,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import MapView, {
@@ -26,6 +27,7 @@ import MapView, {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle as SvgCircle, Path } from 'react-native-svg';
 
+import StatusBadge from '@/components/common/StatusBadge';
 import { useAuth } from '@/context/AuthContext';
 import {
   ensureDefaultLaboratories,
@@ -33,7 +35,12 @@ import {
   type LaboratoryId,
   type LaboratoryLocation,
 } from '@/features/assistant/services/laboratory-service';
+import { useLabRealtimeActivities } from '@/hooks/use-lab-realtime-activities';
 import { useUserLocationTracking } from '@/hooks/use-user-location-tracking';
+import type {
+  LabActivityItem,
+  LabActivitySessionStatus,
+} from '@/services/lab-activities-service';
 import { openAppLocationSettings } from '@/services/location-service';
 
 const INITIAL_REGION: Region = {
@@ -160,17 +167,111 @@ function MyLocationIcon({ color = '#0284C7' }: { color?: string }) {
   );
 }
 
+function ActivityStatusBadge({
+  status,
+}: {
+  status: LabActivitySessionStatus;
+}) {
+  if (status === 'jadwal_rutin') {
+    return (
+      <View style={styles.routineBadge}>
+        <Text style={styles.routineBadgeText}>TERJADWAL</Text>
+      </View>
+    );
+  }
+
+  return <StatusBadge status={status} />;
+}
+
+function LabActivityBox({
+  sectionTitle,
+  item,
+  emptyMessage,
+  extraCount = 0,
+  isOngoing = false,
+}: {
+  sectionTitle: string;
+  item: LabActivityItem | null;
+  emptyMessage: string;
+  extraCount?: number;
+  isOngoing?: boolean;
+}) {
+  return (
+    <View style={styles.activityGroup}>
+      <View style={styles.activityGroupHeader}>
+        <Text style={styles.activityGroupTitle}>{sectionTitle}</Text>
+        {extraCount > 0 ? (
+          <Text style={styles.activityExtraCount}>+{extraCount} lainnya</Text>
+        ) : null}
+      </View>
+
+      {item ? (
+        <View
+          style={[
+            styles.activityItemCard,
+            isOngoing && styles.activityItemCardOngoing,
+          ]}
+        >
+          <View style={styles.activityItemHeader}>
+            <Text style={styles.activityPracticumName}>
+              {item.practicumName}
+            </Text>
+            <ActivityStatusBadge status={item.status} />
+          </View>
+
+          <View style={styles.activityMetaList}>
+            <View style={styles.activityMetaRow}>
+              <Text style={styles.activityMetaLabel}>Kelas</Text>
+              <Text style={styles.activityMetaValue}>{item.className}</Text>
+            </View>
+
+            <View style={styles.activityMetaRow}>
+              <Text style={styles.activityMetaLabel}>Waktu</Text>
+              <Text style={styles.activityMetaValue}>{item.scheduleTime}</Text>
+            </View>
+          </View>
+        </View>
+      ) : (
+        <View style={styles.activityEmptyCard}>
+          <Text style={styles.activityEmptyText}>{emptyMessage}</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
 function LabDetailCard({
   lab,
   onClose,
+  ongoingActivity,
+  nextActivity,
+  ongoingCount,
+  upcomingCount,
+  activitiesLoading,
+  activitiesError,
+  onRetryActivities,
 }: {
   lab: LaboratoryLocation;
   onClose: () => void;
+  ongoingActivity: LabActivityItem | null;
+  nextActivity: LabActivityItem | null;
+  ongoingCount: number;
+  upcomingCount: number;
+  activitiesLoading: boolean;
+  activitiesError: string | null;
+  onRetryActivities: () => void;
 }) {
+  const { height: windowHeight } = useWindowDimensions();
+  const cardMaxHeight = Math.max(
+    260,
+    Math.min(440, Math.round(windowHeight * 0.54)),
+  );
+
   return (
-    <View style={styles.detailCard}>
+    <View style={[styles.detailCard, { maxHeight: cardMaxHeight }]}>
       <View style={styles.detailHandle} />
 
+      {/* HEADER PANEL TETAP DI ATAS AGAR TOMBOL TUTUP TIDAK PERNAH TERTUTUP SCROLL */}
       <View style={styles.detailHeader}>
         <View style={styles.detailTitleGroup}>
           <Text style={styles.detailEyebrow}>DETAIL LABORATORIUM</Text>
@@ -188,34 +289,79 @@ function LabDetailCard({
         </Pressable>
       </View>
 
-      <View style={styles.metricBox}>
-        <View style={styles.metricItem}>
-          <Text style={styles.metricLabel}>LATITUDE</Text>
-          <Text style={styles.metricValue}>{lab.latitude.toFixed(6)}</Text>
+      <ScrollView
+        style={styles.detailScroll}
+        contentContainerStyle={styles.detailScrollContent}
+        showsVerticalScrollIndicator
+        nestedScrollEnabled
+      >
+        <View style={styles.metricBox}>
+          <View style={styles.metricItem}>
+            <Text style={styles.metricLabel}>LATITUDE</Text>
+            <Text style={styles.metricValue}>{lab.latitude.toFixed(6)}</Text>
+          </View>
+
+          <View style={styles.metricDivider} />
+
+          <View style={styles.metricItem}>
+            <Text style={styles.metricLabel}>LONGITUDE</Text>
+            <Text style={styles.metricValue}>{lab.longitude.toFixed(6)}</Text>
+          </View>
+
+          <View style={styles.metricDivider} />
+
+          <View style={styles.metricItem}>
+            <Text style={styles.metricLabel}>RADIUS PRESENSI</Text>
+            <Text style={styles.metricValue}>{lab.radius} meter</Text>
+          </View>
         </View>
 
-        <View style={styles.metricDivider} />
+        <View style={styles.activitiesContainer}>
+          <Text style={styles.activitiesSectionHeading}>
+            Aktivitas Praktikum
+          </Text>
 
-        <View style={styles.metricItem}>
-          <Text style={styles.metricLabel}>LONGITUDE</Text>
-          <Text style={styles.metricValue}>{lab.longitude.toFixed(6)}</Text>
+          {activitiesLoading ? (
+            <View style={styles.activitiesLoadingBox}>
+              <ActivityIndicator size="small" color="#000000" />
+              <Text style={styles.activitiesStateText}>
+                Memuat aktivitas praktikum laboratorium...
+              </Text>
+            </View>
+          ) : activitiesError ? (
+            <View style={styles.activitiesErrorBox}>
+              <Text style={styles.activitiesErrorText}>{activitiesError}</Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={onRetryActivities}
+                style={({ pressed }) => [
+                  styles.activitiesRetryButton,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.activitiesRetryText}>Muat Ulang</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <View style={styles.activitiesListGap}>
+              <LabActivityBox
+                sectionTitle="Sedang Berlangsung"
+                item={ongoingActivity}
+                emptyMessage="Tidak ada praktikum yang sedang berlangsung saat ini."
+                extraCount={Math.max(0, ongoingCount - 1)}
+                isOngoing
+              />
+
+              <LabActivityBox
+                sectionTitle="Praktikum Berikutnya"
+                item={nextActivity}
+                emptyMessage="Belum ada jadwal praktikum berikutnya di lokasi ini."
+                extraCount={Math.max(0, upcomingCount - 1)}
+              />
+            </View>
+          )}
         </View>
-
-        <View style={styles.metricDivider} />
-
-        <View style={styles.metricItem}>
-          <Text style={styles.metricLabel}>RADIUS PRESENSI</Text>
-          <Text style={styles.metricValue}>{lab.radius} meter</Text>
-        </View>
-      </View>
-
-      {/* TODO: FR-16 Real-time Lab Activities */}
-      <View style={styles.activitiesSection}>
-        <Text style={styles.activitiesTitle}>Aktivitas Praktikum</Text>
-        <Text style={styles.activitiesPlaceholder}>
-          Jadwal dan sesi praktikum aktif di lokasi ini akan ditampilkan di sini.
-        </Text>
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -286,6 +432,16 @@ export default function MapsScreen() {
       validLaboratories.find((lab) => lab.id === selectedLabId) ?? null,
     [validLaboratories, selectedLabId],
   );
+
+  const {
+    ongoingActivity,
+    nextActivity,
+    ongoingActivities,
+    upcomingActivities,
+    loading: activitiesLoading,
+    error: activitiesError,
+    retry: retryActivities,
+  } = useLabRealtimeActivities(selectedLab?.id ?? null);
 
   const handleRetry = useCallback(() => {
     setError(null);
@@ -517,6 +673,22 @@ export default function MapsScreen() {
   const showInitialLoading = loading && validLaboratories.length === 0;
   const showFatalError =
     Boolean(error) && validLaboratories.length === 0 && !loading;
+
+  const selectedLabDetailCard = selectedLab ? (
+    <View style={styles.floatingDetailContainer} pointerEvents="box-none">
+      <LabDetailCard
+        lab={selectedLab}
+        onClose={handleCloseDetail}
+        ongoingActivity={ongoingActivity}
+        nextActivity={nextActivity}
+        ongoingCount={ongoingActivities.length}
+        upcomingCount={upcomingActivities.length}
+        activitiesLoading={activitiesLoading}
+        activitiesError={activitiesError}
+        onRetryActivities={retryActivities}
+      />
+    </View>
+  ) : null;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -766,11 +938,7 @@ export default function MapsScreen() {
               )}
             </ScrollView>
 
-            {selectedLab ? (
-              <View style={styles.floatingDetailContainer}>
-                <LabDetailCard lab={selectedLab} onClose={handleCloseDetail} />
-              </View>
-            ) : null}
+            {selectedLabDetailCard}
           </View>
         ) : (
           <>
@@ -1065,14 +1233,7 @@ export default function MapsScreen() {
             ) : null}
 
             {/* FLOATING DETAIL CARD / BOTTOM SHEET DI BAGIAN BAWAH PETA */}
-            {selectedLab ? (
-              <View
-                style={styles.floatingDetailContainer}
-                pointerEvents="box-none"
-              >
-                <LabDetailCard lab={selectedLab} onClose={handleCloseDetail} />
-              </View>
-            ) : null}
+            {selectedLabDetailCard}
           </>
         )}
       </View>
@@ -1274,8 +1435,10 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 1,
     elevation: 8,
-    gap: 12,
-    padding: 16,
+    gap: 10,
+    paddingBottom: 14,
+    paddingHorizontal: 16,
+    paddingTop: 12,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.14,
@@ -1293,6 +1456,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     justifyContent: 'space-between',
+  },
+  detailScroll: {
+    flexShrink: 1,
+  },
+  detailScrollContent: {
+    gap: 12,
+    paddingBottom: 2,
   },
   detailTitleGroup: {
     flex: 1,
@@ -1344,24 +1514,151 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
-  activitiesSection: {
+  activitiesContainer: {
+    gap: 8,
+  },
+  activitiesSectionHeading: {
+    color: '#000000',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  activitiesListGap: {
+    gap: 10,
+  },
+  activitiesLoadingBox: {
+    alignItems: 'center',
     backgroundColor: '#F8F8FA',
     borderColor: '#E5E5EA',
     borderRadius: 12,
-    borderStyle: 'dashed',
     borderWidth: 1,
-    gap: 4,
+    flexDirection: 'row',
+    gap: 10,
     padding: 12,
   },
-  activitiesTitle: {
-    color: '#000000',
+  activitiesStateText: {
+    color: '#555555',
+    flex: 1,
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '600',
   },
-  activitiesPlaceholder: {
+  activitiesErrorBox: {
+    alignItems: 'center',
+    backgroundColor: '#FEE2E2',
+    borderColor: '#FCA5A5',
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    padding: 12,
+  },
+  activitiesErrorText: {
+    color: '#991B1B',
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  activitiesRetryButton: {
+    backgroundColor: '#991B1B',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  activitiesRetryText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  activityGroup: {
+    gap: 5,
+  },
+  activityGroupHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  activityGroupTitle: {
+    color: '#444444',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+  },
+  activityExtraCount: {
+    color: '#666666',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  activityItemCard: {
+    backgroundColor: '#F8F8FA',
+    borderColor: '#E5E5EA',
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 8,
+    padding: 11,
+  },
+  activityItemCardOngoing: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#BBF7D0',
+  },
+  activityItemHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'space-between',
+  },
+  activityPracticumName: {
+    color: '#000000',
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '800',
+    lineHeight: 18,
+  },
+  activityMetaList: {
+    gap: 4,
+  },
+  activityMetaRow: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'space-between',
+  },
+  activityMetaLabel: {
+    color: '#666666',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  activityMetaValue: {
+    color: '#111111',
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'right',
+  },
+  activityEmptyCard: {
+    backgroundColor: '#F8F8FA',
+    borderColor: '#E5E5EA',
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  activityEmptyText: {
     color: '#666666',
     fontSize: 12,
     lineHeight: 17,
+  },
+  routineBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#E0F2FE',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  routineBadgeText: {
+    color: '#0369A1',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
 
   // OVERLAY STATES
@@ -1441,7 +1738,7 @@ const styles = StyleSheet.create({
   webContent: {
     gap: 12,
     padding: 20,
-    paddingBottom: 240,
+    paddingBottom: 340,
   },
   webChipStripWrapper: {
     marginHorizontal: -16,
