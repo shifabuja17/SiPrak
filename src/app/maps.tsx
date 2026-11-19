@@ -239,6 +239,7 @@ export default function MapsScreen() {
   const [selectedLabId, setSelectedLabId] = useState<LaboratoryId | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [mapLayoutReady, setMapLayoutReady] = useState(false);
+  const [locationFeedback, setLocationFeedback] = useState<string | null>(null);
 
   const isUserLocationTrackingEnabled =
     !authLoading && authStatus === 'authenticated' && Boolean(user);
@@ -254,6 +255,26 @@ export default function MapsScreen() {
   } = useUserLocationTracking({
     enabled: isUserLocationTrackingEnabled,
   });
+
+  useEffect(() => {
+    if (userLocation && isLocationServiceEnabled) {
+      setLocationFeedback(null);
+    }
+  }, [userLocation, isLocationServiceEnabled]);
+
+  useEffect(() => {
+    if (!locationFeedback) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setLocationFeedback(null);
+    }, 3200);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [locationFeedback]);
 
   const validLaboratories = useMemo(
     () => laboratories.filter(isValidLabLocation),
@@ -432,14 +453,53 @@ export default function MapsScreen() {
   }
 
   function handleFocusUserLocation() {
-    if (!userLocation) {
-      if (locationPermissionStatus === 'denied' && !canAskPermissionAgain) {
-        void handleOpenLocationSettings();
-        return;
-      }
-      retryLocation();
+    if (locationPermissionStatus === 'denied') {
+      const deniedMessage = canAskPermissionAgain
+        ? 'Izin lokasi ditolak. Izinkan akses lokasi agar kamera dapat diarahkan ke posisi Anda.'
+        : 'Izin lokasi ditolak permanen. Buka Pengaturan perangkat untuk mengaktifkan izin lokasi SiPrak.';
+
+      setLocationFeedback(deniedMessage);
+      Alert.alert('Izin Lokasi Diperlukan', deniedMessage, [
+        { text: 'Tutup', style: 'cancel' },
+        { text: 'Izinkan / Coba Lagi', onPress: retryLocation },
+        {
+          text: 'Buka Pengaturan',
+          onPress: () => {
+            void handleOpenLocationSettings();
+          },
+        },
+      ]);
       return;
     }
+
+    if (!isLocationServiceEnabled) {
+      const gpsMessage =
+        'Layanan lokasi (GPS) perangkat sedang tidak aktif. Aktifkan GPS terlebih dahulu lalu tekan Muat Ulang.';
+
+      setLocationFeedback(gpsMessage);
+      Alert.alert('Layanan GPS Nonaktif', gpsMessage, [
+        { text: 'Tutup', style: 'cancel' },
+        { text: 'Muat Ulang', onPress: retryLocation },
+      ]);
+      return;
+    }
+
+    if (!userLocation) {
+      if (!isSearchingLocation) {
+        retryLocation();
+      }
+      setLocationFeedback(
+        'Sedang mencari lokasi Anda... Coba tekan lagi setelah sinyal GPS ditemukan.',
+      );
+      return;
+    }
+
+    if (Platform.OS !== 'web' && (!mapRef.current || !mapReady)) {
+      setLocationFeedback('Peta masih dimuat, silakan coba sesaat lagi.');
+      return;
+    }
+
+    setLocationFeedback(null);
 
     if (Platform.OS !== 'web' && mapRef.current && mapReady) {
       mapRef.current.animateToRegion(
@@ -513,22 +573,19 @@ export default function MapsScreen() {
         </View>
       ) : null}
 
-      {/* BANNER STATUS LOKASI PENGGUNA (NON-BLOCKING) */}
-      {locationError ? (
-        <View style={styles.locationWarningBanner}>
-          <Text style={styles.locationWarningText}>{locationError}</Text>
-          {locationPermissionStatus === 'denied' && !canAskPermissionAgain ? (
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => void handleOpenLocationSettings()}
-              style={({ pressed }) => [
-                styles.locationWarningButton,
-                pressed && styles.pressed,
-              ]}
-            >
-              <Text style={styles.locationWarningButtonText}>Pengaturan</Text>
-            </Pressable>
-          ) : (
+      {/* BANNER STATUS IZIN & GPS PENGGUNA (NON-BLOCKING) */}
+      {locationPermissionStatus === 'denied' ? (
+        <View style={styles.locationWarningBannerStacked}>
+          <Text style={styles.locationWarningText}>
+            {locationError ??
+              (canAskPermissionAgain
+                ? 'Izin akses lokasi ditolak. Izinkan akses lokasi agar posisi Anda dapat ditampilkan di peta.'
+                : 'Izin akses lokasi ditolak permanen. Buka Pengaturan perangkat untuk mengaktifkan izin lokasi.')}
+            {!isLocationServiceEnabled
+              ? ' Pastikan juga layanan GPS perangkat aktif.'
+              : ''}
+          </Text>
+          <View style={styles.locationBannerActions}>
             <Pressable
               accessibilityRole="button"
               onPress={retryLocation}
@@ -537,9 +594,62 @@ export default function MapsScreen() {
                 pressed && styles.pressed,
               ]}
             >
-              <Text style={styles.locationWarningButtonText}>Coba Lagi</Text>
+              <Text style={styles.locationWarningButtonText}>
+                Izinkan / Coba Lagi
+              </Text>
             </Pressable>
-          )}
+
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => void handleOpenLocationSettings()}
+              style={({ pressed }) => [
+                styles.locationSecondaryButton,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={styles.locationSecondaryButtonText}>
+                Buka Pengaturan
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : locationPermissionStatus === 'granted' &&
+        !isLocationServiceEnabled ? (
+        <View style={styles.locationWarningBanner}>
+          <Text
+            style={[styles.locationWarningText, styles.locationWarningTextInline]}
+          >
+            {locationError ??
+              'Layanan lokasi (GPS) perangkat tidak aktif. Aktifkan GPS di perangkat Anda lalu tekan Muat Ulang.'}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={retryLocation}
+            style={({ pressed }) => [
+              styles.locationWarningButton,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={styles.locationWarningButtonText}>Muat Ulang</Text>
+          </Pressable>
+        </View>
+      ) : locationError ? (
+        <View style={styles.locationWarningBanner}>
+          <Text
+            style={[styles.locationWarningText, styles.locationWarningTextInline]}
+          >
+            {locationError}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={retryLocation}
+            style={({ pressed }) => [
+              styles.locationWarningButton,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={styles.locationWarningButtonText}>Muat Ulang</Text>
+          </Pressable>
         </View>
       ) : null}
 
@@ -558,7 +668,19 @@ export default function MapsScreen() {
                 </Text>
               </View>
 
-              {userLocation ? (
+              {locationPermissionStatus === 'granted' &&
+              isLocationServiceEnabled &&
+              isSearchingLocation &&
+              !userLocation ? (
+                <View style={styles.webUserLocationCard}>
+                  <View style={styles.webUserLocationHeader}>
+                    <ActivityIndicator size="small" color="#0284C7" />
+                    <Text style={styles.webUserLocationTitle}>
+                      Mencari lokasi Anda...
+                    </Text>
+                  </View>
+                </View>
+              ) : userLocation ? (
                 <View style={styles.webUserLocationCard}>
                   <View style={styles.webUserLocationHeader}>
                     <View style={styles.gpsLiveDot} />
@@ -790,7 +912,7 @@ export default function MapsScreen() {
               ]}
               pointerEvents="box-none"
             >
-              {!isLocationServiceEnabled ? (
+              {locationPermissionStatus === 'denied' ? (
                 <View
                   style={[
                     styles.gpsStatusPill,
@@ -799,17 +921,36 @@ export default function MapsScreen() {
                   ]}
                 >
                   <View style={styles.gpsOffDot} />
-                  <Text style={styles.gpsStatusText}>GPS nonaktif</Text>
+                  <Text numberOfLines={1} style={styles.gpsStatusText}>
+                    Izin lokasi ditolak
+                  </Text>
                 </View>
-              ) : isSearchingLocation && !userLocation ? (
+              ) : !isLocationServiceEnabled ? (
+                <View
+                  style={[
+                    styles.gpsStatusPill,
+                    styles.gpsWarningPill,
+                    styles.floatingChipShadow,
+                  ]}
+                >
+                  <View style={styles.gpsOffDot} />
+                  <Text numberOfLines={1} style={styles.gpsStatusText}>
+                    GPS nonaktif
+                  </Text>
+                </View>
+              ) : locationPermissionStatus === 'granted' &&
+                isSearchingLocation &&
+                !userLocation ? (
                 <View style={[styles.gpsStatusPill, styles.floatingChipShadow]}>
                   <ActivityIndicator size="small" color="#0284C7" />
-                  <Text style={styles.gpsStatusText}>Mencari lokasi...</Text>
+                  <Text numberOfLines={1} style={styles.gpsStatusText}>
+                    Mencari lokasi Anda...
+                  </Text>
                 </View>
               ) : userLocation ? (
                 <View style={[styles.gpsStatusPill, styles.floatingChipShadow]}>
                   <View style={styles.gpsLiveDot} />
-                  <Text style={styles.gpsStatusText}>
+                  <Text numberOfLines={1} style={styles.gpsStatusText}>
                     {userLocation.accuracy !== null
                       ? `GPS ±${Math.round(userLocation.accuracy)} m`
                       : 'GPS aktif'}
@@ -849,6 +990,23 @@ export default function MapsScreen() {
                 </Text>
               </Pressable>
             </View>
+
+            {/* FEEDBACK RINGAN SAAT TOMBOL LOKASI SAYA DITEKAN */}
+            {locationFeedback ? (
+              <View
+                pointerEvents="none"
+                style={[
+                  styles.locationFeedbackToast,
+                  validLaboratories.length === 0 &&
+                    styles.locationFeedbackToastNoChips,
+                  styles.floatingChipShadow,
+                ]}
+              >
+                <Text style={styles.locationFeedbackToastText}>
+                  {locationFeedback}
+                </Text>
+              </View>
+            ) : null}
 
             {/* OVERLAY LOADING */}
             {showInitialLoading ? (
@@ -1008,20 +1166,48 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 9,
   },
+  locationWarningBannerStacked: {
+    backgroundColor: '#FEF3C7',
+    borderBottomColor: '#FCD34D',
+    borderBottomWidth: 1,
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
   locationWarningText: {
     color: '#92400E',
-    flex: 1,
     fontSize: 12,
     lineHeight: 17,
+  },
+  locationWarningTextInline: {
+    flex: 1,
+  },
+  locationBannerActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
   },
   locationWarningButton: {
     backgroundColor: '#92400E',
     borderRadius: 8,
-    paddingHorizontal: 10,
+    paddingHorizontal: 11,
     paddingVertical: 6,
   },
   locationWarningButtonText: {
     color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  locationSecondaryButton: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#D97706',
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+  },
+  locationSecondaryButtonText: {
+    color: '#92400E',
     fontSize: 11,
     fontWeight: '700',
   },
@@ -1361,6 +1547,7 @@ const styles = StyleSheet.create({
   mapActionsOverlay: {
     alignItems: 'center',
     flexDirection: 'row',
+    gap: 8,
     justifyContent: 'space-between',
     left: 16,
     position: 'absolute',
@@ -1378,6 +1565,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
     flexDirection: 'row',
+    flexShrink: 1,
     gap: 6,
     paddingHorizontal: 11,
     paddingVertical: 7,
@@ -1424,6 +1612,28 @@ const styles = StyleSheet.create({
   },
   myLocationButtonTextMuted: {
     color: '#555555',
+  },
+  locationFeedbackToast: {
+    alignSelf: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+    borderRadius: 12,
+    left: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    position: 'absolute',
+    right: 16,
+    top: 102,
+    zIndex: 3,
+  },
+  locationFeedbackToastNoChips: {
+    top: 56,
+  },
+  locationFeedbackToastText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+    lineHeight: 17,
+    textAlign: 'center',
   },
   webUserLocationCard: {
     backgroundColor: '#F0F9FF',
