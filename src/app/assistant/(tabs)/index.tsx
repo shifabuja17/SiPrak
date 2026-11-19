@@ -205,6 +205,31 @@ function LocationIcon() {
   );
 }
 
+function MapViewIcon() {
+  return (
+    <Svg
+      width={34}
+      height={34}
+      viewBox="0 0 48 48"
+      fill="none"
+    >
+      <Path
+        d="M6 12L18 7L30 13L42 8V36L30 41L18 35L6 40V12Z"
+        stroke="#000000"
+        strokeWidth={2.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M18 7V35M30 13V41"
+        stroke="#000000"
+        strokeWidth={2.5}
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
 // ==========================================
 // DASHBOARD ASISTEN
 // ==========================================
@@ -433,6 +458,30 @@ export default function AssistantScheduleScreen() {
                     </Text>
                     <Text style={styles.menuBannerSubtitle}>
                       Atur koordinat & radius 4 lokasi praktikum
+                    </Text>
+                  </View>
+
+                  <Text style={styles.menuBannerArrow}>›</Text>
+                </Pressable>
+
+                {/* PETA LABORATORIUM */}
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.menuBannerTile,
+                    pressed && styles.pressed,
+                  ]}
+                  onPress={() => router.push('/maps' as Href)}
+                >
+                  <View style={styles.menuBannerIcon}>
+                    <MapViewIcon />
+                  </View>
+
+                  <View style={styles.menuBannerContent}>
+                    <Text style={styles.menuBannerTitle}>
+                      Peta Laboratorium
+                    </Text>
+                    <Text style={styles.menuBannerSubtitle}>
+                      Lihat marker & area radius 4 lab di peta
                     </Text>
                   </View>
 

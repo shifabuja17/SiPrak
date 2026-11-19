@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { useMemo } from 'react';
 import {
   FlatList,
@@ -188,6 +188,8 @@ function PraktikanScheduleList() {
 
             <HeaderProfileBar />
 
+            <MapShortcutCard />
+
             {!showFatalError && sessions.length > 0 && (sessionsError || attendanceError) ? (
               <View style={styles.bannerStack}>
                 {sessionsError ? (
@@ -264,6 +266,8 @@ function LegacyScheduleList() {
 
             <HeaderProfileBar />
 
+            <MapShortcutCard />
+
             <Text style={styles.sectionTitle}>Sesi Praktikum</Text>
           </View>
         }
@@ -287,6 +291,25 @@ function LegacyScheduleList() {
         }
       />
     </SafeAreaView>
+  );
+}
+
+function MapShortcutCard() {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={() => router.push('/maps' as Href)}
+      style={({ pressed }) => [styles.mapShortcutCard, pressed && styles.pressed]}
+    >
+      <View style={styles.mapShortcutTextGroup}>
+        <Text style={styles.mapShortcutTitle}>Peta Lokasi Laboratorium</Text>
+        <Text style={styles.mapShortcutSubtitle}>
+          Lihat posisi marker & radius area presensi 4 lab praktikum
+        </Text>
+      </View>
+
+      <Text style={styles.mapShortcutArrow}>›</Text>
+    </Pressable>
   );
 }
 
@@ -393,6 +416,38 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     marginTop: 16,
+  },
+  mapShortcutCard: {
+    alignItems: 'center',
+    backgroundColor: '#F2F2F5',
+    borderColor: '#D9D9D9',
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'space-between',
+    marginTop: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+  },
+  mapShortcutTextGroup: {
+    flex: 1,
+    gap: 2,
+  },
+  mapShortcutTitle: {
+    color: '#000000',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  mapShortcutSubtitle: {
+    color: '#555555',
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  mapShortcutArrow: {
+    color: '#000000',
+    fontSize: 22,
+    fontWeight: '700',
   },
   separator: {
     height: 12,

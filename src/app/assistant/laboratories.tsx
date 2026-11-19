@@ -1,3 +1,4 @@
+import { router, type Href } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -358,6 +359,21 @@ export default function AssistantLaboratoriesScreen() {
             </Text>
           </View>
 
+          {/* TOMBOL LIHAT DI PETA */}
+          <Pressable
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              styles.openMapButton,
+              pressed && styles.pressed,
+            ]}
+            onPress={() => router.push('/maps' as Href)}
+          >
+            <Text style={styles.openMapButtonText}>
+              Lihat 4 Lokasi di Peta
+            </Text>
+            <Text style={styles.openMapButtonArrow}>›</Text>
+          </Pressable>
+
           {/* PESAN SUKSES */}
           {pageMessage ? (
             <View style={styles.successBox}>
@@ -701,6 +717,29 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 12,
     lineHeight: 18,
+  },
+
+  openMapButton: {
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#D4D4D8',
+    borderRadius: 13,
+    borderWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 15,
+    paddingVertical: 13,
+  },
+  openMapButtonText: {
+    color: '#000000',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  openMapButtonArrow: {
+    color: '#000000',
+    fontSize: 20,
+    fontWeight: '700',
+    lineHeight: 22,
   },
 
   successBox: {
