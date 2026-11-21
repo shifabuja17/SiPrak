@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   Alert,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -27,6 +28,14 @@ export default function HeaderProfileBar() {
   const displayNim = (profile ? profile.nim : currentUser.nim) ?? '-';
 
   function confirmLogout() {
+    // Alert.alert tidak berfungsi di react-native-web, jadi web memakai window.confirm.
+    if (Platform.OS === 'web') {
+      if (window.confirm('Yakin ingin keluar dari akun ini?')) {
+        void handleLogout();
+      }
+      return;
+    }
+
     Alert.alert('Keluar', 'Yakin ingin keluar dari akun ini?', [
       { text: 'Batal', style: 'cancel' },
       { text: 'Keluar', style: 'destructive', onPress: () => void handleLogout() },
@@ -39,10 +48,13 @@ export default function HeaderProfileBar() {
     try {
       await logout();
     } catch (err) {
-      Alert.alert(
-        'Gagal keluar',
-        err instanceof Error ? err.message : 'Terjadi kesalahan saat logout.',
-      );
+      const message =
+        err instanceof Error ? err.message : 'Terjadi kesalahan saat logout.';
+      if (Platform.OS === 'web') {
+        window.alert(`Gagal keluar: ${message}`);
+      } else {
+        Alert.alert('Gagal keluar', message);
+      }
     } finally {
       setLoggingOut(false);
     }
