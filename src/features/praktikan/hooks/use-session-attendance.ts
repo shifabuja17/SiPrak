@@ -2,10 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useAuth } from '@/context/AuthContext';
 import { mapPraktikanFirestoreError } from '@/features/praktikan/services/firestore-helpers';
+import type { DeviceCoordinates } from '@/features/location/types';
 import {
   submitPraktikanAttendance,
   subscribeMyAttendance,
   subscribeMyAttendanceMap,
+  type SubmitPraktikanAttendanceResult,
 } from '@/features/praktikan/services/praktikan-attendance';
 import type { SessionAttendanceDoc } from '@/features/praktikan/types';
 
@@ -14,7 +16,10 @@ export interface UseSessionAttendanceResult {
   loading: boolean;
   submitting: boolean;
   error: string | null;
-  submitAttendance: () => Promise<boolean>;
+  /** Mengirim presensi dengan koordinat perangkat; null bila gagal (error di `error`). */
+  submitAttendance: (
+    location: DeviceCoordinates,
+  ) => Promise<SubmitPraktikanAttendanceResult | null>;
   clearError: () => void;
   retry: () => void;
 }
@@ -129,27 +134,29 @@ export function useSessionAttendance(
     retryNonce,
   ]);
 
-  const submitAttendance = useCallback(async (): Promise<boolean> => {
-    if (submitting || submittingRef.current) return false;
+  const submitAttendance = useCallback(async (
+    location: DeviceCoordinates,
+  ): Promise<SubmitPraktikanAttendanceResult | null> => {
+    if (submitting || submittingRef.current) return null;
 
     if (!uid || !nama || !role) {
       setError('Sesi akun belum siap. Silakan login kembali.');
-      return false;
+      return null;
     }
 
     if (role !== 'praktikan') {
       setError('Hanya Praktikan yang dapat melakukan presensi.');
-      return false;
+      return null;
     }
 
     if (!trimmedSessionId) {
       setError('ID sesi tidak valid.');
-      return false;
+      return null;
     }
 
     if (attendance) {
       setError('Kamu sudah melakukan presensi pada sesi ini.');
-      return false;
+      return null;
     }
 
     submittingRef.current = true;
@@ -157,17 +164,17 @@ export function useSessionAttendance(
     setError(null);
 
     try {
-      await submitPraktikanAttendance({
+      return await submitPraktikanAttendance({
         sessionId: trimmedSessionId,
         uid,
         nama,
+        location,
       });
-      return true;
     } catch (err) {
       if (mountedRef.current) {
         setError(mapPraktikanFirestoreError(err).message);
       }
-      return false;
+      return null;
     } finally {
       submittingRef.current = false;
       if (mountedRef.current) {

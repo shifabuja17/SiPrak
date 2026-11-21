@@ -50,6 +50,7 @@ function RootNavigator() {
 
         {/* Halaman pendukung */}
         <Stack.Screen name="session/[id]" />
+        <Stack.Screen name="attendance/[sessionId]" />
 
         {/* Navigasi khusus Asisten */}
         <Stack.Screen name="assistant" />

@@ -39,15 +39,45 @@ import {
   type SessionRecord,
   type SessionInput,
 } from '@/features/assistant/services/session-service';
+import DateTimeField from '@/components/common/DateTimeField';
+import {
+  combineDateAndTime,
+  defaultSessionTimesFromSchedule,
+  formatSessionTimeRange,
+  startOfDay,
+  toClockTime,
+} from '@/utils/session-time';
 
 // ==========================================
 // FORM KOSONG
 // ==========================================
 
-const EMPTY_FORM = {
-  scheduleId: '',
-  sessionNote: '',
-};
+interface SessionForm {
+  scheduleId: string;
+  sessionNote: string;
+  /** Tanggal pertemuan (bagian jam diabaikan). */
+  tanggal: Date;
+  /** Jam mulai & selesai (bagian tanggal diabaikan). */
+  jamMulai: Date;
+  jamSelesai: Date;
+}
+
+function timesFromSchedule(scheduleTime: string) {
+  const defaults = defaultSessionTimesFromSchedule(scheduleTime);
+  return {
+    tanggal: defaults.date,
+    jamMulai: combineDateAndTime(defaults.date, defaults.start),
+    jamSelesai: combineDateAndTime(defaults.date, defaults.end),
+  };
+}
+
+function createEmptyForm(): SessionForm {
+  return {
+    scheduleId: '',
+    sessionNote: '',
+    ...timesFromSchedule(''),
+  };
+}
 
 type SessionActionType = 'delete' | 'open' | 'close';
 
@@ -116,7 +146,7 @@ export default function AssistantSessionsScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [form, setForm] = useState<SessionForm>(createEmptyForm);
 
   // MODAL KONFIRMASI AKSI
   const [actionTarget, setActionTarget] = useState<{
@@ -189,6 +219,7 @@ export default function AssistantSessionsScreen() {
     setForm({
       scheduleId: schedules[0].id,
       sessionNote: '',
+      ...timesFromSchedule(schedules[0].scheduleTime),
     });
 
     setModalError('');
@@ -220,9 +251,20 @@ export default function AssistantSessionsScreen() {
 
     setEditingId(item.id);
 
+    const linkedSchedule = schedules.find(
+      (schedule) => schedule.id === item.scheduleId,
+    );
+
     setForm({
       scheduleId: item.scheduleId,
       sessionNote: item.sessionNote || '',
+      ...(item.waktuMulai && item.waktuSelesai
+        ? {
+            tanggal: startOfDay(item.waktuMulai),
+            jamMulai: item.waktuMulai,
+            jamSelesai: item.waktuSelesai,
+          }
+        : timesFromSchedule(linkedSchedule?.scheduleTime ?? item.scheduleTime)),
     });
 
     setModalError('');
@@ -238,7 +280,7 @@ export default function AssistantSessionsScreen() {
 
     setModalVisible(false);
     setEditingId(null);
-    setForm(EMPTY_FORM);
+    setForm(createEmptyForm());
     setModalError('');
   }
 
@@ -269,6 +311,19 @@ export default function AssistantSessionsScreen() {
       return;
     }
 
+    const waktuMulai = combineDateAndTime(form.tanggal, toClockTime(form.jamMulai));
+    const waktuSelesai = combineDateAndTime(form.tanggal, toClockTime(form.jamSelesai));
+
+    if (!editingId && startOfDay(form.tanggal) < startOfDay(new Date())) {
+      setModalError('Tanggal sesi tidak boleh sebelum hari ini.');
+      return;
+    }
+
+    if (waktuSelesai <= waktuMulai) {
+      setModalError('Jam selesai harus setelah jam mulai.');
+      return;
+    }
+
     const input: SessionInput = {
       scheduleId: selectedSchedule.id,
       classId: selectedSchedule.classId,
@@ -276,6 +331,8 @@ export default function AssistantSessionsScreen() {
       moduleTitle: selectedSchedule.moduleTitle,
       classRoom: selectedSchedule.classRoom,
       scheduleTime: selectedSchedule.scheduleTime,
+      waktuMulai,
+      waktuSelesai,
       sessionNote: form.sessionNote.trim(),
     };
 
@@ -294,7 +351,7 @@ export default function AssistantSessionsScreen() {
 
       setModalVisible(false);
       setEditingId(null);
-      setForm(EMPTY_FORM);
+      setForm(createEmptyForm());
 
     } catch (firebaseError) {
       console.error('Gagal menyimpan sesi:', firebaseError);
@@ -492,11 +549,13 @@ export default function AssistantSessionsScreen() {
           {/* INFORMASI WAKTU */}
           <View style={styles.timeBox}>
             <Text style={styles.timeLabel}>
-              JADWAL PRAKTIKUM
+              {item.waktuMulai ? 'WAKTU SESI' : 'JADWAL PRAKTIKUM'}
             </Text>
 
             <Text style={styles.timeValue}>
-              {item.scheduleTime}
+              {item.waktuMulai
+                ? formatSessionTimeRange(item.waktuMulai, item.waktuSelesai)
+                : item.scheduleTime}
             </Text>
           </View>
 
@@ -783,7 +842,7 @@ export default function AssistantSessionsScreen() {
                 </Text>
 
                 <Text style={styles.modalSubtitle}>
-                  Pilih jadwal praktikum dan lengkapi catatan sesi.
+                  Pilih jadwal praktikum, tentukan tanggal dan jam pertemuan, lalu lengkapi catatan sesi.
                 </Text>
               </View>
 
@@ -808,6 +867,8 @@ export default function AssistantSessionsScreen() {
                         setForm((previous) => ({
                           ...previous,
                           scheduleId: item.id,
+                          // Saat membuat sesi baru, isi otomatis tanggal & jam dari jadwal.
+                          ...(editingId ? {} : timesFromSchedule(item.scheduleTime)),
                         }));
 
                         setModalError('');
@@ -845,6 +906,68 @@ export default function AssistantSessionsScreen() {
                     </Pressable>
                   );
                 })}
+              </View>
+
+              {/* TANGGAL & JAM SESI */}
+              <Text style={styles.label}>
+                Tanggal Pertemuan
+              </Text>
+
+              <DateTimeField
+                mode="date"
+                value={form.tanggal}
+                minimumDate={editingId ? undefined : startOfDay(new Date())}
+                disabled={saving}
+                accessibilityLabel="Tanggal pertemuan"
+                onChange={(value) => {
+                  setForm((previous) => ({
+                    ...previous,
+                    tanggal: startOfDay(value),
+                  }));
+                  setModalError('');
+                }}
+              />
+
+              <View style={styles.timeRow}>
+                <View style={styles.timeColumn}>
+                  <Text style={styles.label}>
+                    Jam Mulai
+                  </Text>
+
+                  <DateTimeField
+                    mode="time"
+                    value={form.jamMulai}
+                    disabled={saving}
+                    accessibilityLabel="Jam mulai"
+                    onChange={(value) => {
+                      setForm((previous) => ({
+                        ...previous,
+                        jamMulai: value,
+                      }));
+                      setModalError('');
+                    }}
+                  />
+                </View>
+
+                <View style={styles.timeColumn}>
+                  <Text style={styles.label}>
+                    Jam Selesai
+                  </Text>
+
+                  <DateTimeField
+                    mode="time"
+                    value={form.jamSelesai}
+                    disabled={saving}
+                    accessibilityLabel="Jam selesai"
+                    onChange={(value) => {
+                      setForm((previous) => ({
+                        ...previous,
+                        jamSelesai: value,
+                      }));
+                      setModalError('');
+                    }}
+                  />
+                </View>
               </View>
 
               {/* CATATAN SESI */}
@@ -1449,6 +1572,15 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: 8,
     marginTop: 15,
+  },
+
+  timeRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+
+  timeColumn: {
+    flex: 1,
   },
 
   optionalLabel: {

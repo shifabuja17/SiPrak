@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore';
 
 import { db } from '@/lib/firebase';
+import { toDateValue } from '@/utils/session-time';
 
 // ==========================================
 // TIPE DATA SESI
@@ -32,6 +33,9 @@ export interface SessionRecord {
   moduleTitle: string;
   classRoom: string;
   scheduleTime: string;
+  /** Tanggal + jam mulai pertemuan; null untuk sesi lama yang belum punya. */
+  waktuMulai: Date | null;
+  waktuSelesai: Date | null;
   status: SessionStatus;
   sessionNote: string;
   createdBy: string;
@@ -44,7 +48,22 @@ export interface SessionInput {
   moduleTitle: string;
   classRoom: string;
   scheduleTime: string;
+  waktuMulai: Date;
+  waktuSelesai: Date;
   sessionNote: string;
+}
+
+/** Memastikan rentang waktu sesi valid sebelum disimpan. */
+function validateSessionTimes(input: SessionInput) {
+  if (
+    Number.isNaN(input.waktuMulai.getTime()) ||
+    Number.isNaN(input.waktuSelesai.getTime())
+  ) {
+    throw new Error('Tanggal dan jam sesi wajib diisi.');
+  }
+  if (input.waktuSelesai <= input.waktuMulai) {
+    throw new Error('Jam selesai harus setelah jam mulai.');
+  }
 }
 
 // ==========================================
@@ -63,10 +82,15 @@ export function subscribeSessions(
   return onSnapshot(
     sessionsQuery,
     (snapshot) => {
-      const sessions = snapshot.docs.map((item) => ({
-        id: item.id,
-        ...item.data(),
-      })) as SessionRecord[];
+      const sessions = snapshot.docs.map((item) => {
+        const data = item.data();
+        return {
+          ...data,
+          id: item.id,
+          waktuMulai: toDateValue(data.waktuMulai),
+          waktuSelesai: toDateValue(data.waktuSelesai),
+        };
+      }) as SessionRecord[];
 
       onData(sessions);
     },
@@ -82,6 +106,8 @@ export async function createSession(
   input: SessionInput,
   createdBy: string,
 ) {
+  validateSessionTimes(input);
+
   await addDoc(collection(db, 'sessions'), {
     ...input,
     status: 'dijadwalkan',
@@ -99,6 +125,8 @@ export async function updateSession(
   sessionId: string,
   input: SessionInput,
 ) {
+  validateSessionTimes(input);
+
   const sessionRef = doc(db, 'sessions', sessionId);
 
   const sessionSnapshot = await getDoc(sessionRef);

@@ -8,6 +8,7 @@ import {
   useState,
 } from 'react';
 
+import { formatSessionTimeRange } from '@/utils/session-time';
 import { useAuth } from '@/context/AuthContext';
 
 import type {
@@ -240,7 +241,9 @@ export function AssistantSessionsProvider({
         practicumName: session.practicumName,
         moduleTitle: session.moduleTitle,
         classRoom: session.classRoom,
-        scheduleTime: session.scheduleTime,
+        scheduleTime: session.waktuMulai
+          ? formatSessionTimeRange(session.waktuMulai, session.waktuSelesai)
+          : session.scheduleTime,
         status: session.status,
         sessionNote: session.sessionNote ?? '',
         attendances,

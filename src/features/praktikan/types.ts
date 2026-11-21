@@ -46,14 +46,19 @@ export interface PraktikanSession {
   id: string;
   classId?: string;
   scheduleId?: string;
+  /** Titik lokasi sesi (`laboratories/{labId}`), dipakai validasi radius presensi. */
+  labId?: string;
   practicumName: string;
   className?: string;
   moduleTitle: string;
   topic?: string;
   classRoom: string;
   room?: string;
+  /** Teks waktu siap tampil; berisi tanggal lengkap bila sesi punya `waktuMulai`. */
   scheduleTime: string;
   dayTime?: string;
+  waktuMulai?: Date | null;
+  waktuSelesai?: Date | null;
   status: FirestoreSessionStatus;
   sessionNote: string;
   createdAt?: Date | null;
@@ -63,12 +68,17 @@ export interface PraktikanSession {
 
 /**
  * Dokumen presensi pada subkoleksi `sessions/{sessionId}/attendance/{uid}`.
- * Selaras dengan aturan `keys().hasOnly(['uid', 'nama', 'waktu'])` di `firestore.rules`.
+ * Field lokasi hanya ada pada presensi berbasis lokasi (Sprint 3).
  */
 export interface SessionAttendanceDoc {
   uid: string;
   nama: string;
   waktu: Date | null;
+  labId?: string;
+  latitude?: number;
+  longitude?: number;
+  /** Jarak ke titik lokasi saat presensi, dalam meter. */
+  jarak?: number;
 }
 
 /**

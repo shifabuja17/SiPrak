@@ -26,6 +26,24 @@ service cloud.firestore {
       return request.resource.data.status in ['dijadwalkan', 'dibuka', 'ditutup'];
     }
 
+    function sessionDoc(sessionId) {
+      return get(/databases/$(database)/documents/sessions/$(sessionId)).data;
+    }
+
+    function labDoc(labId) {
+      return get(/databases/$(database)/documents/laboratories/$(labId)).data;
+    }
+
+    // Pemeriksaan radius di server (Sprint 3 NFR-01). Rules tidak punya trigonometri,
+    // jadi dipakai kotak pembatas di sekitar titik lab: 1 derajat dianggap 110.000 m
+    // (sedikit di bawah nilai sebenarnya ~110.500 m di lintang Semarang), sehingga kotak
+    // ini selalu memuat lingkaran radius. Pemeriksaan jarak yang presisi (haversine)
+    // dilakukan aplikasi dan hasilnya dicek lagi lewat field 'jarak'.
+    function withinLabBox(lat, lng, lab, radius) {
+      return math.abs(lat - lab.latitude) * 110000 <= radius
+        && math.abs(lng - lab.longitude) * 110000 <= radius;
+    }
+
     // ---------- users/{uid} ----------
     // Registrasi mandiri hanya boleh jadi 'praktikan'.
     // Akun asisten: ubah field role secara manual di Firebase Console.
@@ -66,6 +84,13 @@ service cloud.firestore {
       }
     }
 
+    // ---------- Titik lokasi praktikum (Sprint 3) ----------
+    // Dikelola Asisten (modul P2), dibaca modul presensi & Maps.
+    match /laboratories/{labId} {
+      allow read: if signedIn();
+      allow write: if isAsisten();
+    }
+
     match /schedules/{scheduleId} {
       allow read: if signedIn();
       allow write: if isAsisten();
@@ -84,14 +109,32 @@ service cloud.firestore {
       match /attendance/{uid} {
         allow read: if isAsisten() || isOwner(uid);
 
+        // Presensi berbasis lokasi: sesi dibuka, labId sesuai sesi, dan koordinat
+        // praktikan berada di sekitar titik lab dalam radius (FR-04, FR-05, FR-08).
         allow create: if isOwner(uid)
-          && get(/databases/$(database)/documents/sessions/$(sessionId)).data.status == 'dibuka'
+          && sessionDoc(sessionId).status == 'dibuka'
           // OPSIONAL (aktifkan jika peserta kelas sudah diisi di classes/{id}/members):
-          // && exists(/databases/$(database)/documents/classes/$(get(/databases/$(database)/documents/sessions/$(sessionId)).data.classId)/members/$(uid))
-          && request.resource.data.keys().hasOnly(['uid', 'nama', 'waktu'])
+          // && exists(/databases/$(database)/documents/classes/$(sessionDoc(sessionId).classId)/members/$(uid))
+          && request.resource.data.keys().hasOnly(
+               ['uid', 'nama', 'waktu', 'labId', 'latitude', 'longitude', 'jarak'])
+          && request.resource.data.keys().hasAll(
+               ['uid', 'nama', 'waktu', 'labId', 'latitude', 'longitude', 'jarak'])
           && request.resource.data.uid == uid
           && request.resource.data.nama is string
-          && request.resource.data.waktu == request.time;
+          && request.resource.data.waktu == request.time
+          && request.resource.data.labId is string
+          && request.resource.data.labId == sessionDoc(sessionId).get('labId', '')
+          && exists(/databases/$(database)/documents/laboratories/$(request.resource.data.labId))
+          && request.resource.data.latitude is number
+          && request.resource.data.longitude is number
+          && request.resource.data.jarak is number
+          && request.resource.data.jarak >= 0
+          && request.resource.data.jarak <= labDoc(request.resource.data.labId).get('radius', 50)
+          && withinLabBox(
+               request.resource.data.latitude,
+               request.resource.data.longitude,
+               labDoc(request.resource.data.labId),
+               labDoc(request.resource.data.labId).get('radius', 50));
 
         allow update: if false;
         allow delete: if isAsisten(); // koreksi oleh asisten

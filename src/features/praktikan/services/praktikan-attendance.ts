@@ -14,6 +14,14 @@ import {
   readString,
   toDateOrNull,
 } from '@/features/praktikan/services/firestore-helpers';
+import { getLaboratory } from '@/features/location/services/laboratory-service';
+import type { DeviceCoordinates, Laboratory } from '@/features/location/types';
+import {
+  checkWithinRadius,
+  formatDistance,
+  isValidCoordinate,
+  type RadiusCheckResult,
+} from '@/features/location/utils/geo';
 import { db } from '@/lib/firebase';
 import type { SessionAttendanceDoc } from '@/features/praktikan/types';
 
@@ -21,6 +29,17 @@ export interface SubmitPraktikanAttendanceInput {
   sessionId: string;
   uid: string;
   nama: string;
+  /** Koordinat perangkat saat presensi (FR-03). */
+  location: DeviceCoordinates;
+}
+
+export interface SubmitPraktikanAttendanceResult {
+  lab: Laboratory;
+  check: RadiusCheckResult;
+}
+
+function readNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
 
 function mapAttendanceDoc(
@@ -40,6 +59,10 @@ function mapAttendanceDoc(
     uid,
     nama,
     waktu: toDateOrNull(data.waktu),
+    labId: readString(data.labId),
+    latitude: readNumber(data.latitude),
+    longitude: readNumber(data.longitude),
+    jarak: readNumber(data.jarak),
   };
 }
 
@@ -90,7 +113,7 @@ async function resolveAttendanceWriteError(
     }
 
     return new Error(
-      'Presensi ditolak oleh aturan keamanan. Pastikan akun terdaftar pada kelas ini dan sesi masih dibuka.',
+      'Presensi ditolak oleh aturan keamanan. Pastikan kamu berada di dalam radius lokasi sesi, akun terdaftar pada kelas ini, dan sesi masih dibuka.',
     );
   } catch (checkError) {
     const checkCode = (checkError as { code?: string })?.code;
@@ -226,14 +249,17 @@ export function subscribeMyAttendanceMap(
 }
 
 /**
- * Mengirim presensi Praktikan ke `sessions/{sessionId}/attendance/{uid}` (FR-10 & FR-11).
- * Hanya menulis 3 field (`uid`, `nama`, `waktu`) sesuai `firestore.rules`.
+ * Mengirim presensi berbasis lokasi ke `sessions/{sessionId}/attendance/{uid}`
+ * (FR-04, FR-05, FR-07, FR-08). Status sesi, lab, radius, dan duplikasi dicek ulang
+ * dari Firestore tepat sebelum menulis; `firestore.rules` memvalidasi ulang di server.
+ * Melempar Error berpesan jelas bila salah satu syarat tidak terpenuhi atau penulisan gagal.
  */
 export async function submitPraktikanAttendance({
   sessionId,
   uid,
   nama,
-}: SubmitPraktikanAttendanceInput): Promise<void> {
+  location,
+}: SubmitPraktikanAttendanceInput): Promise<SubmitPraktikanAttendanceResult> {
   const trimmedSessionId = sessionId.trim();
   const trimmedUid = uid.trim();
   const trimmedNama = nama.trim();
@@ -246,6 +272,9 @@ export async function submitPraktikanAttendance({
   }
   if (!trimmedNama) {
     throw new Error('Nama praktikan wajib diisi pada profil akun.');
+  }
+  if (!isValidCoordinate(location.latitude, location.longitude)) {
+    throw new Error('Koordinat perangkat tidak valid. Ambil ulang lokasi lalu coba lagi.');
   }
 
   const sessionRef = doc(db, 'sessions', trimmedSessionId);
@@ -276,15 +305,45 @@ export async function submitPraktikanAttendance({
     throw new Error('Kamu sudah melakukan presensi pada sesi ini.');
   }
 
-  validateSessionOpenForAttendance(sessionSnap.data().status);
+  const sessionData = sessionSnap.data();
+  validateSessionOpenForAttendance(sessionData.status);
+
+  const labId = readString(sessionData.labId);
+  if (!labId) {
+    throw new Error(
+      'Sesi ini belum memiliki titik lokasi. Hubungi Asisten untuk mengatur lokasi sesi.',
+    );
+  }
+
+  let lab: Laboratory;
+  try {
+    lab = await getLaboratory(labId);
+  } catch (err) {
+    throw err instanceof Error && !(err as { code?: string }).code
+      ? err
+      : mapPraktikanFirestoreError(err);
+  }
+
+  const check = checkWithinRadius(location, lab, lab.radius);
+  if (!check.withinRadius) {
+    throw new Error(
+      `Kamu berada ${formatDistance(check.distance)} dari ${lab.nama}, di luar radius presensi ${formatDistance(lab.radius)}.`,
+    );
+  }
 
   try {
     await setDoc(attendanceRef, {
       uid: trimmedUid,
       nama: trimmedNama,
       waktu: serverTimestamp(),
+      labId,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      jarak: Math.round(check.distance * 10) / 10,
     });
   } catch (err) {
     throw await resolveAttendanceWriteError(err, sessionRef, attendanceRef);
   }
+
+  return { lab, check };
 }

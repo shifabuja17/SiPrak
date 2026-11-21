@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { router } from 'expo-router';
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   StyleSheet,
   Text,
@@ -12,8 +11,6 @@ import { PraktikanInlineErrorBanner } from '@/features/praktikan/components/prak
 import { useSessionAttendance } from '@/features/praktikan/hooks/use-session-attendance';
 import type { PraktikanSession } from '@/features/praktikan/types';
 import { formatAttendanceTimeWIB } from '@/features/praktikan/utils/format';
-
-import AttendanceSheet from './attendance-sheet';
 
 type ButtonVariant = 'ACTIVE' | 'DISABLED' | 'SUCCESS';
 
@@ -28,9 +25,8 @@ interface PraktikanAttendanceSectionProps {
 }
 
 /**
- * Seksi aksi presensi Praktikan pada halaman detail sesi (FR-10 & FR-11).
- * Mengatur 4 kondisi tombol berdasarkan status presensi pribadi (`attendance/{uid}`)
- * dan status sesi (`dijadwalkan` | `dibuka` | `ditutup`).
+ * Ringkasan status presensi di Detail Sesi. Presensi sendiri dilakukan di halaman
+ * terpisah `/attendance/[sessionId]` yang memeriksa lokasi (Sprint 3 FR-01).
  */
 export default function PraktikanAttendanceSection({
   session,
@@ -38,22 +34,10 @@ export default function PraktikanAttendanceSection({
   const {
     attendance,
     loading,
-    submitting,
     error,
-    submitAttendance,
     clearError,
     retry,
   } = useSessionAttendance(session.id);
-
-  const [sheetVisible, setSheetVisible] = useState(false);
-  const mountedRef = useRef(true);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
 
   function getButtonState(): ButtonState {
     if (attendance !== null) {
@@ -77,11 +61,9 @@ export default function PraktikanAttendanceSection({
 
     if (session.status === 'dibuka') {
       return {
-        label: submitting
-          ? 'Mengirim Presensi...'
-          : 'Lakukan Presensi Sekarang',
+        label: 'Buka Halaman Presensi',
         variant: 'ACTIVE',
-        disabled: submitting,
+        disabled: false,
       };
     }
 
@@ -103,27 +85,13 @@ export default function PraktikanAttendanceSection({
   const buttonState = getButtonState();
   const isInteractive = !buttonState.disabled;
 
-  function handleOpenSheet() {
-    if (submitting || buttonState.disabled) {
-      return;
-    }
+  function handleOpenAttendance() {
+    if (buttonState.disabled) return;
     clearError();
-    setSheetVisible(true);
-  }
-
-  async function handleConfirmSubmit() {
-    let ok = false;
-    try {
-      ok = await submitAttendance();
-    } finally {
-      if (mountedRef.current) {
-        setSheetVisible(false);
-      }
-    }
-
-    if (ok) {
-      Alert.alert('Berhasil', 'Presensi kamu sudah tercatat.');
-    }
+    router.push({
+      pathname: '/attendance/[sessionId]',
+      params: { sessionId: session.id },
+    });
   }
 
   return (
@@ -132,7 +100,7 @@ export default function PraktikanAttendanceSection({
         accessibilityRole="button"
         accessibilityState={{ disabled: buttonState.disabled }}
         disabled={buttonState.disabled}
-        onPress={handleOpenSheet}
+        onPress={handleOpenAttendance}
         style={({ pressed }) => [
           styles.button,
           buttonState.variant === 'ACTIVE' && styles.buttonActive,
@@ -141,7 +109,7 @@ export default function PraktikanAttendanceSection({
           pressed && isInteractive && styles.pressed,
         ]}
       >
-        {loading || submitting ? (
+        {loading ? (
           <View style={styles.buttonLoadingRow}>
             <ActivityIndicator
               size="small"
@@ -182,17 +150,6 @@ export default function PraktikanAttendanceSection({
         />
       ) : null}
 
-      <AttendanceSheet
-        visible={sheetVisible}
-        practicumName={session.practicumName}
-        moduleTitle={session.moduleTitle}
-        submitting={submitting}
-        error={sheetVisible ? error : null}
-        onCancel={() => {
-          if (!submitting) setSheetVisible(false);
-        }}
-        onSubmit={() => handleConfirmSubmit()}
-      />
     </View>
   );
 }

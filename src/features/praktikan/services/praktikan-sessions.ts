@@ -11,6 +11,7 @@ import {
   readString,
   toDateOrNull,
 } from '@/features/praktikan/services/firestore-helpers';
+import { formatSessionTimeRange } from '@/utils/session-time';
 import { db } from '@/lib/firebase';
 import type {
   FirestoreSessionStatus,
@@ -134,6 +135,7 @@ function mapSessionDoc(
   const status = parseSessionStatus(data.status, id);
   const classId = readString(data.classId) ?? context.schedule?.classId;
   const scheduleId = readString(data.scheduleId);
+  const labId = readString(data.labId);
   const className =
     readString(data.className) ??
     context.schedule?.className ??
@@ -168,8 +170,12 @@ function mapSessionDoc(
     context.classDoc?.classRoom ??
     '-';
 
-  const scheduleTime =
-    readString(data.scheduleTime) ??
+  const waktuMulai = toDateOrNull(data.waktuMulai);
+  const waktuSelesai = toDateOrNull(data.waktuSelesai);
+
+  const scheduleTime = waktuMulai
+    ? formatSessionTimeRange(waktuMulai, waktuSelesai)
+    : readString(data.scheduleTime) ??
     dayTime ??
     resolveScheduleTimeFromSchedule(context.schedule) ??
     '-';
@@ -183,6 +189,7 @@ function mapSessionDoc(
     id,
     classId,
     scheduleId,
+    labId,
     practicumName,
     className,
     moduleTitle,
@@ -191,6 +198,8 @@ function mapSessionDoc(
     room,
     scheduleTime,
     dayTime,
+    waktuMulai,
+    waktuSelesai,
     status,
     sessionNote,
     createdAt: toDateOrNull(data.createdAt),
