@@ -20,6 +20,8 @@ import { useAuth } from '@/context/AuthContext';
 
 import { SessionCard } from '@/features/assistant/components/session-card';
 import { useAssistantSessions } from '@/features/assistant/state/assistant-sessions-context';
+import { TAB_BAR_SPACE } from '@/features/praktikan/ui/praktikan-ui';
+import { FONT } from '@/constants/fonts';
 
 // ==========================================
 // ICON SVG
@@ -37,7 +39,7 @@ function UsersIcon() {
         cx="17"
         cy="15"
         r="6"
-        stroke="#000000"
+        stroke="#111014"
         strokeWidth={2.5}
       />
 
@@ -45,20 +47,20 @@ function UsersIcon() {
         cx="32"
         cy="17"
         r="5"
-        stroke="#000000"
+        stroke="#111014"
         strokeWidth={2.5}
       />
 
       <Path
         d="M5 38c0-7 5-12 12-12s12 5 12 12"
-        stroke="#000000"
+        stroke="#111014"
         strokeWidth={2.5}
         strokeLinecap="round"
       />
 
       <Path
         d="M29 28c7 0 12 4 13 10"
-        stroke="#000000"
+        stroke="#111014"
         strokeWidth={2.5}
         strokeLinecap="round"
       />
@@ -80,20 +82,20 @@ function CalendarIcon() {
         width="36"
         height="33"
         rx="4"
-        stroke="#000000"
+        stroke="#111014"
         strokeWidth={2.5}
       />
 
       <Path
         d="M6 19h36M16 6v9M32 6v9"
-        stroke="#000000"
+        stroke="#111014"
         strokeWidth={2.5}
         strokeLinecap="round"
       />
 
       <Path
         d="M15 27h4M27 27h4M15 35h4M27 35h4"
-        stroke="#000000"
+        stroke="#111014"
         strokeWidth={2.5}
         strokeLinecap="round"
       />
@@ -115,20 +117,20 @@ function AttendanceIcon() {
         width="32"
         height="35"
         rx="4"
-        stroke="#000000"
+        stroke="#111014"
         strokeWidth={2.5}
       />
 
       <Path
         d="M17 5h14v8H17z"
-        stroke="#000000"
+        stroke="#111014"
         strokeWidth={2.5}
         strokeLinejoin="round"
       />
 
       <Path
         d="m15 25 4 4 7-8M15 35h17"
-        stroke="#000000"
+        stroke="#111014"
         strokeWidth={2.5}
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -147,7 +149,7 @@ function LeaveIcon() {
     >
       <Path
         d="M11 5h19l9 9v12M30 5v10h9M11 5v38h12"
-        stroke="#000000"
+        stroke="#111014"
         strokeWidth={2.5}
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -155,7 +157,7 @@ function LeaveIcon() {
 
       <Path
         d="M17 21h15M17 27h10"
-        stroke="#000000"
+        stroke="#111014"
         strokeWidth={2.5}
         strokeLinecap="round"
       />
@@ -164,13 +166,13 @@ function LeaveIcon() {
         cx="33"
         cy="34"
         r="10"
-        stroke="#000000"
+        stroke="#111014"
         strokeWidth={2.5}
       />
 
       <Path
         d="M33 28v6l4 2"
-        stroke="#000000"
+        stroke="#111014"
         strokeWidth={2.5}
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -189,7 +191,7 @@ function LocationIcon() {
     >
       <Path
         d="M38 20c0 10-14 22-14 22S10 30 10 20a14 14 0 1 1 28 0Z"
-        stroke="#000000"
+        stroke="#111014"
         strokeWidth={2.5}
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -198,7 +200,7 @@ function LocationIcon() {
         cx="24"
         cy="20"
         r="5.5"
-        stroke="#000000"
+        stroke="#111014"
         strokeWidth={2.5}
       />
     </Svg>
@@ -215,14 +217,14 @@ function MapViewIcon() {
     >
       <Path
         d="M6 12L18 7L30 13L42 8V36L30 41L18 35L6 40V12Z"
-        stroke="#000000"
+        stroke="#111014"
         strokeWidth={2.5}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <Path
         d="M18 7V35M30 13V41"
-        stroke="#000000"
+        stroke="#111014"
         strokeWidth={2.5}
         strokeLinecap="round"
       />
@@ -287,7 +289,7 @@ export default function AssistantScheduleScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
 
       <FlatList
         contentContainerStyle={styles.content}
@@ -324,13 +326,6 @@ export default function AssistantScheduleScreen() {
 
         ListHeaderComponent={
           <View>
-            {/* HEADER SIPRAK */}
-            <View style={styles.topBar}>
-              <Text style={styles.brand}>
-                SiPrak
-              </Text>
-            </View>
-
             <View style={styles.headerContent}>
               {/* KARTU PROFIL ASISTEN */}
               <View style={styles.profileCard}>
@@ -542,26 +537,12 @@ const styles = StyleSheet.create({
   },
 
   content: {
-    paddingBottom: 25,
+    // Ruang untuk navbar melayang.
+    paddingBottom: TAB_BAR_SPACE,
   },
 
   // HEADER
-  topBar: {
-    alignItems: 'center',
-    backgroundColor: '#000000',
-    justifyContent: 'center',
-    minHeight: 95,
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-  },
 
-  brand: {
-    color: '#FFFFFF',
-    fontSize: 27,
-    fontWeight: '800',
-    letterSpacing: 0.6,
-    marginTop: 28,
-  },
 
   // KONTEN DASHBOARD
   headerContent: {
@@ -572,7 +553,7 @@ const styles = StyleSheet.create({
   // PROFIL ASISTEN
   profileCard: {
     alignItems: 'center',
-    backgroundColor: '#000000',
+    backgroundColor: '#F47321',
     borderRadius: 20,
     flexDirection: 'row',
     gap: 15,
@@ -581,17 +562,19 @@ const styles = StyleSheet.create({
 
   avatar: {
     alignItems: 'center',
-    backgroundColor: '#E5E5E5',
+    backgroundColor: '#FFFFFF',
     borderRadius: 40,
     height: 72,
     justifyContent: 'center',
     width: 72,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   avatarText: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 23,
-    fontWeight: '800',
   },
 
   profileInfo: {
@@ -600,25 +583,28 @@ const styles = StyleSheet.create({
   },
 
   profileName: {
+    fontFamily: FONT.extrabold,
     color: '#FFFFFF',
     fontSize: 17,
-    fontWeight: '800',
     lineHeight: 23,
   },
 
   profileRole: {
+    fontFamily: FONT.regular,
     color: '#D0D0D0',
     fontSize: 13,
   },
 
   // MENU FITUR
   menuCard: {
-    backgroundColor: '#F5F5F7',
+    backgroundColor: '#FFFFFF',
     borderRadius: 22,
     marginTop: 18,
     paddingHorizontal: 14,
     paddingVertical: 20,
     gap: 20,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   menuRow: {
@@ -636,7 +622,9 @@ const styles = StyleSheet.create({
 
   menuIcon: {
     alignItems: 'center',
-    backgroundColor: '#E0E2E9',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#8E8E93',
+    borderWidth: 1,
     borderRadius: 19,
     height: 82,
     justifyContent: 'center',
@@ -644,9 +632,9 @@ const styles = StyleSheet.create({
   },
 
   menuLabel: {
-    color: '#000000',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 13,
-    fontWeight: '700',
     textAlign: 'center',
   },
 
@@ -661,7 +649,9 @@ const styles = StyleSheet.create({
 
   menuBannerIcon: {
     alignItems: 'center',
-    backgroundColor: '#E0E2E9',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#8E8E93',
+    borderWidth: 1,
     borderRadius: 14,
     height: 54,
     justifyContent: 'center',
@@ -674,21 +664,22 @@ const styles = StyleSheet.create({
   },
 
   menuBannerTitle: {
-    color: '#000000',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 14,
-    fontWeight: '700',
   },
 
   menuBannerSubtitle: {
-    color: '#666666',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 12,
     lineHeight: 17,
   },
 
   menuBannerArrow: {
-    color: '#000000',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 22,
-    fontWeight: '700',
     paddingHorizontal: 4,
   },
 
@@ -711,29 +702,32 @@ const styles = StyleSheet.create({
   },
 
   sectionTitle: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 21,
-    fontWeight: '800',
   },
 
   sectionSubtitle: {
-    color: '#666666',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 12,
     lineHeight: 18,
     marginTop: 4,
   },
 
   sessionCountBadge: {
-    backgroundColor: '#F0F0F3',
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     paddingHorizontal: 13,
     paddingVertical: 8,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   sessionCount: {
-    color: '#000000',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 12,
-    fontWeight: '700',
   },
 
   sessionItem: {
@@ -747,21 +741,24 @@ const styles = StyleSheet.create({
   // KONDISI KOSONG
   emptyCard: {
     alignItems: 'center',
-    backgroundColor: '#F5F5F7',
+    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     gap: 8,
     marginHorizontal: 20,
     padding: 24,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   emptyTitle: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 16,
-    fontWeight: '800',
   },
 
   emptyText: {
-    color: '#666666',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 13,
     lineHeight: 19,
     textAlign: 'center',

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import type { DateTimeFieldProps } from './DateTimeField';
+import { FONT } from '@/constants/fonts';
 
 function pad(value: number): string {
   return String(value).padStart(2, '0');
@@ -79,7 +80,7 @@ export default function DateTimeField({
         onSubmitEditing={commit}
         editable={!disabled}
         placeholder={mode === 'date' ? 'DD/MM/YYYY' : 'HH:MM'}
-        placeholderTextColor="#888888"
+        placeholderTextColor="#8E8E93"
         style={[styles.input, invalid && styles.inputInvalid, disabled && styles.disabled]}
       />
       {invalid ? (
@@ -98,20 +99,22 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   input: {
+    fontFamily: FONT.regular,
     backgroundColor: '#FFFFFF',
-    borderColor: '#D9D9D9',
+    borderColor: '#8E8E93',
     borderRadius: 12,
     borderWidth: 1,
-    color: '#000000',
+    color: '#111014',
     fontSize: 14,
     minHeight: 48,
     paddingHorizontal: 14,
   },
   inputInvalid: {
-    borderColor: '#B91C1C',
+    borderColor: '#E00000',
   },
   hint: {
-    color: '#B91C1C',
+    fontFamily: FONT.regular,
+    color: '#E00000',
     fontSize: 12,
   },
   disabled: {

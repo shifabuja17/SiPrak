@@ -53,7 +53,8 @@ type TabButtonProps = TabTriggerSlotProps & { icon: IconName; label: string; pat
 function TabButton({ icon, label, path, isFocused: _isFocused, ref: _ref, ...props }: TabButtonProps) {
   // Tab aktif ditentukan dari URL; `isFocused` bawaan TabTrigger tidak selalu akurat.
   const pathname = usePathname();
-  const isFocused = pathname === path || pathname.startsWith(`${path}/`);
+  // Dicocokkan persis: '/assistant' tidak boleh ikut aktif saat membuka '/assistant/profile'.
+  const isFocused = pathname === path;
   return (
     <Pressable
       {...props}
@@ -85,41 +86,64 @@ function Pill({ children }: { children: ReactNode }) {
   );
 }
 
+export interface PillTab {
+  /** Nama route di folder (tabs), mis. 'schedule' atau 'index'. */
+  name: string;
+  /** URL tab, mis. '/schedule' atau '/assistant'. */
+  path: string;
+  icon: Exclude<IconName, 'map'>;
+  label: string;
+}
+
+function MapButton() {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Peta laboratorium"
+      onPress={() => router.push('/maps')}
+      style={({ pressed }) => [styles.item, pressed && styles.pressed]}
+    >
+      <TabIcon name="map" color={ON_INK} />
+    </Pressable>
+  );
+}
+
 /**
- * Tab bar Praktikan: pill gelap melayang dengan ikon, tab aktif berupa lingkaran putih.
- * Dipakai di semua platform (native & web).
+ * Tab bar pill gelap melayang (dipakai Praktikan & Asisten). Tab aktif berupa lingkaran
+ * putih. `mapAfter`: sisipkan tombol Peta (FR-13 s.d. FR-16) setelah tab ke-n; Peta adalah
+ * halaman terpisah yang dibuka di atas tab, bukan tab.
  */
-export default function AppTabs() {
+export function PillTabs({ tabs, mapAfter }: { tabs: PillTab[]; mapAfter?: number }) {
+  const items: ReactNode[] = [];
+  tabs.forEach((tab, index) => {
+    items.push(
+      <TabTrigger key={tab.name} name={tab.name} href={tab.path as Href} asChild>
+        <TabButton icon={tab.icon} label={tab.label} path={tab.path} />
+      </TabTrigger>,
+    );
+    if (mapAfter === index + 1) items.push(<MapButton key="map" />);
+  });
+
   return (
     <Tabs style={styles.root}>
       <TabSlot style={styles.slot} />
       <Pill>
-        <TabList style={styles.tabList}>
-          <TabTrigger name="schedule" href="/schedule" asChild>
-            <TabButton icon="home" label="Jadwal" path="/schedule" />
-          </TabTrigger>
-          <TabTrigger name="explore" href="/explore" asChild>
-            <TabButton icon="history" label="Riwayat" path="/explore" />
-          </TabTrigger>
-          <TabTrigger name="leave" href="/leave" asChild>
-            <TabButton icon="leave" label="Izin" path="/leave" />
-          </TabTrigger>
-          {/* Peta laboratorium (FR-13 s.d. FR-16) adalah halaman terpisah, bukan tab: dibuka di atas tab. */}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Peta laboratorium"
-            onPress={() => router.push('/maps')}
-            style={({ pressed }) => [styles.item, pressed && styles.pressed]}
-          >
-            <TabIcon name="map" color={ON_INK} />
-          </Pressable>
-          <TabTrigger name="profile" href="/profile" asChild>
-            <TabButton icon="profile" label="Profil" path="/profile" />
-          </TabTrigger>
-        </TabList>
+        <TabList style={styles.tabList}>{items}</TabList>
       </Pill>
     </Tabs>
   );
+}
+
+const PRAKTIKAN_TABS: PillTab[] = [
+  { name: 'schedule', path: '/schedule', icon: 'home', label: 'Jadwal' },
+  { name: 'explore', path: '/explore', icon: 'history', label: 'Riwayat' },
+  { name: 'leave', path: '/leave', icon: 'leave', label: 'Izin' },
+  { name: 'profile', path: '/profile', icon: 'profile', label: 'Profil' },
+];
+
+/** Tab bar Praktikan: Beranda, Riwayat, Izin, Peta, Profil. */
+export default function AppTabs() {
+  return <PillTabs tabs={PRAKTIKAN_TABS} mapAfter={3} />;
 }
 
 const styles = StyleSheet.create({

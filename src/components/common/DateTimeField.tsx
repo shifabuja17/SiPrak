@@ -5,6 +5,7 @@ import RNDateTimePicker, {
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { formatClock, formatSessionDate } from '@/utils/session-time';
+import { FONT } from '@/constants/fonts';
 
 export interface DateTimeFieldProps {
   mode: 'date' | 'time';
@@ -79,7 +80,7 @@ export default function DateTimeField({
 const styles = StyleSheet.create({
   field: {
     backgroundColor: '#FFFFFF',
-    borderColor: '#D9D9D9',
+    borderColor: '#8E8E93',
     borderRadius: 12,
     borderWidth: 1,
     justifyContent: 'center',
@@ -93,9 +94,9 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   value: {
-    color: '#000000',
+    fontFamily: FONT.semibold,
+    color: '#111014',
     fontSize: 14,
-    fontWeight: '600',
   },
   disabled: {
     opacity: 0.5,

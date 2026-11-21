@@ -34,6 +34,7 @@ import {
   subscribeClasses,
   type PracticumClass,
 } from '@/features/assistant/services/class-service';
+import { FONT } from '@/constants/fonts';
 
 export default function ClassMembersScreen() {
   const params = useLocalSearchParams<{
@@ -341,7 +342,7 @@ export default function ClassMembersScreen() {
   if (authLoading) {
     return (
       <SafeAreaView style={styles.centered}>
-        <ActivityIndicator size="large" color="#000000" />
+        <ActivityIndicator size="large" color="#111014" />
 
         <Text style={styles.mutedText}>
           Memeriksa akun...
@@ -404,7 +405,7 @@ export default function ClassMembersScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar
-        barStyle="light-content"
+        barStyle="dark-content"
       />
 
       <ScrollView
@@ -514,7 +515,7 @@ export default function ClassMembersScreen() {
             <View style={styles.centeredContent}>
               <ActivityIndicator
                 size="large"
-                color="#000000"
+                color="#111014"
               />
 
               <Text style={styles.mutedText}>
@@ -670,7 +671,7 @@ export default function ClassMembersScreen() {
                 value={search}
                 onChangeText={setSearch}
                 placeholder="Cari nama atau NIM..."
-                placeholderTextColor="#888888"
+                placeholderTextColor="#8E8E93"
                 style={styles.input}
                 editable={!saving}
               />
@@ -685,7 +686,7 @@ export default function ClassMembersScreen() {
                   <View style={styles.modalLoading}>
                     <ActivityIndicator
                       size="large"
-                      color="#000000"
+                      color="#111014"
                     />
 
                     <Text style={styles.mutedText}>
@@ -1039,8 +1040,10 @@ const styles = StyleSheet.create({
 
   // HALAMAN UTAMA
   safeArea: {
-    backgroundColor: '#F7F7F9',
+    backgroundColor: '#FFFFFF',
     flex: 1,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   content: {
@@ -1074,23 +1077,26 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 27,
-    fontWeight: '800',
   },
 
   subtitle: {
-    color: '#666666',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 13,
     lineHeight: 20,
   },
 
   // INFORMASI KELAS
   classInfo: {
-    backgroundColor: '#EEEEF1',
+    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 17,
     gap: 10,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   classInfoHeader: {
@@ -1100,9 +1106,9 @@ const styles = StyleSheet.create({
   },
 
   classInfoLabel: {
-    color: '#777777',
+    fontFamily: FONT.extrabold,
+    color: '#5F5F66',
     fontSize: 10,
-    fontWeight: '800',
     letterSpacing: 0.7,
   },
 
@@ -1115,20 +1121,21 @@ const styles = StyleSheet.create({
   },
 
   classCodeText: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 11,
-    fontWeight: '800',
   },
 
   className: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 18,
-    fontWeight: '800',
     lineHeight: 24,
   },
 
   classDescription: {
-    color: '#666666',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 12,
     lineHeight: 19,
   },
@@ -1136,11 +1143,13 @@ const styles = StyleSheet.create({
   // RINGKASAN PESERTA
   summary: {
     alignItems: 'center',
-    backgroundColor: '#EEEEF1',
+    backgroundColor: '#FFFFFF',
     borderRadius: 17,
     flexDirection: 'row',
     justifyContent: 'space-between',
     padding: 17,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   summaryInfo: {
@@ -1148,19 +1157,20 @@ const styles = StyleSheet.create({
   },
 
   summaryNumber: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 29,
-    fontWeight: '800',
   },
 
   summaryLabel: {
-    color: '#666666',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 12,
   },
 
   primaryButton: {
     alignItems: 'center',
-    backgroundColor: '#000000',
+    backgroundColor: '#111014',
     borderRadius: 11,
     justifyContent: 'center',
     paddingHorizontal: 15,
@@ -1168,9 +1178,9 @@ const styles = StyleSheet.create({
   },
 
   primaryButtonText: {
+    fontFamily: FONT.bold,
     color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: '700',
   },
 
   // DAFTAR ANGGOTA
@@ -1182,34 +1192,37 @@ const styles = StyleSheet.create({
   },
 
   sectionTitle: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 19,
-    fontWeight: '800',
   },
 
   sectionCaption: {
-    color: '#777777',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 11,
     marginTop: 4,
   },
 
   totalBadge: {
-    backgroundColor: '#EAEAEA',
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     paddingHorizontal: 11,
     paddingVertical: 7,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   totalText: {
-    color: '#333333',
+    fontFamily: FONT.bold,
+    color: '#5F5F66',
     fontSize: 11,
-    fontWeight: '700',
   },
 
   // KARTU PESERTA
   memberCard: {
     backgroundColor: '#FFFFFF',
-    borderColor: '#E5E5E5',
+    borderColor: '#8E8E93',
     borderRadius: 17,
     borderWidth: 1,
     gap: 15,
@@ -1224,17 +1237,19 @@ const styles = StyleSheet.create({
 
   avatar: {
     alignItems: 'center',
-    backgroundColor: '#E5E5E9',
+    backgroundColor: '#FFFFFF',
     borderRadius: 24,
     height: 48,
     justifyContent: 'center',
     width: 48,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   avatarText: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 17,
-    fontWeight: '800',
   },
 
   memberDetails: {
@@ -1243,18 +1258,20 @@ const styles = StyleSheet.create({
   },
 
   memberName: {
-    color: '#000000',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 14,
-    fontWeight: '700',
   },
 
   memberNim: {
-    color: '#666666',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 12,
   },
 
   memberDate: {
-    color: '#888888',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 11,
   },
 
@@ -1267,7 +1284,7 @@ const styles = StyleSheet.create({
   moveButton: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderColor: '#CCCCCC',
+    borderColor: '#8E8E93',
     borderRadius: 10,
     borderWidth: 1,
     flex: 1,
@@ -1275,48 +1292,54 @@ const styles = StyleSheet.create({
   },
 
   moveText: {
-    color: '#000000',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 12,
-    fontWeight: '700',
   },
 
   removeButton: {
     alignItems: 'center',
-    backgroundColor: '#EEEEEE',
+    backgroundColor: '#FFFFFF',
     borderRadius: 10,
     flex: 1,
     padding: 11,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   removeText: {
-    color: '#333333',
+    fontFamily: FONT.bold,
+    color: '#5F5F66',
     fontSize: 12,
-    fontWeight: '700',
   },
 
   // KELAS TUJUAN
   classOptionIcon: {
     alignItems: 'center',
-    backgroundColor: '#EEEEEE',
+    backgroundColor: '#FFFFFF',
     borderRadius: 11,
     height: 44,
     justifyContent: 'center',
     width: 44,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   classOptionInitial: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 12,
-    fontWeight: '800',
   },
 
   // KONDISI KOSONG
   emptyCard: {
     alignItems: 'center',
-    backgroundColor: '#EEEEF1',
+    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 25,
     gap: 9,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   emptyIcon: {
@@ -1330,19 +1353,20 @@ const styles = StyleSheet.create({
   },
 
   emptyIconText: {
-    color: '#000000',
+    fontFamily: FONT.medium,
+    color: '#111014',
     fontSize: 28,
-    fontWeight: '500',
   },
 
   emptyTitle: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 16,
-    fontWeight: '800',
   },
 
   mutedText: {
-    color: '#666666',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 13,
     lineHeight: 20,
     textAlign: 'center',
@@ -1350,13 +1374,14 @@ const styles = StyleSheet.create({
 
   // ERROR
   errorBox: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: '#E00000',
     borderRadius: 11,
     padding: 12,
   },
 
   errorText: {
-    color: '#991B1B',
+    fontFamily: FONT.regular,
+    color: '#FFFFFF',
     fontSize: 12,
     lineHeight: 18,
   },
@@ -1396,7 +1421,7 @@ const styles = StyleSheet.create({
 
   modalHandle: {
     alignSelf: 'center',
-    backgroundColor: '#DDDDDD',
+    backgroundColor: '#8E8E93',
     borderRadius: 5,
     height: 5,
     width: 42,
@@ -1408,24 +1433,26 @@ const styles = StyleSheet.create({
   },
 
   modalTitle: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 21,
-    fontWeight: '800',
   },
 
   modalSubtitle: {
-    color: '#666666',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 12,
     lineHeight: 19,
   },
 
   // PENCARIAN
   input: {
-    backgroundColor: '#F5F5F7',
-    borderColor: '#E0E0E0',
+    fontFamily: FONT.regular,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#8E8E93',
     borderRadius: 12,
     borderWidth: 1,
-    color: '#000000',
+    color: '#111014',
     fontSize: 13,
     padding: 13,
   },
@@ -1442,17 +1469,19 @@ const styles = StyleSheet.create({
 
   modalEmpty: {
     alignItems: 'center',
-    backgroundColor: '#F5F5F7',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 20,
     gap: 8,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   // PILIHAN PESERTA DAN KELAS
   userOption: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderColor: '#E0E0E0',
+    borderColor: '#8E8E93',
     borderRadius: 13,
     borderWidth: 1,
     flexDirection: 'row',
@@ -1462,8 +1491,9 @@ const styles = StyleSheet.create({
   },
 
   selectedOption: {
-    backgroundColor: '#F1F1F3',
-    borderColor: '#000000',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#111014',
+    borderWidth: 2,
   },
 
   // RADIO BUTTON
@@ -1478,11 +1508,11 @@ const styles = StyleSheet.create({
   },
 
   radioSelected: {
-    borderColor: '#000000',
+    borderColor: '#111014',
   },
 
   radioInner: {
-    backgroundColor: '#000000',
+    backgroundColor: '#111014',
     borderRadius: 5,
     height: 10,
     width: 10,
@@ -1497,21 +1527,24 @@ const styles = StyleSheet.create({
 
   cancelButton: {
     alignItems: 'center',
-    backgroundColor: '#EEEEEE',
+    backgroundColor: '#FFFFFF',
     borderRadius: 11,
     flex: 1,
     justifyContent: 'center',
     padding: 13,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   cancelText: {
-    color: '#000000',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 13,
-    fontWeight: '700',
   },
 
   modalError: {
-    color: '#B91C1C',
+    fontFamily: FONT.regular,
+    color: '#E00000',
     fontSize: 12,
     lineHeight: 18,
   },
@@ -1539,37 +1572,42 @@ const styles = StyleSheet.create({
   },
 
   confirmTitle: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 21,
-    fontWeight: '800',
   },
 
   confirmDescription: {
-    color: '#666666',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 13,
     lineHeight: 20,
   },
 
   deleteMemberInfo: {
-    backgroundColor: '#F4F4F5',
+    backgroundColor: '#FFFFFF',
     borderRadius: 13,
     gap: 5,
     padding: 13,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   deleteMemberName: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 14,
-    fontWeight: '800',
   },
 
   deleteMemberNim: {
-    color: '#777777',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 12,
   },
 
   deleteErrorText: {
-    color: '#B91C1C',
+    fontFamily: FONT.regular,
+    color: '#E00000',
     fontSize: 12,
     lineHeight: 18,
   },
@@ -1582,22 +1620,24 @@ const styles = StyleSheet.create({
 
   cancelConfirmButton: {
     alignItems: 'center',
-    backgroundColor: '#EEEEEE',
+    backgroundColor: '#FFFFFF',
     borderRadius: 11,
     flex: 1,
     justifyContent: 'center',
     paddingVertical: 14,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   cancelConfirmText: {
-    color: '#000000',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 13,
-    fontWeight: '700',
   },
 
   deleteConfirmButton: {
     alignItems: 'center',
-    backgroundColor: '#000000',
+    backgroundColor: '#111014',
     borderRadius: 11,
     flex: 1,
     justifyContent: 'center',
@@ -1605,9 +1645,9 @@ const styles = StyleSheet.create({
   },
 
   deleteConfirmText: {
+    fontFamily: FONT.bold,
     color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: '700',
   },
 
 });

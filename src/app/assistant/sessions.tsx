@@ -54,6 +54,7 @@ import {
   subscribeLaboratories,
   type LaboratoryLocation,
 } from '@/features/assistant/services/laboratory-service';
+import { FONT } from '@/constants/fonts';
 
 // ==========================================
 // FORM KOSONG
@@ -661,7 +662,12 @@ export default function AssistantSessionsScreen() {
                   ]}
                 />
 
-                <Text style={styles.statusText}>
+                <Text
+                  style={[
+                    styles.statusText,
+                    item.status !== 'dijadwalkan' && styles.statusTextOnColor,
+                  ]}
+                >
                   {statusLabel}
                 </Text>
               </View>
@@ -817,7 +823,7 @@ export default function AssistantSessionsScreen() {
   if (authLoading) {
     return (
       <SafeAreaView style={styles.centered}>
-        <ActivityIndicator size="large" color="#000000" />
+        <ActivityIndicator size="large" color="#111014" />
 
         <Text style={styles.mutedText}>
           Memeriksa akun...
@@ -846,7 +852,7 @@ export default function AssistantSessionsScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
 
       <FlatList
         data={sessions}
@@ -942,7 +948,7 @@ export default function AssistantSessionsScreen() {
               <>
                 <ActivityIndicator
                   size="large"
-                  color="#000000"
+                  color="#111014"
                 />
 
                 <Text style={styles.mutedText}>
@@ -955,7 +961,7 @@ export default function AssistantSessionsScreen() {
                   <SessionIcon
                     name="plus"
                     size={25}
-                    color="#000000"
+                    color="#111014"
                   />
                 </View>
 
@@ -1068,7 +1074,7 @@ export default function AssistantSessionsScreen() {
                             <SessionIcon
                               name="check"
                               size={17}
-                              color="#000000"
+                              color="#111014"
                             />
                           </View>
                         ) : null}
@@ -1102,7 +1108,7 @@ export default function AssistantSessionsScreen() {
 
               {labsLoading && laboratories.length === 0 ? (
                 <View style={styles.labStateBox}>
-                  <ActivityIndicator size="small" color="#000000" />
+                  <ActivityIndicator size="small" color="#111014" />
                   <Text style={styles.labStateText}>
                     Memuat 4 lokasi laboratorium...
                   </Text>
@@ -1161,7 +1167,7 @@ export default function AssistantSessionsScreen() {
                               <SessionIcon
                                 name="check"
                                 size={17}
-                                color="#000000"
+                                color="#111014"
                               />
                             </View>
                           ) : null}
@@ -1250,7 +1256,7 @@ export default function AssistantSessionsScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="Contoh: Praktikan wajib membawa laptop."
-                placeholderTextColor="#888888"
+                placeholderTextColor="#8E8E93"
                 value={form.sessionNote}
                 onChangeText={(value) => {
                   setForm((previous) => ({
@@ -1407,7 +1413,9 @@ const styles = StyleSheet.create({
   // HALAMAN UTAMA
   safeArea: {
     flex: 1,
-    backgroundColor: '#F7F7F9',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   content: {
@@ -1443,13 +1451,14 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 27,
-    fontWeight: '800',
   },
 
   subtitle: {
-    color: '#666666',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 13,
     lineHeight: 20,
   },
@@ -1457,7 +1466,7 @@ const styles = StyleSheet.create({
   // TOMBOL TAMBAH
   addButton: {
     alignItems: 'center',
-    backgroundColor: '#000000',
+    backgroundColor: '#111014',
     borderRadius: 14,
     flexDirection: 'row',
     gap: 9,
@@ -1466,9 +1475,9 @@ const styles = StyleSheet.create({
   },
 
   addButtonText: {
+    fontFamily: FONT.bold,
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '700',
   },
 
   pressed: {
@@ -1481,31 +1490,34 @@ const styles = StyleSheet.create({
 
   // NOTIFIKASI
   successBox: {
-    backgroundColor: '#E8F0E8',
+    backgroundColor: '#F47321',
     borderRadius: 11,
     padding: 12,
   },
 
   successText: {
-    color: '#315A35',
+    fontFamily: FONT.regular,
+    color: '#FFFFFF',
     fontSize: 12,
     lineHeight: 18,
   },
 
   errorBox: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: '#E00000',
     borderRadius: 11,
     padding: 12,
   },
 
   errorText: {
-    color: '#991B1B',
+    fontFamily: FONT.regular,
+    color: '#FFFFFF',
     fontSize: 12,
     lineHeight: 18,
   },
 
   mutedText: {
-    color: '#666666',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 13,
     lineHeight: 20,
     textAlign: 'center',
@@ -1525,35 +1537,38 @@ const styles = StyleSheet.create({
   },
 
   sectionTitle: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 19,
-    fontWeight: '800',
   },
 
   sectionCaption: {
-    color: '#777777',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 11,
     lineHeight: 17,
     paddingBottom: 10,
   },
 
   totalBadge: {
-    backgroundColor: '#EAEAEA',
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 7,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   totalText: {
-    color: '#333333',
+    fontFamily: FONT.bold,
+    color: '#5F5F66',
     fontSize: 12,
-    fontWeight: '700',
   },
 
   // KARTU SESI
   card: {
     backgroundColor: '#FFFFFF',
-    borderColor: '#E5E5E5',
+    borderColor: '#8E8E93',
     borderRadius: 18,
     borderWidth: 1,
     gap: 15,
@@ -1571,9 +1586,9 @@ const styles = StyleSheet.create({
   },
 
   sessionName: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 17,
-    fontWeight: '800',
     lineHeight: 23,
   },
 
@@ -1581,42 +1596,51 @@ const styles = StyleSheet.create({
   statusBadge: {
     alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: '#EEEEEE',
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     flexDirection: 'row',
     gap: 6,
     paddingHorizontal: 10,
     paddingVertical: 7,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   openBadge: {
-    backgroundColor: '#E5E5E5',
+    backgroundColor: '#F47321',
+    borderColor: '#F47321',
+    borderWidth: 1,
   },
 
   closedBadge: {
-    backgroundColor: '#DCDCDC',
+    backgroundColor: '#111014',
+    borderColor: '#111014',
+    borderWidth: 1,
   },
 
   statusDot: {
-    backgroundColor: '#777777',
+    backgroundColor: '#8E8E93',
     borderRadius: 4,
     height: 7,
     width: 7,
   },
 
   openDot: {
-    backgroundColor: '#222222',
+    backgroundColor: '#FFFFFF',
   },
 
   closedDot: {
-    backgroundColor: '#999999',
+    backgroundColor: '#FFFFFF',
   },
 
   statusText: {
-    color: '#333333',
+    fontFamily: FONT.extrabold,
+    color: '#5F5F66',
     fontSize: 10,
-    fontWeight: '800',
     letterSpacing: 0.3,
+  },
+  statusTextOnColor: {
+    color: '#FFFFFF',
   },
 
   // DETAIL SESI
@@ -1629,50 +1653,55 @@ const styles = StyleSheet.create({
   },
 
   detailLabel: {
-    color: '#888888',
+    fontFamily: FONT.semibold,
+    color: '#5F5F66',
     fontSize: 11,
-    fontWeight: '600',
   },
 
   detailValue: {
-    color: '#333333',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 13,
     lineHeight: 19,
   },
 
   // WAKTU SESI
   timeBox: {
-    backgroundColor: '#F1F1F3',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 13,
     gap: 5,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   timeLabel: {
-    color: '#777777',
+    fontFamily: FONT.extrabold,
+    color: '#5F5F66',
     fontSize: 10,
-    fontWeight: '800',
     letterSpacing: 0.5,
   },
 
   timeValue: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 14,
-    fontWeight: '800',
   },
 
   // REKAP KEHADIRAN
   recapContainer: {
-    backgroundColor: '#F7F7F9',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 13,
     gap: 10,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   recapTitle: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 14,
-    fontWeight: '800',
   },
 
   // TOMBOL AKSI
@@ -1688,7 +1717,7 @@ const styles = StyleSheet.create({
   editButton: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderColor: '#D0D0D0',
+    borderColor: '#8E8E93',
     borderRadius: 10,
     borderWidth: 1,
     flex: 1,
@@ -1696,59 +1725,66 @@ const styles = StyleSheet.create({
   },
 
   editButtonText: {
-    color: '#000000',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 13,
-    fontWeight: '700',
   },
 
   deleteButton: {
     alignItems: 'center',
-    backgroundColor: '#EEEEEE',
+    backgroundColor: '#FFFFFF',
     borderRadius: 10,
     flex: 1,
     padding: 11,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   deleteButtonText: {
-    color: '#333333',
+    fontFamily: FONT.bold,
+    color: '#5F5F66',
     fontSize: 13,
-    fontWeight: '700',
   },
 
   openButton: {
     alignItems: 'center',
-    backgroundColor: '#000000',
+    backgroundColor: '#111014',
     borderRadius: 11,
     padding: 14,
   },
 
   openButtonText: {
+    fontFamily: FONT.bold,
     color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: '700',
   },
 
   closeButton: {
     alignItems: 'center',
-    backgroundColor: '#EEEEEE',
+    backgroundColor: '#FFFFFF',
     borderRadius: 11,
     padding: 14,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   closeButtonText: {
-    color: '#000000',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 13,
-    fontWeight: '700',
   },
 
   lockedBox: {
-    backgroundColor: '#F1F1F3',
+    backgroundColor: '#FFFFFF',
     borderRadius: 10,
     padding: 12,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   lockedText: {
-    color: '#666666',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 12,
     lineHeight: 18,
     textAlign: 'center',
@@ -1757,11 +1793,13 @@ const styles = StyleSheet.create({
   // KONDISI KOSONG
   emptyCard: {
     alignItems: 'center',
-    backgroundColor: '#EEEEF1',
+    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     marginHorizontal: 20,
     padding: 25,
     gap: 9,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   emptyIcon: {
@@ -1775,13 +1813,14 @@ const styles = StyleSheet.create({
   },
 
   emptyTitle: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 16,
-    fontWeight: '800',
   },
 
   emptyText: {
-    color: '#666666',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 13,
     lineHeight: 20,
     marginTop: 4,
@@ -1810,7 +1849,7 @@ const styles = StyleSheet.create({
 
   modalHandle: {
     alignSelf: 'center',
-    backgroundColor: '#DDDDDD',
+    backgroundColor: '#8E8E93',
     borderRadius: 5,
     height: 5,
     marginBottom: 17,
@@ -1823,22 +1862,23 @@ const styles = StyleSheet.create({
   },
 
   modalTitle: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 21,
-    fontWeight: '800',
   },
 
   modalSubtitle: {
-    color: '#666666',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 12,
     lineHeight: 19,
   },
 
   // PILIH JADWAL
   label: {
-    color: '#222222',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 13,
-    fontWeight: '700',
     marginBottom: 8,
     marginTop: 15,
   },
@@ -1853,9 +1893,9 @@ const styles = StyleSheet.create({
   },
 
   optionalLabel: {
-    color: '#888888',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 11,
-    fontWeight: '400',
   },
 
   scheduleOptions: {
@@ -1864,7 +1904,7 @@ const styles = StyleSheet.create({
 
   scheduleOption: {
     backgroundColor: '#FFFFFF',
-    borderColor: '#DDDDDD',
+    borderColor: '#8E8E93',
     borderRadius: 12,
     borderWidth: 1,
     padding: 13,
@@ -1872,8 +1912,9 @@ const styles = StyleSheet.create({
   },
 
   scheduleOptionSelected: {
-    backgroundColor: '#F1F1F3',
-    borderColor: '#000000',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#111014',
+    borderWidth: 2,
   },
 
   scheduleOptionHeader: {
@@ -1884,18 +1925,19 @@ const styles = StyleSheet.create({
   },
 
   scheduleOptionTitle: {
-    color: '#333333',
+    fontFamily: FONT.bold,
+    color: '#5F5F66',
     flex: 1,
     fontSize: 14,
-    fontWeight: '700',
   },
 
   scheduleOptionTitleSelected: {
-    color: '#000000',
+    color: '#111014',
   },
 
   scheduleOptionDetail: {
-    color: '#777777',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 12,
     lineHeight: 18,
   },
@@ -1906,66 +1948,72 @@ const styles = StyleSheet.create({
   },
 
   legacyLabNotice: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#E00000',
     borderRadius: 10,
     marginBottom: 9,
     padding: 11,
   },
 
   legacyLabNoticeText: {
-    color: '#92400E',
+    fontFamily: FONT.regular,
+    color: '#FFFFFF',
     fontSize: 12,
     lineHeight: 17,
   },
 
   labStateBox: {
     alignItems: 'center',
-    backgroundColor: '#F5F5F7',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     flexDirection: 'row',
     gap: 10,
     padding: 14,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   labStateText: {
-    color: '#555555',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 12,
   },
 
   labErrorBox: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: '#E00000',
     borderRadius: 12,
     gap: 9,
     padding: 12,
   },
 
   labErrorText: {
-    color: '#991B1B',
+    fontFamily: FONT.regular,
+    color: '#FFFFFF',
     fontSize: 12,
     lineHeight: 17,
   },
 
   labRetryButton: {
     alignSelf: 'flex-start',
-    backgroundColor: '#991B1B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 8,
     paddingHorizontal: 11,
     paddingVertical: 7,
   },
 
   labRetryButtonText: {
-    color: '#FFFFFF',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 12,
-    fontWeight: '700',
   },
 
   // INPUT
   input: {
-    backgroundColor: '#F8F8F8',
-    borderColor: '#DDDDDD',
+    fontFamily: FONT.regular,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#8E8E93',
     borderRadius: 11,
     borderWidth: 1,
-    color: '#000000',
+    color: '#111014',
     fontSize: 14,
     minHeight: 90,
     paddingHorizontal: 12,
@@ -1973,7 +2021,8 @@ const styles = StyleSheet.create({
   },
 
   modalError: {
-    color: '#B91C1C',
+    fontFamily: FONT.regular,
+    color: '#E00000',
     fontSize: 12,
     lineHeight: 18,
     marginTop: 10,
@@ -1989,30 +2038,32 @@ const styles = StyleSheet.create({
 
   cancelButton: {
     alignItems: 'center',
-    backgroundColor: '#EEEEEE',
+    backgroundColor: '#FFFFFF',
     borderRadius: 11,
     flex: 1,
     padding: 13,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   cancelButtonText: {
-    color: '#222222',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 13,
-    fontWeight: '700',
   },
 
   saveButton: {
     alignItems: 'center',
-    backgroundColor: '#000000',
+    backgroundColor: '#111014',
     borderRadius: 11,
     flex: 1,
     padding: 13,
   },
 
   saveButtonText: {
+    fontFamily: FONT.bold,
     color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: '700',
   },
 
   // ==========================================
@@ -2038,32 +2089,36 @@ const styles = StyleSheet.create({
   },
 
   confirmTitle: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 21,
-    fontWeight: '800',
   },
 
   confirmDescription: {
-    color: '#666666',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 13,
     lineHeight: 20,
   },
 
   confirmInfo: {
-    backgroundColor: '#F4F4F5',
+    backgroundColor: '#FFFFFF',
     borderRadius: 13,
     gap: 5,
     padding: 13,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   confirmInfoName: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 14,
-    fontWeight: '800',
   },
 
   confirmInfoDetail: {
-    color: '#777777',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 12,
   },
 
@@ -2075,22 +2130,24 @@ const styles = StyleSheet.create({
 
   cancelConfirmButton: {
     alignItems: 'center',
-    backgroundColor: '#EEEEEE',
+    backgroundColor: '#FFFFFF',
     borderRadius: 11,
     flex: 1,
     justifyContent: 'center',
     paddingVertical: 14,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   cancelConfirmText: {
-    color: '#000000',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 13,
-    fontWeight: '700',
   },
 
   confirmButton: {
     alignItems: 'center',
-    backgroundColor: '#000000',
+    backgroundColor: '#111014',
     borderRadius: 11,
     flex: 1,
     justifyContent: 'center',
@@ -2098,8 +2155,8 @@ const styles = StyleSheet.create({
   },
 
   confirmButtonText: {
+    fontFamily: FONT.bold,
     color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: '700',
   },
 });

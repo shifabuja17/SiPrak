@@ -17,6 +17,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import AssistantHeader from '@/components/common/AssistantHeader';
 import { AttendanceSummary } from '@/features/assistant/components/attendance-summary';
 import { useAssistantSessions } from '@/features/assistant/state/assistant-sessions-context';
+import { FONT } from '@/constants/fonts';
 
 type IconName =
   | 'book'
@@ -227,7 +228,7 @@ function SessionStatus({ status }: { status: string }) {
 
   return (
     <View style={styles.statusBadge}>
-      <DetailIcon name={icon} size={15} color="#404040" />
+      <DetailIcon name={icon} size={15} color="#5F5F66" />
       <Text style={styles.statusText}>{label}</Text>
     </View>
   );
@@ -349,7 +350,7 @@ export default function AssistantSessionDetailScreen() {
   if (!session) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <StatusBar barStyle="light-content" />
+        <StatusBar barStyle="dark-content" />
         <AssistantHeader />
 
         <View style={styles.notFound}>
@@ -384,7 +385,7 @@ export default function AssistantSessionDetailScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
       <AssistantHeader />
 
       <ScrollView
@@ -461,7 +462,7 @@ export default function AssistantSessionDetailScreen() {
             ]}
             onPress={openActionModal}
           >
-            <DetailIcon name="stop" size={20} color="#000000" />
+            <DetailIcon name="stop" size={20} color="#111014" />
             <Text style={styles.closeSessionButtonText}>
               Tutup Sesi
             </Text>
@@ -471,7 +472,7 @@ export default function AssistantSessionDetailScreen() {
         {/* NOTIFIKASI SESI SELESAI */}
         {isClosed && (
           <View style={styles.closedNotice}>
-            <DetailIcon name="check" size={21} color="#404040" />
+            <DetailIcon name="check" size={21} color="#5F5F66" />
 
             <View style={styles.closedNoticeContent}>
               <Text style={styles.closedNoticeTitle}>
@@ -522,7 +523,7 @@ export default function AssistantSessionDetailScreen() {
                 <DetailIcon
                   name="close"
                   size={20}
-                  color="#555555"
+                  color="#5F5F66"
                 />
               </Pressable>
             </View>
@@ -552,7 +553,7 @@ export default function AssistantSessionDetailScreen() {
                   value={sessionNote}
                   onChangeText={setSessionNote}
                   placeholder="Contoh: Bahas latihan bagian 1–3"
-                  placeholderTextColor="#888888"
+                  placeholderTextColor="#8E8E93"
                   multiline
                   textAlignVertical="top"
                   style={styles.noteInput}
@@ -564,7 +565,7 @@ export default function AssistantSessionDetailScreen() {
             {/* PESAN ERROR */}
             {actionError ? (
               <View style={styles.modalErrorBox}>
-                <DetailIcon name="alert" size={17} color="#555555" />
+                <DetailIcon name="alert" size={17} color="#5F5F66" />
 
                 <Text style={styles.modalError}>
                   {actionError}
@@ -620,8 +621,10 @@ export default function AssistantSessionDetailScreen() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#FFFFFF',
     flex: 1,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   content: {
@@ -637,16 +640,16 @@ const styles = StyleSheet.create({
   },
 
   pageSubtitle: {
-    color: '#777777',
+    fontFamily: FONT.bold,
+    color: '#5F5F66',
     fontSize: 11,
-    fontWeight: '700',
     letterSpacing: 1.2,
   },
 
   title: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 25,
-    fontWeight: '800',
     lineHeight: 33,
   },
 
@@ -654,24 +657,26 @@ const styles = StyleSheet.create({
   statusBadge: {
     alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: '#E8E8E8',
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     flexDirection: 'row',
     gap: 7,
     paddingHorizontal: 12,
     paddingVertical: 8,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   statusText: {
-    color: '#404040',
+    fontFamily: FONT.bold,
+    color: '#5F5F66',
     fontSize: 12,
-    fontWeight: '700',
   },
 
   // INFORMASI SESI
   infoCard: {
     backgroundColor: '#FFFFFF',
-    borderColor: '#E2E2E2',
+    borderColor: '#8E8E93',
     borderRadius: 18,
     borderWidth: 1,
     paddingHorizontal: 16,
@@ -679,15 +684,15 @@ const styles = StyleSheet.create({
   },
 
   sectionTitle: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 17,
-    fontWeight: '800',
     marginBottom: 8,
   },
 
   infoRow: {
     alignItems: 'center',
-    borderBottomColor: '#EEEEEE',
+    borderBottomColor: '#E4E4E7',
     borderBottomWidth: 1,
     flexDirection: 'row',
     gap: 13,
@@ -700,11 +705,13 @@ const styles = StyleSheet.create({
 
   infoIcon: {
     alignItems: 'center',
-    backgroundColor: '#F0F0F0',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     height: 42,
     justifyContent: 'center',
     width: 42,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   infoText: {
@@ -713,22 +720,22 @@ const styles = StyleSheet.create({
   },
 
   infoLabel: {
-    color: '#777777',
+    fontFamily: FONT.semibold,
+    color: '#5F5F66',
     fontSize: 12,
-    fontWeight: '600',
   },
 
   infoValue: {
-    color: '#000000',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 14,
-    fontWeight: '700',
     lineHeight: 20,
   },
 
   // TOMBOL BUKA
   actionButton: {
     alignItems: 'center',
-    backgroundColor: '#000000',
+    backgroundColor: '#111014',
     borderRadius: 14,
     flexDirection: 'row',
     gap: 10,
@@ -737,16 +744,16 @@ const styles = StyleSheet.create({
   },
 
   actionButtonText: {
+    fontFamily: FONT.bold,
     color: '#FFFFFF',
     fontSize: 15,
-    fontWeight: '700',
   },
 
   // TOMBOL TUTUP
   closeSessionButton: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderColor: '#000000',
+    borderColor: '#111014',
     borderRadius: 14,
     borderWidth: 1,
     flexDirection: 'row',
@@ -756,19 +763,21 @@ const styles = StyleSheet.create({
   },
 
   closeSessionButtonText: {
-    color: '#000000',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 15,
-    fontWeight: '700',
   },
 
   // NOTIFIKASI SELESAI
   closedNotice: {
     alignItems: 'center',
-    backgroundColor: '#EAEAEA',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     flexDirection: 'row',
     gap: 12,
     padding: 16,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   closedNoticeContent: {
@@ -777,13 +786,14 @@ const styles = StyleSheet.create({
   },
 
   closedNoticeTitle: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 14,
-    fontWeight: '800',
   },
 
   closedNoticeText: {
-    color: '#555555',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 12,
     lineHeight: 18,
   },
@@ -820,21 +830,24 @@ const styles = StyleSheet.create({
 
   modalCloseButton: {
     alignItems: 'center',
-    backgroundColor: '#F1F1F1',
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     height: 36,
     justifyContent: 'center',
     width: 36,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   modalTitle: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 20,
-    fontWeight: '800',
   },
 
   modalDescription: {
-    color: '#555555',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 14,
     lineHeight: 21,
   },
@@ -846,16 +859,17 @@ const styles = StyleSheet.create({
   },
 
   inputLabel: {
-    color: '#000000',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 13,
-    fontWeight: '700',
   },
 
   noteInput: {
-    borderColor: '#CCCCCC',
+    fontFamily: FONT.regular,
+    borderColor: '#8E8E93',
     borderRadius: 12,
     borderWidth: 1,
-    color: '#000000',
+    color: '#111014',
     fontSize: 14,
     minHeight: 95,
     padding: 12,
@@ -864,7 +878,7 @@ const styles = StyleSheet.create({
   // ERROR
   modalErrorBox: {
     alignItems: 'center',
-    backgroundColor: '#EEEEEE',
+    backgroundColor: '#E00000',
     borderRadius: 10,
     flexDirection: 'row',
     gap: 8,
@@ -872,7 +886,8 @@ const styles = StyleSheet.create({
   },
 
   modalError: {
-    color: '#555555',
+    fontFamily: FONT.regular,
+    color: '#E00000',
     flex: 1,
     fontSize: 12,
     lineHeight: 18,
@@ -887,7 +902,7 @@ const styles = StyleSheet.create({
 
   cancelButton: {
     alignItems: 'center',
-    borderColor: '#BFBFBF',
+    borderColor: '#8E8E93',
     borderRadius: 12,
     borderWidth: 1,
     flex: 1,
@@ -896,14 +911,14 @@ const styles = StyleSheet.create({
   },
 
   cancelButtonText: {
-    color: '#000000',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 14,
-    fontWeight: '700',
   },
 
   confirmButton: {
     alignItems: 'center',
-    backgroundColor: '#000000',
+    backgroundColor: '#111014',
     borderRadius: 12,
     flex: 1,
     justifyContent: 'center',
@@ -911,9 +926,9 @@ const styles = StyleSheet.create({
   },
 
   confirmButtonText: {
+    fontFamily: FONT.bold,
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '700',
   },
 
   buttonPressed: {
@@ -937,22 +952,25 @@ const styles = StyleSheet.create({
 
   notFoundIcon: {
     alignItems: 'center',
-    backgroundColor: '#EAEAEA',
+    backgroundColor: '#FFFFFF',
     borderRadius: 24,
     height: 64,
     justifyContent: 'center',
     marginBottom: 18,
     width: 64,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   notFoundTitle: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 18,
-    fontWeight: '800',
   },
 
   notFoundDescription: {
-    color: '#777777',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 13,
     marginTop: 8,
     textAlign: 'center',

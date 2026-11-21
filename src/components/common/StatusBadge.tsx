@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import type { SessionStatus } from '@/context/PracticumContext';
+import { FONT } from '@/constants/fonts';
 
 export type StatusBadgeStatus = SessionStatus;
 
@@ -13,18 +14,18 @@ const BADGE_CONFIG: Record<
 > = {
   dijadwalkan: {
     label: 'BELUM DIBUKA',
-    background: '#F2F2F2',
-    color: '#404040',
+    background: '#F4F4F5',
+    color: '#111014',
   },
   dibuka: {
     label: 'BERLANGSUNG',
-    background: '#DCFCE7',
-    color: '#15803D',
+    background: '#F47321',
+    color: '#FFFFFF',
   },
   ditutup: {
     label: 'SELESAI',
-    background: '#FEE2E2',
-    color: '#B91C1C',
+    background: '#111014',
+    color: '#FFFFFF',
   },
 };
 
@@ -55,8 +56,8 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   label: {
+    fontFamily: FONT.bold,
     fontSize: 11,
-    fontWeight: '700',
     letterSpacing: 0.3,
   },
 });

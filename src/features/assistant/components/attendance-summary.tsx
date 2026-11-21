@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import type { AttendanceRecord } from '../types';
+import { FONT } from '@/constants/fonts';
 
 interface AttendanceSummaryProps {
   records: AttendanceRecord[];
@@ -62,29 +63,32 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   heading: {
-    color: '#000000',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 19,
-    fontWeight: '700',
   },
   count: {
-    color: '#000000',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 13,
-    fontWeight: '700',
   },
   empty: {
     alignItems: 'center',
-    backgroundColor: '#F2F2F2',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     gap: 5,
     padding: 24,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
   emptyTitle: {
-    color: '#000000',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 15,
-    fontWeight: '700',
   },
   emptyText: {
-    color: '#666666',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 13,
     lineHeight: 19,
     textAlign: 'center',
@@ -92,7 +96,7 @@ const styles = StyleSheet.create({
   record: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderColor: '#D9D9D9',
+    borderColor: '#8E8E93',
     borderRadius: 15,
     borderWidth: 1,
     flexDirection: 'row',
@@ -101,29 +105,31 @@ const styles = StyleSheet.create({
   },
   avatar: {
     alignItems: 'center',
-    backgroundColor: '#E5E5E5',
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     height: 40,
     justifyContent: 'center',
     width: 40,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
   avatarText: {
-    color: '#000000',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 16,
-    fontWeight: '700',
   },
   identity: {
     flex: 1,
     gap: 2,
   },
   name: {
-    color: '#000000',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 14,
-    fontWeight: '700',
   },
   timestamp: {
-    color: '#666666',
+    fontFamily: FONT.semibold,
+    color: '#5F5F66',
     fontSize: 12,
-    fontWeight: '600',
   },
 });

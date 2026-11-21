@@ -28,6 +28,7 @@ import {
   type ClassInput,
   type PracticumClass,
 } from '@/features/assistant/services/class-service';
+import { FONT } from '@/constants/fonts';
 
 // Form kosong untuk tambah kelas.
 const EMPTY_FORM: ClassInput = {
@@ -209,7 +210,7 @@ export default function AssistantClassesScreen() {
   if (authLoading) {
     return (
       <SafeAreaView style={styles.centered}>
-        <ActivityIndicator size="large" color="#000000" />
+        <ActivityIndicator size="large" color="#111014" />
 
         <Text style={styles.mutedText}>
           Memeriksa akun...
@@ -253,7 +254,7 @@ export default function AssistantClassesScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar
-        barStyle="light-content"
+        barStyle="dark-content"
       />
 
       <ScrollView
@@ -324,7 +325,7 @@ export default function AssistantClassesScreen() {
             <View style={styles.centeredContent}>
               <ActivityIndicator
                 size="large"
-                color="#000000"
+                color="#111014"
               />
 
               <Text style={styles.mutedText}>
@@ -474,7 +475,7 @@ export default function AssistantClassesScreen() {
                     }))
                   }
                   placeholder="Contoh: Praktikum Pemrograman Bergerak"
-                  placeholderTextColor="#888888"
+                  placeholderTextColor="#8E8E93"
                   style={styles.input}
                   editable={!saving}
                   maxLength={100}
@@ -496,7 +497,7 @@ export default function AssistantClassesScreen() {
                     }))
                   }
                   placeholder="Contoh: PPB-A"
-                  placeholderTextColor="#888888"
+                  placeholderTextColor="#8E8E93"
                   style={styles.input}
                   editable={!saving}
                   autoCapitalize="characters"
@@ -519,7 +520,7 @@ export default function AssistantClassesScreen() {
                     }))
                   }
                   placeholder="Keterangan kelas (opsional)"
-                  placeholderTextColor="#888888"
+                  placeholderTextColor="#8E8E93"
                   style={[
                     styles.input,
                     styles.descriptionInput,
@@ -678,8 +679,10 @@ const styles = StyleSheet.create({
 
   // HALAMAN UTAMA
   safeArea: {
-    backgroundColor: '#F7F7F9',
+    backgroundColor: '#FFFFFF',
     flex: 1,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   content: {
@@ -713,13 +716,14 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 27,
-    fontWeight: '800',
   },
 
   subtitle: {
-    color: '#666666',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 13,
     lineHeight: 20,
   },
@@ -727,16 +731,16 @@ const styles = StyleSheet.create({
   // TOMBOL TAMBAH
   addButton: {
     alignItems: 'center',
-    backgroundColor: '#000000',
+    backgroundColor: '#111014',
     borderRadius: 14,
     paddingVertical: 16,
     marginTop: 2,
   },
 
   addButtonText: {
+    fontFamily: FONT.bold,
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '700',
   },
 
   pressed: {
@@ -757,34 +761,37 @@ const styles = StyleSheet.create({
   },
 
   sectionTitle: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 19,
-    fontWeight: '800',
   },
 
   sectionCaption: {
-    color: '#777777',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 11,
     lineHeight: 17,
   },
 
   totalBadge: {
-    backgroundColor: '#EAEAEA',
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 7,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   totalText: {
-    color: '#333333',
+    fontFamily: FONT.bold,
+    color: '#5F5F66',
     fontSize: 12,
-    fontWeight: '700',
   },
 
   // KARTU KELAS
   classCard: {
     backgroundColor: '#FFFFFF',
-    borderColor: '#E5E5E5',
+    borderColor: '#8E8E93',
     borderRadius: 18,
     borderWidth: 1,
     gap: 14,
@@ -797,26 +804,29 @@ const styles = StyleSheet.create({
   },
 
   classCode: {
+    fontFamily: FONT.extrabold,
     alignSelf: 'flex-start',
-    backgroundColor: '#EEEEEE',
+    backgroundColor: '#FFFFFF',
     borderRadius: 7,
-    color: '#333333',
+    color: '#5F5F66',
     fontSize: 11,
-    fontWeight: '800',
     overflow: 'hidden',
     paddingHorizontal: 10,
     paddingVertical: 6,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   className: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 17,
-    fontWeight: '800',
     lineHeight: 23,
   },
 
   classDescription: {
-    color: '#666666',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 13,
     lineHeight: 19,
   },
@@ -824,7 +834,7 @@ const styles = StyleSheet.create({
   // KELOLA PESERTA
   manageMembersButton: {
     alignItems: 'center',
-    backgroundColor: '#000000',
+    backgroundColor: '#111014',
     borderRadius: 11,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -833,12 +843,13 @@ const styles = StyleSheet.create({
   },
 
   manageMembersText: {
+    fontFamily: FONT.bold,
     color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: '700',
   },
 
   manageMembersArrow: {
+    fontFamily: FONT.regular,
     color: '#FFFFFF',
     fontSize: 23,
     lineHeight: 25,
@@ -853,7 +864,7 @@ const styles = StyleSheet.create({
   editButton: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderColor: '#D0D0D0',
+    borderColor: '#8E8E93',
     borderRadius: 10,
     borderWidth: 1,
     flex: 1,
@@ -861,42 +872,47 @@ const styles = StyleSheet.create({
   },
 
   editText: {
-    color: '#000000',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 13,
-    fontWeight: '700',
   },
 
   deleteButton: {
     alignItems: 'center',
-    backgroundColor: '#EEEEEE',
+    backgroundColor: '#FFFFFF',
     borderRadius: 10,
     flex: 1,
     padding: 11,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   deleteText: {
-    color: '#333333',
+    fontFamily: FONT.bold,
+    color: '#5F5F66',
     fontSize: 13,
-    fontWeight: '700',
   },
 
   // KELAS KOSONG
   emptyCard: {
     alignItems: 'center',
-    backgroundColor: '#EEEEEE',
+    backgroundColor: '#FFFFFF',
     borderRadius: 17,
     padding: 25,
     gap: 8,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   emptyTitle: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 16,
-    fontWeight: '800',
   },
 
   mutedText: {
-    color: '#666666',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 13,
     lineHeight: 20,
     textAlign: 'center',
@@ -904,13 +920,14 @@ const styles = StyleSheet.create({
 
   // ERROR
   errorBox: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: '#E00000',
     borderRadius: 10,
     padding: 12,
   },
 
   errorText: {
-    color: '#991B1B',
+    fontFamily: FONT.regular,
+    color: '#FFFFFF',
     fontSize: 12,
     lineHeight: 18,
   },
@@ -946,28 +963,30 @@ const styles = StyleSheet.create({
   },
 
   modalTitle: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 21,
-    fontWeight: '800',
   },
 
   modalSubtitle: {
-    color: '#777777',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 12,
   },
 
   inputLabel: {
-    color: '#000000',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 13,
-    fontWeight: '700',
   },
 
   input: {
-    backgroundColor: '#F8F8F8',
-    borderColor: '#DDDDDD',
+    fontFamily: FONT.regular,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#8E8E93',
     borderRadius: 11,
     borderWidth: 1,
-    color: '#000000',
+    color: '#111014',
     fontSize: 14,
     padding: 12,
   },
@@ -984,7 +1003,7 @@ const styles = StyleSheet.create({
 
   cancelButton: {
     alignItems: 'center',
-    borderColor: '#CCCCCC',
+    borderColor: '#8E8E93',
     borderRadius: 11,
     borderWidth: 1,
     flex: 1,
@@ -992,14 +1011,14 @@ const styles = StyleSheet.create({
   },
 
   cancelText: {
-    color: '#000000',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 14,
-    fontWeight: '700',
   },
 
   saveButton: {
     alignItems: 'center',
-    backgroundColor: '#000000',
+    backgroundColor: '#111014',
     borderRadius: 11,
     flex: 1,
     justifyContent: 'center',
@@ -1007,9 +1026,9 @@ const styles = StyleSheet.create({
   },
 
   saveText: {
+    fontFamily: FONT.bold,
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '700',
   },
 
   disabledButton: {
@@ -1017,7 +1036,8 @@ const styles = StyleSheet.create({
   },
 
   modalError: {
-    color: '#B91C1C',
+    fontFamily: FONT.regular,
+    color: '#E00000',
     fontSize: 12,
     lineHeight: 18,
   },
@@ -1045,37 +1065,42 @@ const styles = StyleSheet.create({
   },
 
   confirmTitle: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 22,
-    fontWeight: '800',
   },
 
   confirmDescription: {
-    color: '#666666',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 13,
     lineHeight: 20,
   },
 
   deleteClassInfo: {
-    backgroundColor: '#F4F4F5',
+    backgroundColor: '#FFFFFF',
     borderRadius: 13,
     padding: 13,
     gap: 5,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   deleteClassName: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 14,
-    fontWeight: '800',
   },
 
   deleteClassCode: {
-    color: '#777777',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 12,
   },
 
   deleteErrorText: {
-    color: '#B91C1C',
+    fontFamily: FONT.regular,
+    color: '#E00000',
     fontSize: 12,
     lineHeight: 18,
   },
@@ -1089,31 +1114,33 @@ const styles = StyleSheet.create({
   cancelConfirmButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EEEEEE',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     flex: 1,
     paddingVertical: 14,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   cancelConfirmText: {
-    color: '#000000',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 14,
-    fontWeight: '700',
   },
 
   deleteConfirmButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#000000',
+    backgroundColor: '#111014',
     borderRadius: 12,
     flex: 1,
     paddingVertical: 14,
   },
 
   deleteConfirmText: {
+    fontFamily: FONT.bold,
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '700',
   },
 
 });

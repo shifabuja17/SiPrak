@@ -12,6 +12,7 @@ import {
   subscribeSessionAttendance,
   type SessionAttendanceRecap,
 } from '@/features/assistant/services/attendance-service';
+import { FONT } from '@/constants/fonts';
 
 interface AttendanceRecapProps {
   sessionId: string;
@@ -71,7 +72,7 @@ export default function AttendanceRecap({
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color="#000000" />
+          <ActivityIndicator size="small" color="#111014" />
           <Text style={styles.loadingText}>
             Memuat rekap...
           </Text>
@@ -154,10 +155,12 @@ export default function AttendanceRecap({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#F8F8F8',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     marginTop: 12,
     padding: 12,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
   header: {
     alignItems: 'center',
@@ -165,14 +168,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   title: {
-    color: '#222222',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 14,
-    fontWeight: '800',
   },
   toggleText: {
-    color: '#333333',
+    fontFamily: FONT.bold,
+    color: '#5F5F66',
     fontSize: 12,
-    fontWeight: '700',
   },
   loadingContainer: {
     alignItems: 'center',
@@ -181,11 +184,13 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   loadingText: {
-    color: '#666666',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 12,
   },
   errorText: {
-    color: '#B91C1C',
+    fontFamily: FONT.regular,
+    color: '#FFFFFF',
     fontSize: 12,
     marginTop: 10,
   },
@@ -202,41 +207,43 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   summaryNumber: {
-    color: '#222222',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 19,
-    fontWeight: '800',
   },
   presentNumber: {
-    color: '#15803D',
+    fontFamily: FONT.extrabold,
+    color: '#F47321',
     fontSize: 19,
-    fontWeight: '800',
   },
   absentNumber: {
-    color: '#B91C1C',
+    fontFamily: FONT.extrabold,
+    color: '#E00000',
     fontSize: 19,
-    fontWeight: '800',
   },
   summaryLabel: {
-    color: '#666666',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 10,
     marginTop: 3,
     textAlign: 'center',
   },
   listContainer: {
-    borderTopColor: '#DDDDDD',
+    borderTopColor: '#E4E4E7',
     borderTopWidth: 1,
     marginTop: 12,
     paddingTop: 5,
   },
   emptyText: {
-    color: '#777777',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 12,
     paddingVertical: 12,
     textAlign: 'center',
   },
   record: {
     alignItems: 'center',
-    borderBottomColor: '#E5E5E5',
+    borderBottomColor: '#E4E4E7',
     borderBottomWidth: 1,
     flexDirection: 'row',
     gap: 8,
@@ -247,16 +254,18 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   name: {
-    color: '#222222',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 13,
-    fontWeight: '700',
   },
   nim: {
-    color: '#666666',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 11,
   },
   time: {
-    color: '#666666',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 11,
     marginTop: 2,
   },
@@ -266,19 +275,19 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   presentBadge: {
-    backgroundColor: '#DCFCE7',
+    backgroundColor: '#F47321',
   },
   absentBadge: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: '#E00000',
   },
   statusText: {
+    fontFamily: FONT.extrabold,
     fontSize: 9,
-    fontWeight: '800',
   },
   presentText: {
-    color: '#15803D',
+    color: '#FFFFFF',
   },
   absentText: {
-    color: '#B91C1C',
+    color: '#FFFFFF',
   },
 });

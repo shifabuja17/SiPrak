@@ -10,6 +10,7 @@ import {
 
 import { useAuth } from '@/context/AuthContext';
 import { usePracticum } from '@/context/PracticumContext';
+import { FONT } from '@/constants/fonts';
 
 export default function HeaderProfileBar() {
   const { user, profile, logout } = useAuth();
@@ -129,24 +130,26 @@ const styles = StyleSheet.create({
     width: 38,
   },
   avatarText: {
+    fontFamily: FONT.extrabold,
     color: '#000000',
-    fontWeight: '800',
   },
   profileDetails: {
     flex: 1,
     gap: 2,
   },
   name: {
+    fontFamily: FONT.bold,
     color: '#000000',
     fontSize: 13,
-    fontWeight: '700',
   },
   role: {
+    fontFamily: FONT.regular,
     color: '#666666',
     fontSize: 12,
     marginTop: 2,
   },
   nim: {
+    fontFamily: FONT.regular,
     color: '#666666',
     fontSize: 11,
   },
@@ -155,9 +158,9 @@ const styles = StyleSheet.create({
     paddingLeft: 4,
   },
   switchText: {
+    fontFamily: FONT.bold,
     color: '#000000',
     fontSize: 12,
-    fontWeight: '700',
   },
   logoutButton: {
     backgroundColor: '#F2F2F2',
@@ -166,9 +169,9 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
   logoutText: {
+    fontFamily: FONT.bold,
     color: '#B91C1C',
     fontSize: 12,
-    fontWeight: '700',
   },
   disabled: {
     opacity: 0.5,

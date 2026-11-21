@@ -29,6 +29,7 @@ import {
   subscribeSessions,
   type SessionRecord,
 } from '@/features/assistant/services/session-service';
+import { FONT } from '@/constants/fonts';
 
 // ==========================================
 // TIPE AKSI
@@ -446,7 +447,7 @@ export default function LeaveRequestsScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
 
       <AssistantHeader />
 
@@ -544,7 +545,7 @@ export default function LeaveRequestsScreen() {
             <LeaveIcon
               name="alert"
               size={18}
-              color="#555555"
+              color="#5F5F66"
             />
 
             <Text style={styles.errorText}>
@@ -577,7 +578,7 @@ export default function LeaveRequestsScreen() {
           <View style={styles.stateCard}>
             <ActivityIndicator
               size="large"
-              color="#000000"
+              color="#111014"
             />
 
             <Text style={styles.helperText}>
@@ -589,7 +590,7 @@ export default function LeaveRequestsScreen() {
             <LeaveIcon
               name="alert"
               size={28}
-              color="#666666"
+              color="#5F5F66"
             />
 
             <Text style={styles.emptyTitle}>
@@ -606,7 +607,7 @@ export default function LeaveRequestsScreen() {
               <LeaveIcon
                 name="file"
                 size={27}
-                color="#555555"
+                color="#5F5F66"
               />
             </View>
 
@@ -633,7 +634,7 @@ export default function LeaveRequestsScreen() {
                         <LeaveIcon
                           name="user"
                           size={18}
-                          color="#444444"
+                          color="#5F5F66"
                         />
                       </View>
 
@@ -658,7 +659,7 @@ export default function LeaveRequestsScreen() {
                     <LeaveIcon
                       name={getStatusIcon(item.status)}
                       size={13}
-                      color="#404040"
+                      color={item.status === 'menunggu' ? '#111014' : '#FFFFFF'}
                     />
 
                     <Text
@@ -682,7 +683,7 @@ export default function LeaveRequestsScreen() {
                     <LeaveIcon
                       name="calendar"
                       size={16}
-                      color="#777777"
+                      color="#5F5F66"
                     />
 
                     <Text style={styles.fieldLabel}>
@@ -701,7 +702,7 @@ export default function LeaveRequestsScreen() {
                     <LeaveIcon
                       name="file"
                       size={16}
-                      color="#777777"
+                      color="#5F5F66"
                     />
 
                     <Text style={styles.fieldLabel}>
@@ -843,7 +844,7 @@ export default function LeaveRequestsScreen() {
                 <LeaveIcon
                   name="alert"
                   size={17}
-                  color="#555555"
+                  color="#5F5F66"
                 />
 
                 <Text style={styles.modalErrorText}>
@@ -901,7 +902,9 @@ const styles = StyleSheet.create({
   // HALAMAN UTAMA
   safeArea: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   scroll: {
@@ -920,46 +923,48 @@ const styles = StyleSheet.create({
   },
 
   pageSubtitle: {
-    color: '#777777',
+    fontFamily: FONT.bold,
+    color: '#5F5F66',
     fontSize: 11,
-    fontWeight: '700',
     letterSpacing: 1.1,
   },
 
   title: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 26,
-    fontWeight: '800',
   },
 
   subtitle: {
-    color: '#666666',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 13,
     lineHeight: 20,
   },
 
   // RINGKASAN
   summaryCard: {
-    backgroundColor: '#000000',
+    backgroundColor: '#F47321',
     borderRadius: 18,
     marginBottom: 23,
     padding: 19,
   },
 
   summaryLabel: {
+    fontFamily: FONT.semibold,
     color: '#DDDDDD',
     fontSize: 13,
-    fontWeight: '600',
   },
 
   summaryNumber: {
+    fontFamily: FONT.extrabold,
     color: '#FFFFFF',
     fontSize: 38,
-    fontWeight: '800',
     marginTop: 7,
   },
 
   summaryDescription: {
+    fontFamily: FONT.regular,
     color: '#CCCCCC',
     fontSize: 12,
     marginTop: 2,
@@ -984,12 +989,13 @@ const styles = StyleSheet.create({
   },
 
   summaryStatNumber: {
+    fontFamily: FONT.extrabold,
     color: '#FFFFFF',
     fontSize: 17,
-    fontWeight: '800',
   },
 
   summaryStatLabel: {
+    fontFamily: FONT.regular,
     color: '#CCCCCC',
     fontSize: 11,
   },
@@ -1003,7 +1009,7 @@ const styles = StyleSheet.create({
   // NOTIFIKASI
   successBox: {
     alignItems: 'center',
-    backgroundColor: '#E8E8E8',
+    backgroundColor: '#F47321',
     borderRadius: 11,
     flexDirection: 'row',
     gap: 9,
@@ -1012,7 +1018,8 @@ const styles = StyleSheet.create({
   },
 
   successText: {
-    color: '#333333',
+    fontFamily: FONT.regular,
+    color: '#FFFFFF',
     flex: 1,
     fontSize: 12,
     lineHeight: 18,
@@ -1020,7 +1027,7 @@ const styles = StyleSheet.create({
 
   errorBox: {
     alignItems: 'center',
-    backgroundColor: '#EEEEEE',
+    backgroundColor: '#E00000',
     borderRadius: 11,
     flexDirection: 'row',
     gap: 9,
@@ -1029,7 +1036,8 @@ const styles = StyleSheet.create({
   },
 
   errorText: {
-    color: '#555555',
+    fontFamily: FONT.regular,
+    color: '#FFFFFF',
     flex: 1,
     fontSize: 12,
     lineHeight: 18,
@@ -1049,38 +1057,41 @@ const styles = StyleSheet.create({
   },
 
   sectionTitle: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 18,
-    fontWeight: '800',
   },
 
   sectionCaption: {
-    color: '#777777',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 11,
     lineHeight: 17,
   },
 
   totalBadge: {
     alignItems: 'center',
-    backgroundColor: '#E5E5E5',
+    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     justifyContent: 'center',
     minWidth: 34,
     paddingHorizontal: 11,
     paddingVertical: 7,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   totalText: {
-    color: '#333333',
+    fontFamily: FONT.extrabold,
+    color: '#5F5F66',
     fontSize: 12,
-    fontWeight: '800',
   },
 
   // KONDISI LOADING DAN KOSONG
   stateCard: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderColor: '#E5E5E5',
+    borderColor: '#8E8E93',
     borderRadius: 16,
     borderWidth: 1,
     gap: 10,
@@ -1089,23 +1100,26 @@ const styles = StyleSheet.create({
 
   emptyIcon: {
     alignItems: 'center',
-    backgroundColor: '#EEEEEE',
+    backgroundColor: '#FFFFFF',
     borderRadius: 23,
     height: 55,
     justifyContent: 'center',
     marginBottom: 4,
     width: 55,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   emptyTitle: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 16,
-    fontWeight: '800',
     textAlign: 'center',
   },
 
   helperText: {
-    color: '#777777',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 12,
     lineHeight: 19,
     textAlign: 'center',
@@ -1114,7 +1128,7 @@ const styles = StyleSheet.create({
   // KARTU PENGAJUAN
   requestCard: {
     backgroundColor: '#FFFFFF',
-    borderColor: '#E5E5E5',
+    borderColor: '#8E8E93',
     borderRadius: 17,
     borderWidth: 1,
     gap: 14,
@@ -1142,22 +1156,25 @@ const styles = StyleSheet.create({
 
   userIcon: {
     alignItems: 'center',
-    backgroundColor: '#EEEEEE',
+    backgroundColor: '#FFFFFF',
     borderRadius: 10,
     height: 34,
     justifyContent: 'center',
     width: 34,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   name: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     flex: 1,
     fontSize: 15,
-    fontWeight: '800',
   },
 
   date: {
-    color: '#777777',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 11,
     lineHeight: 17,
   },
@@ -1173,37 +1190,39 @@ const styles = StyleSheet.create({
   },
 
   pendingBadge: {
-    backgroundColor: '#EEEEEE',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   acceptedBadge: {
-    backgroundColor: '#E5E5E5',
+    backgroundColor: '#F47321',
   },
 
   rejectedBadge: {
-    backgroundColor: '#DCDCDC',
+    backgroundColor: '#E00000',
   },
 
   statusText: {
+    fontFamily: FONT.extrabold,
     fontSize: 9,
-    fontWeight: '800',
     letterSpacing: 0.3,
   },
 
   pendingText: {
-    color: '#555555',
+    color: '#5F5F66',
   },
 
   acceptedText: {
-    color: '#222222',
+    color: '#FFFFFF',
   },
 
   rejectedText: {
-    color: '#555555',
+    color: '#FFFFFF',
   },
 
   divider: {
-    backgroundColor: '#E9E9E9',
+    backgroundColor: '#E4E4E7',
     height: 1,
   },
 
@@ -1219,36 +1238,39 @@ const styles = StyleSheet.create({
   },
 
   fieldLabel: {
-    color: '#777777',
+    fontFamily: FONT.semibold,
+    color: '#5F5F66',
     fontSize: 11,
-    fontWeight: '600',
   },
 
   fieldValue: {
-    color: '#333333',
+    fontFamily: FONT.semibold,
+    color: '#5F5F66',
     fontSize: 13,
-    fontWeight: '600',
     lineHeight: 20,
   },
 
   reason: {
-    color: '#333333',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 13,
     lineHeight: 21,
   },
 
   categoryBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#EEEEEE',
+    backgroundColor: '#FFFFFF',
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 7,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   categoryText: {
-    color: '#333333',
+    fontFamily: FONT.bold,
+    color: '#5F5F66',
     fontSize: 11,
-    fontWeight: '700',
   },
 
   // TOMBOL KEPUTUSAN
@@ -1269,25 +1291,25 @@ const styles = StyleSheet.create({
   },
 
   rejectButton: {
-    backgroundColor: '#EEEEEE',
-    borderColor: '#CCCCCC',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#8E8E93',
     borderWidth: 1,
   },
 
   rejectButtonText: {
-    color: '#222222',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 13,
-    fontWeight: '700',
   },
 
   acceptButton: {
-    backgroundColor: '#000000',
+    backgroundColor: '#111014',
   },
 
   acceptButtonText: {
+    fontFamily: FONT.bold,
     color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: '700',
   },
 
   pressed: {
@@ -1320,39 +1342,43 @@ const styles = StyleSheet.create({
   },
 
   confirmTitle: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 20,
-    fontWeight: '800',
   },
 
   confirmDescription: {
-    color: '#666666',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 13,
     lineHeight: 20,
   },
 
   confirmInfo: {
-    backgroundColor: '#F2F2F2',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     gap: 7,
     padding: 13,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   confirmName: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 14,
-    fontWeight: '800',
   },
 
   confirmDetail: {
-    color: '#666666',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 12,
     lineHeight: 18,
   },
 
   modalErrorBox: {
     alignItems: 'center',
-    backgroundColor: '#EEEEEE',
+    backgroundColor: '#E00000',
     borderRadius: 10,
     flexDirection: 'row',
     gap: 8,
@@ -1360,7 +1386,8 @@ const styles = StyleSheet.create({
   },
 
   modalErrorText: {
-    color: '#555555',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     flex: 1,
     fontSize: 12,
     lineHeight: 18,
@@ -1374,22 +1401,24 @@ const styles = StyleSheet.create({
 
   cancelButton: {
     alignItems: 'center',
-    backgroundColor: '#EEEEEE',
+    backgroundColor: '#FFFFFF',
     borderRadius: 11,
     flex: 1,
     justifyContent: 'center',
     paddingVertical: 14,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
 
   cancelButtonText: {
-    color: '#222222',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 13,
-    fontWeight: '700',
   },
 
   confirmButton: {
     alignItems: 'center',
-    backgroundColor: '#000000',
+    backgroundColor: '#111014',
     borderRadius: 11,
     flex: 1,
     justifyContent: 'center',
@@ -1397,8 +1426,8 @@ const styles = StyleSheet.create({
   },
 
   confirmButtonText: {
+    fontFamily: FONT.bold,
     color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: '700',
   },
 });

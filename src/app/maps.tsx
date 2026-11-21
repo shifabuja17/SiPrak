@@ -43,6 +43,7 @@ import type {
 } from '@/services/lab-activities-service';
 import BackButton from '@/components/common/BackButton';
 import { openAppLocationSettings } from '@/services/location-service';
+import { FONT } from '@/constants/fonts';
 
 const INITIAL_REGION: Region = {
   latitude: -7.04825,
@@ -1269,14 +1270,14 @@ const styles = StyleSheet.create({
     gap: 1,
   },
   title: {
+    fontFamily: FONT.extrabold,
     color: '#000000',
     fontSize: 17,
-    fontWeight: '800',
   },
   subtitle: {
+    fontFamily: FONT.semibold,
     color: '#666666',
     fontSize: 11,
-    fontWeight: '600',
   },
   resetButton: {
     backgroundColor: '#000000',
@@ -1285,9 +1286,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   resetButtonText: {
+    fontFamily: FONT.bold,
     color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: '700',
   },
   inlineErrorBanner: {
     alignItems: 'center',
@@ -1300,6 +1301,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   inlineErrorText: {
+    fontFamily: FONT.regular,
     color: '#991B1B',
     flex: 1,
     fontSize: 12,
@@ -1312,9 +1314,9 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   inlineRetryText: {
+    fontFamily: FONT.bold,
     color: '#FFFFFF',
     fontSize: 11,
-    fontWeight: '700',
   },
   locationWarningBanner: {
     alignItems: 'center',
@@ -1335,6 +1337,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   locationWarningText: {
+    fontFamily: FONT.regular,
     color: '#92400E',
     fontSize: 12,
     lineHeight: 17,
@@ -1354,9 +1357,9 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   locationWarningButtonText: {
+    fontFamily: FONT.bold,
     color: '#FFFFFF',
     fontSize: 11,
-    fontWeight: '700',
   },
   locationSecondaryButton: {
     backgroundColor: '#FFFFFF',
@@ -1367,9 +1370,9 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   locationSecondaryButtonText: {
+    fontFamily: FONT.bold,
     color: '#92400E',
     fontSize: 11,
-    fontWeight: '700',
   },
   mapContainer: {
     flex: 1,
@@ -1412,9 +1415,9 @@ const styles = StyleSheet.create({
     borderColor: '#000000',
   },
   labChipText: {
+    fontFamily: FONT.bold,
     color: '#111111',
     fontSize: 12,
-    fontWeight: '700',
   },
   labChipTextSelected: {
     color: '#FFFFFF',
@@ -1468,15 +1471,15 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   detailEyebrow: {
+    fontFamily: FONT.bold,
     color: '#777777',
     fontSize: 10,
-    fontWeight: '700',
     letterSpacing: 1,
   },
   detailName: {
+    fontFamily: FONT.extrabold,
     color: '#000000',
     fontSize: 18,
-    fontWeight: '800',
     lineHeight: 24,
   },
   closeButton: {
@@ -1503,23 +1506,23 @@ const styles = StyleSheet.create({
     width: 1,
   },
   metricLabel: {
+    fontFamily: FONT.extrabold,
     color: '#777777',
     fontSize: 10,
-    fontWeight: '800',
     letterSpacing: 0.4,
   },
   metricValue: {
+    fontFamily: FONT.bold,
     color: '#000000',
     fontSize: 12,
-    fontWeight: '700',
   },
   activitiesContainer: {
     gap: 8,
   },
   activitiesSectionHeading: {
+    fontFamily: FONT.extrabold,
     color: '#000000',
     fontSize: 13,
-    fontWeight: '800',
   },
   activitiesListGap: {
     gap: 10,
@@ -1553,10 +1556,10 @@ const styles = StyleSheet.create({
     width: '48%',
   },
   activitiesStateText: {
+    fontFamily: FONT.semibold,
     color: '#555555',
     flex: 1,
     fontSize: 12,
-    fontWeight: '600',
   },
   activitiesErrorBox: {
     alignItems: 'center',
@@ -1573,11 +1576,12 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   activitiesErrorTitle: {
+    fontFamily: FONT.extrabold,
     color: '#991B1B',
     fontSize: 12,
-    fontWeight: '800',
   },
   activitiesErrorText: {
+    fontFamily: FONT.regular,
     color: '#991B1B',
     fontSize: 12,
     lineHeight: 17,
@@ -1589,9 +1593,9 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   activitiesRetryText: {
+    fontFamily: FONT.bold,
     color: '#FFFFFF',
     fontSize: 11,
-    fontWeight: '700',
   },
   activityGroup: {
     gap: 5,
@@ -1602,16 +1606,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   activityGroupTitle: {
+    fontFamily: FONT.extrabold,
     color: '#444444',
     fontSize: 11,
-    fontWeight: '800',
     letterSpacing: 0.4,
     textTransform: 'uppercase',
   },
   activityExtraCount: {
+    fontFamily: FONT.semibold,
     color: '#666666',
     fontSize: 11,
-    fontWeight: '600',
   },
   activityItemCard: {
     backgroundColor: '#F8F8FA',
@@ -1632,10 +1636,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   activityPracticumName: {
+    fontFamily: FONT.extrabold,
     color: '#000000',
     flex: 1,
     fontSize: 13,
-    fontWeight: '800',
     lineHeight: 18,
   },
   activityMetaList: {
@@ -1648,15 +1652,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   activityMetaLabel: {
+    fontFamily: FONT.semibold,
     color: '#666666',
     fontSize: 12,
-    fontWeight: '600',
   },
   activityMetaValue: {
+    fontFamily: FONT.bold,
     color: '#111111',
     flex: 1,
     fontSize: 12,
-    fontWeight: '700',
     textAlign: 'right',
   },
   activityEmptyCard: {
@@ -1668,6 +1672,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   activityEmptyText: {
+    fontFamily: FONT.regular,
     color: '#666666',
     fontSize: 12,
     lineHeight: 17,
@@ -1680,9 +1685,9 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   routineBadgeText: {
+    fontFamily: FONT.bold,
     color: '#0369A1',
     fontSize: 11,
-    fontWeight: '700',
     letterSpacing: 0.3,
   },
 
@@ -1712,12 +1717,13 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   stateTitle: {
+    fontFamily: FONT.extrabold,
     color: '#000000',
     fontSize: 16,
-    fontWeight: '800',
     textAlign: 'center',
   },
   stateText: {
+    fontFamily: FONT.regular,
     color: '#555555',
     fontSize: 13,
     lineHeight: 19,
@@ -1731,12 +1737,13 @@ const styles = StyleSheet.create({
     padding: 18,
   },
   errorStateTitle: {
+    fontFamily: FONT.extrabold,
     color: '#991B1B',
     fontSize: 15,
-    fontWeight: '800',
     textAlign: 'center',
   },
   errorStateText: {
+    fontFamily: FONT.regular,
     color: '#7F1D1D',
     fontSize: 13,
     lineHeight: 19,
@@ -1750,9 +1757,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   retryButtonText: {
+    fontFamily: FONT.bold,
     color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: '700',
   },
 
   // WEB FALLBACK
@@ -1775,11 +1782,12 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   webNoticeTitle: {
+    fontFamily: FONT.extrabold,
     color: '#000000',
     fontSize: 15,
-    fontWeight: '800',
   },
   webNoticeText: {
+    fontFamily: FONT.regular,
     color: '#555555',
     fontSize: 13,
     lineHeight: 19,
@@ -1808,9 +1816,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   webLabName: {
+    fontFamily: FONT.extrabold,
     color: '#000000',
     fontSize: 15,
-    fontWeight: '800',
   },
   radiusChip: {
     backgroundColor: '#000000',
@@ -1819,14 +1827,14 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   radiusChipText: {
+    fontFamily: FONT.bold,
     color: '#FFFFFF',
     fontSize: 11,
-    fontWeight: '700',
   },
   webLabCoords: {
+    fontFamily: FONT.semibold,
     color: '#666666',
     fontSize: 12,
-    fontWeight: '600',
   },
   // MARKER LOKASI PENGGUNA & TOMBOL AKSI PETA (FR-14)
   userMarkerWrapper: {
@@ -1844,9 +1852,9 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   userMarkerLabelText: {
+    fontFamily: FONT.extrabold,
     color: '#FFFFFF',
     fontSize: 10,
-    fontWeight: '800',
     lineHeight: 13,
   },
   userMarkerPulse: {
@@ -1909,9 +1917,9 @@ const styles = StyleSheet.create({
     width: 8,
   },
   gpsStatusText: {
+    fontFamily: FONT.bold,
     color: '#111111',
     fontSize: 11,
-    fontWeight: '700',
   },
   myLocationButton: {
     alignItems: 'center',
@@ -1928,9 +1936,9 @@ const styles = StyleSheet.create({
     borderColor: '#DCDCE0',
   },
   myLocationButtonText: {
+    fontFamily: FONT.extrabold,
     color: '#0369A1',
     fontSize: 12,
-    fontWeight: '800',
   },
   myLocationButtonTextMuted: {
     color: '#555555',
@@ -1951,9 +1959,9 @@ const styles = StyleSheet.create({
     top: 56,
   },
   locationFeedbackToastText: {
+    fontFamily: FONT.semibold,
     color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: '600',
     lineHeight: 17,
     textAlign: 'center',
   },
@@ -1971,14 +1979,14 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   webUserLocationTitle: {
+    fontFamily: FONT.extrabold,
     color: '#0369A1',
     fontSize: 13,
-    fontWeight: '800',
   },
   webUserLocationCoords: {
+    fontFamily: FONT.semibold,
     color: '#0C4A6E',
     fontSize: 12,
-    fontWeight: '600',
   },
   pressed: {
     opacity: 0.68,

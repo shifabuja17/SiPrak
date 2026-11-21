@@ -26,6 +26,7 @@ import {
   validateLaboratoryInput,
   type LaboratoryLocation,
 } from '@/features/assistant/services/laboratory-service';
+import { FONT } from '@/constants/fonts';
 
 interface LaboratoryFormState {
   latitude: string;
@@ -297,7 +298,7 @@ export default function AssistantLaboratoriesScreen() {
   if (authLoading) {
     return (
       <SafeAreaView style={styles.centered}>
-        <ActivityIndicator size="large" color="#000000" />
+        <ActivityIndicator size="large" color="#111014" />
         <Text style={styles.mutedText}>Memeriksa akun...</Text>
       </SafeAreaView>
     );
@@ -329,8 +330,8 @@ export default function AssistantLaboratoriesScreen() {
     (loading || (seeding && laboratories.length === 0)) && !pageError;
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
-      <StatusBar barStyle="light-content" />
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <StatusBar barStyle="dark-content" />
 
       <ScrollView
         contentContainerStyle={styles.content}
@@ -377,7 +378,7 @@ export default function AssistantLaboratoriesScreen() {
           {/* PESAN SUKSES */}
           {pageMessage ? (
             <View style={styles.successBox}>
-              <LocationIcon name="check" size={18} color="#315A35" />
+              <LocationIcon name="check" size={18} color="#FFFFFF" />
               <Text style={styles.successText}>{pageMessage}</Text>
             </View>
           ) : null}
@@ -386,7 +387,7 @@ export default function AssistantLaboratoriesScreen() {
           {pageError ? (
             <View style={styles.errorBox}>
               <View style={styles.errorHeader}>
-                <LocationIcon name="alert" size={18} color="#991B1B" />
+                <LocationIcon name="alert" size={18} color="#FFFFFF" />
                 <Text style={styles.errorText}>{pageError}</Text>
               </View>
               <Pressable
@@ -420,7 +421,7 @@ export default function AssistantLaboratoriesScreen() {
           {/* DAFTAR LOKASI */}
           {isWaitingForInitialData ? (
             <View style={styles.centeredContent}>
-              <ActivityIndicator size="large" color="#000000" />
+              <ActivityIndicator size="large" color="#111014" />
               <Text style={styles.mutedText}>
                 Memuat data lokasi laboratorium...
               </Text>
@@ -447,7 +448,7 @@ export default function AssistantLaboratoriesScreen() {
                 <View style={styles.cardHeader}>
                   <View style={styles.labTitleRow}>
                     <View style={styles.labIconBox}>
-                      <LocationIcon name="pin" size={19} color="#000000" />
+                      <LocationIcon name="pin" size={19} color="#111014" />
                     </View>
                     <View style={styles.labTitleText}>
                       <Text style={styles.labName}>{item.name}</Text>
@@ -493,7 +494,7 @@ export default function AssistantLaboratoriesScreen() {
                   </Text>
 
                   <View style={styles.editPill}>
-                    <LocationIcon name="edit" size={14} color="#000000" />
+                    <LocationIcon name="edit" size={14} color="#111014" />
                     <Text style={styles.editPillText}>Ubah Lokasi</Text>
                   </View>
                 </View>
@@ -552,7 +553,7 @@ export default function AssistantLaboratoriesScreen() {
                   value={form.latitude}
                   onChangeText={(value) => updateField('latitude', value)}
                   placeholder="Contoh: -7.04817"
-                  placeholderTextColor="#888888"
+                  placeholderTextColor="#8E8E93"
                   keyboardType={
                     Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'numeric'
                   }
@@ -572,7 +573,7 @@ export default function AssistantLaboratoriesScreen() {
                   value={form.longitude}
                   onChangeText={(value) => updateField('longitude', value)}
                   placeholder="Contoh: 110.44140"
-                  placeholderTextColor="#888888"
+                  placeholderTextColor="#8E8E93"
                   keyboardType={
                     Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'numeric'
                   }
@@ -592,7 +593,7 @@ export default function AssistantLaboratoriesScreen() {
                   value={form.radius}
                   onChangeText={(value) => updateField('radius', value)}
                   placeholder="Contoh: 50"
-                  placeholderTextColor="#888888"
+                  placeholderTextColor="#8E8E93"
                   keyboardType={
                     Platform.OS === 'ios' ? 'decimal-pad' : 'numeric'
                   }
@@ -610,7 +611,7 @@ export default function AssistantLaboratoriesScreen() {
                 {/* ERROR MODAL */}
                 {modalError ? (
                   <View style={styles.modalErrorBox}>
-                    <LocationIcon name="alert" size={16} color="#991B1B" />
+                    <LocationIcon name="alert" size={16} color="#FFFFFF" />
                     <Text style={styles.modalError}>{modalError}</Text>
                   </View>
                 ) : null}
@@ -659,8 +660,10 @@ export default function AssistantLaboratoriesScreen() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: '#F7F7F9',
+    backgroundColor: '#FFFFFF',
     flex: 1,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
   content: {
     paddingBottom: 40,
@@ -688,32 +691,36 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   pageSubtitle: {
-    color: '#777777',
+    fontFamily: FONT.bold,
+    color: '#5F5F66',
     fontSize: 11,
-    fontWeight: '700',
     letterSpacing: 1.1,
   },
   title: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 27,
-    fontWeight: '800',
   },
   subtitle: {
-    color: '#666666',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 13,
     lineHeight: 20,
   },
 
   infoBanner: {
     alignItems: 'flex-start',
-    backgroundColor: '#EEEEF1',
+    backgroundColor: '#FFFFFF',
     borderRadius: 13,
     flexDirection: 'row',
     gap: 10,
     padding: 13,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
   infoBannerText: {
-    color: '#444444',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     flex: 1,
     fontSize: 12,
     lineHeight: 18,
@@ -722,7 +729,7 @@ const styles = StyleSheet.create({
   openMapButton: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderColor: '#D4D4D8',
+    borderColor: '#8E8E93',
     borderRadius: 13,
     borderWidth: 1,
     flexDirection: 'row',
@@ -731,35 +738,35 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
   },
   openMapButtonText: {
-    color: '#000000',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 13,
-    fontWeight: '700',
   },
   openMapButtonArrow: {
-    color: '#000000',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 20,
-    fontWeight: '700',
     lineHeight: 22,
   },
 
   successBox: {
     alignItems: 'center',
-    backgroundColor: '#E8F0E8',
+    backgroundColor: '#F47321',
     borderRadius: 11,
     flexDirection: 'row',
     gap: 9,
     padding: 12,
   },
   successText: {
-    color: '#315A35',
+    fontFamily: FONT.semibold,
+    color: '#FFFFFF',
     flex: 1,
     fontSize: 12,
-    fontWeight: '600',
     lineHeight: 18,
   },
 
   errorBox: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: '#E00000',
     borderRadius: 11,
     gap: 10,
     padding: 12,
@@ -770,22 +777,23 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   errorText: {
-    color: '#991B1B',
+    fontFamily: FONT.regular,
+    color: '#FFFFFF',
     flex: 1,
     fontSize: 12,
     lineHeight: 18,
   },
   retryButton: {
     alignSelf: 'flex-start',
-    backgroundColor: '#991B1B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 7,
   },
   retryButtonText: {
-    color: '#FFFFFF',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 12,
-    fontWeight: '700',
   },
 
   sectionHeader: {
@@ -799,30 +807,33 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   sectionTitle: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 19,
-    fontWeight: '800',
   },
   sectionCaption: {
-    color: '#777777',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 11,
     lineHeight: 17,
   },
   totalBadge: {
-    backgroundColor: '#EAEAEA',
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 7,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
   totalText: {
-    color: '#333333',
+    fontFamily: FONT.bold,
+    color: '#5F5F66',
     fontSize: 12,
-    fontWeight: '700',
   },
 
   labCard: {
     backgroundColor: '#FFFFFF',
-    borderColor: '#E5E5E5',
+    borderColor: '#8E8E93',
     borderRadius: 18,
     borderWidth: 1,
     gap: 14,
@@ -842,67 +853,72 @@ const styles = StyleSheet.create({
   },
   labIconBox: {
     alignItems: 'center',
-    backgroundColor: '#EFEFF2',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     height: 40,
     justifyContent: 'center',
     width: 40,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
   labTitleText: {
     flex: 1,
     gap: 2,
   },
   labName: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 16,
-    fontWeight: '800',
   },
   labIdText: {
-    color: '#777777',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 11,
   },
   radiusBadge: {
-    backgroundColor: '#000000',
+    backgroundColor: '#111014',
     borderRadius: 20,
     paddingHorizontal: 11,
     paddingVertical: 6,
   },
   radiusBadgeText: {
+    fontFamily: FONT.bold,
     color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: '700',
   },
 
   coordBox: {
-    backgroundColor: '#F1F1F3',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     flexDirection: 'row',
     padding: 12,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
   coordItem: {
     flex: 1,
     gap: 4,
   },
   coordDivider: {
-    backgroundColor: '#DCDCE0',
+    backgroundColor: '#E4E4E7',
     marginHorizontal: 8,
     width: 1,
   },
   coordLabel: {
-    color: '#777777',
+    fontFamily: FONT.extrabold,
+    color: '#5F5F66',
     fontSize: 10,
-    fontWeight: '800',
     letterSpacing: 0.4,
   },
   coordValue: {
-    color: '#000000',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 12,
-    fontWeight: '700',
   },
 
   cardFooter: {
     alignItems: 'center',
-    borderTopColor: '#EEEEEE',
+    borderTopColor: '#E4E4E7',
     borderTopWidth: 1,
     flexDirection: 'row',
     gap: 8,
@@ -910,14 +926,15 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   updatedText: {
-    color: '#777777',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     flex: 1,
     fontSize: 11,
   },
   editPill: {
     alignItems: 'center',
-    backgroundColor: '#F5F5F7',
-    borderColor: '#D4D4D8',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#8E8E93',
     borderRadius: 9,
     borderWidth: 1,
     flexDirection: 'row',
@@ -926,25 +943,28 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   editPillText: {
-    color: '#000000',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 12,
-    fontWeight: '700',
   },
 
   emptyCard: {
     alignItems: 'center',
-    backgroundColor: '#EEEEF1',
+    backgroundColor: '#FFFFFF',
     borderRadius: 17,
     gap: 8,
     padding: 25,
+    borderColor: '#8E8E93',
+    borderWidth: 1,
   },
   emptyTitle: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 16,
-    fontWeight: '800',
   },
   mutedText: {
-    color: '#666666',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 13,
     lineHeight: 20,
     textAlign: 'center',
@@ -983,7 +1003,7 @@ const styles = StyleSheet.create({
   },
   modalHandle: {
     alignSelf: 'center',
-    backgroundColor: '#DDDDDD',
+    backgroundColor: '#8E8E93',
     borderRadius: 5,
     height: 5,
     marginBottom: 8,
@@ -994,41 +1014,43 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   modalTitle: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 21,
-    fontWeight: '800',
   },
   modalSubtitle: {
-    color: '#666666',
+    fontFamily: FONT.semibold,
+    color: '#5F5F66',
     fontSize: 13,
-    fontWeight: '600',
   },
 
   inputLabel: {
-    color: '#000000',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 13,
-    fontWeight: '700',
     marginTop: 6,
   },
   input: {
-    backgroundColor: '#F8F8F8',
-    borderColor: '#DDDDDD',
+    fontFamily: FONT.regular,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#8E8E93',
     borderRadius: 11,
     borderWidth: 1,
-    color: '#000000',
+    color: '#111014',
     fontSize: 14,
     paddingHorizontal: 12,
     paddingVertical: 12,
   },
   fieldHint: {
-    color: '#777777',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 11,
     lineHeight: 16,
   },
 
   modalErrorBox: {
     alignItems: 'center',
-    backgroundColor: '#FEE2E2',
+    backgroundColor: '#E00000',
     borderRadius: 10,
     flexDirection: 'row',
     gap: 8,
@@ -1036,7 +1058,8 @@ const styles = StyleSheet.create({
     padding: 11,
   },
   modalError: {
-    color: '#991B1B',
+    fontFamily: FONT.regular,
+    color: '#FFFFFF',
     flex: 1,
     fontSize: 12,
     lineHeight: 18,
@@ -1049,7 +1072,7 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     alignItems: 'center',
-    borderColor: '#CCCCCC',
+    borderColor: '#8E8E93',
     borderRadius: 11,
     borderWidth: 1,
     flex: 1,
@@ -1058,13 +1081,13 @@ const styles = StyleSheet.create({
     padding: 13,
   },
   cancelText: {
-    color: '#000000',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 14,
-    fontWeight: '700',
   },
   saveButton: {
     alignItems: 'center',
-    backgroundColor: '#000000',
+    backgroundColor: '#111014',
     borderRadius: 11,
     flex: 1,
     justifyContent: 'center',
@@ -1077,8 +1100,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   saveText: {
+    fontFamily: FONT.bold,
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '700',
   },
 });

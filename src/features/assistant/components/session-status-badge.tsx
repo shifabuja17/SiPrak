@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import type { SessionStatus } from '../types';
+import { FONT } from '@/constants/fonts';
 
 const STATUS_LABEL: Record<SessionStatus, string> = {
   dijadwalkan: 'BELUM DIBUKA',
@@ -147,8 +148,8 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   label: {
+    fontFamily: FONT.bold,
     fontSize: 11,
-    fontWeight: '700',
     letterSpacing: 0.3,
   },
 });

@@ -5,6 +5,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { FONT } from '@/constants/fonts';
 
 interface ConfirmModalProps {
   visible: boolean;
@@ -93,19 +94,20 @@ const styles = StyleSheet.create({
   },
   handle: {
     alignSelf: 'center',
-    backgroundColor: '#D9D9D9',
+    backgroundColor: '#8E8E93',
     borderRadius: 3,
     height: 5,
     marginBottom: 2,
     width: 40,
   },
   title: {
-    color: '#000000',
+    fontFamily: FONT.extrabold,
+    color: '#111014',
     fontSize: 20,
-    fontWeight: '800',
   },
   message: {
-    color: '#404040',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 14,
     lineHeight: 21,
   },
@@ -122,24 +124,24 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     backgroundColor: '#FFFFFF',
-    borderColor: '#BFBFBF',
+    borderColor: '#8E8E93',
     borderWidth: 1,
   },
   confirmButton: {
-    backgroundColor: '#000000',
+    backgroundColor: '#111014',
   },
   dangerButton: {
-    backgroundColor: '#404040',
+    backgroundColor: '#E00000',
   },
   cancelText: {
-    color: '#000000',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 14,
-    fontWeight: '700',
   },
   confirmText: {
+    fontFamily: FONT.bold,
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '700',
   },
   pressed: {
     opacity: 0.65,
