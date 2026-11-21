@@ -11,11 +11,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import StatusBadge from '@/components/common/StatusBadge';
 import { useAuth } from '@/context/AuthContext';
 import { useDeviceLocation } from '@/features/location/hooks/use-device-location';
-import { subscribeLaboratory } from '@/features/location/services/laboratory-service';
-import type { DeviceCoordinates, Laboratory } from '@/features/location/types';
+import {
+  subscribeLaboratoryById,
+  type LaboratoryLocation,
+} from '@/features/assistant/services/laboratory-service';
+import type { DeviceCoordinates } from '@/features/location/types';
 import {
   checkWithinRadius,
   formatDistance,
@@ -28,12 +30,15 @@ import {
   PraktikanLoadingState,
 } from '@/features/praktikan/components/praktikan-state-view';
 import { useSessionAttendance } from '@/features/praktikan/hooks/use-session-attendance';
+import { BackLink, Chip, Tile, UI, classColor } from '@/features/praktikan/ui/praktikan-ui';
 import { subscribeSessionById } from '@/features/praktikan/services/praktikan-sessions';
 import type { PraktikanSession } from '@/features/praktikan/types';
 import {
   formatAttendanceTimeWIB,
   formatMeetingTitle,
 } from '@/features/praktikan/utils/format';
+import { formatClock, formatSessionDate } from '@/utils/session-time';
+import { FONT } from '@/constants/fonts';
 
 /** Lokasi yang lebih tua dari ini diambil ulang sebelum presensi dikirim. */
 const LOCATION_MAX_AGE_MS = 60_000;
@@ -72,7 +77,7 @@ function AttendanceContent({ sessionId }: { sessionId: string }) {
   const [sessionError, setSessionError] = useState<string | null>(null);
   const [retryNonce, setRetryNonce] = useState(0);
 
-  const [lab, setLab] = useState<Laboratory | null>(null);
+  const [lab, setLab] = useState<LaboratoryLocation | null>(null);
   const [labLoading, setLabLoading] = useState(false);
   const [labError, setLabError] = useState<string | null>(null);
 
@@ -132,17 +137,27 @@ function AttendanceContent({ sessionId }: { sessionId: string }) {
 
     setLabLoading(true);
     setLabError(null);
-    const unsubscribe = subscribeLaboratory(
-      labId,
-      (next) => {
-        setLab(next);
-        setLabLoading(false);
-      },
-      (err) => {
-        setLabError(err.message);
-        setLabLoading(false);
-      },
-    );
+    let unsubscribe: () => void;
+    try {
+      unsubscribe = subscribeLaboratoryById(
+        labId,
+        (next) => {
+          setLab(next);
+          setLabError(null);
+          setLabLoading(false);
+        },
+        (err) => {
+          setLabError(err.message);
+          setLabLoading(false);
+        },
+      );
+    } catch (err) {
+      // labId sesi tidak termasuk 4 titik lokasi yang dikenal.
+      setLab(null);
+      setLabError(err instanceof Error ? err.message : 'Titik lokasi sesi tidak valid.');
+      setLabLoading(false);
+      return;
+    }
     return () => unsubscribe();
   }, [labId, retryNonce]);
 
@@ -206,15 +221,31 @@ function AttendanceContent({ sessionId }: { sessionId: string }) {
 
   return (
     <ScreenShell scroll>
-      <Pressable onPress={() => router.back()} style={styles.backButton}>
-        <Text style={styles.backText}>‹ Kembali ke detail sesi</Text>
-      </Pressable>
+      <BackLink label="Kembali" onPress={() => router.back()} />
 
-      <View style={styles.titleBlock}>
-        <Text style={styles.eyebrow}>Presensi</Text>
+      <Tile color={classColor(session.classId ?? session.practicumName)}>
+        <Chip
+          label={isOpen ? 'Presensi dibuka' : session.status === 'ditutup' ? 'Sesi selesai' : 'Belum dibuka'}
+          tone={isOpen ? 'solid' : 'neutral'}
+        />
         <Text style={styles.title}>{session.practicumName}</Text>
-        <StatusBadge status={session.status} />
-      </View>
+        <Text style={styles.heroModule}>{formatMeetingTitle(session.moduleTitle)}</Text>
+        <View style={styles.heroMeta}>
+          {session.waktuMulai ? (
+            <>
+              <Text style={styles.heroMetaText}>{formatSessionDate(session.waktuMulai)}</Text>
+              {session.waktuSelesai ? (
+                <Text style={styles.heroMetaText}>
+                  {formatClock(session.waktuMulai)} - {formatClock(session.waktuSelesai)} WIB
+                </Text>
+              ) : null}
+            </>
+          ) : (
+            <Text style={styles.heroMetaText}>{session.scheduleTime}</Text>
+          )}
+          <Text style={styles.heroMetaText}>{session.classRoom}</Text>
+        </View>
+      </Tile>
 
       {sessionError ? (
         <PraktikanInlineErrorBanner
@@ -225,9 +256,6 @@ function AttendanceContent({ sessionId }: { sessionId: string }) {
       ) : null}
 
       <View style={styles.card}>
-        <Info label="Pertemuan dan Materi" value={formatMeetingTitle(session.moduleTitle)} />
-        <Info label="Ruang" value={session.classRoom} />
-        <Info label="Jadwal" value={session.scheduleTime} />
         <Info
           label="Titik Lokasi Presensi"
           value={
@@ -236,7 +264,7 @@ function AttendanceContent({ sessionId }: { sessionId: string }) {
               : labLoading
                 ? 'Memuat...'
                 : lab
-                  ? `${lab.nama} · radius ${formatDistance(lab.radius)}`
+                  ? `${lab.name} · radius ${formatDistance(lab.radius)}`
                   : 'Koordinat belum diatur Asisten'
           }
           last
@@ -408,7 +436,7 @@ function LocationResult({
   errorMessage: string | null;
   coords: DeviceCoordinates | null;
   check: RadiusCheckResult | null;
-  lab: Laboratory | null;
+  lab: LaboratoryLocation | null;
 }) {
   if (locating) {
     return (
@@ -430,7 +458,7 @@ function LocationResult({
   if (!coords || !check || !lab) {
     return (
       <Notice tone="neutral" title="Lokasi Belum Diperiksa">
-        Tekan &quot;Periksa Lokasi Saya&quot; untuk memastikan kamu berada di {lab?.nama ?? 'lokasi sesi'}.
+        Tekan &quot;Periksa Lokasi Saya&quot; untuk memastikan kamu berada di {lab?.name ?? 'lokasi sesi'}.
       </Notice>
     );
   }
@@ -443,13 +471,13 @@ function LocationResult({
 
   return check.withinRadius ? (
     <Notice tone="success" title="Di Dalam Radius">
-      Kamu berada {formatDistance(check.distance)} dari {lab.nama} (batas{' '}
+      Kamu berada {formatDistance(check.distance)} dari {lab.name} (batas{' '}
       {formatDistance(check.radius)}). Presensi dapat dikirim.{accuracyText}
       {mockedText}
     </Notice>
   ) : (
     <Notice tone="danger" title="Di Luar Radius">
-      Kamu berada {formatDistance(check.distance)} dari {lab.nama}, melebihi batas{' '}
+      Kamu berada {formatDistance(check.distance)} dari {lab.name}, melebihi batas{' '}
       {formatDistance(check.radius)}. Mendekatlah ke lokasi lalu periksa ulang.{accuracyText}
       {mockedText}
     </Notice>
@@ -487,7 +515,14 @@ function Notice({
       >
         {title}
       </Text>
-      <Text style={styles.noticeText}>{children}</Text>
+      <Text
+        style={[
+          styles.noticeText,
+          tone !== 'neutral' && styles.noticeTextOnColor,
+        ]}
+      >
+        {children}
+      </Text>
     </View>
   );
 }
@@ -507,47 +542,43 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    gap: 20,
-    padding: 20,
-    paddingTop: 32,
+    gap: 18,
+    padding: UI.padding,
+    paddingTop: 16,
     paddingBottom: 40,
+  },
+  heroModule: {
+    fontFamily: FONT.regular,
+    color: UI.onColor,
+    fontSize: 15,
+  },
+  heroMeta: {
+    gap: 1,
+    marginTop: 4,
+  },
+  heroMetaText: {
+    fontFamily: FONT.regular,
+    color: UI.onColor,
+    fontSize: 14,
   },
   stateScreenPadding: {
     flex: 1,
     justifyContent: 'center',
     padding: 20,
   },
-  backButton: {
-    alignSelf: 'flex-start',
-    paddingVertical: 5,
-  },
-  backText: {
-    color: '#000000',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  titleBlock: {
-    gap: 8,
-  },
-  eyebrow: {
-    color: '#666666',
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
   title: {
-    color: '#000000',
-    fontSize: 25,
-    fontWeight: '800',
-    lineHeight: 32,
+    fontFamily: FONT.extrabold,
+    color: UI.onColor,
+    fontSize: 26,
+    letterSpacing: -0.5,
+    lineHeight: 30,
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#D9D9D9',
-    borderRadius: 18,
+    backgroundColor: UI.page,
+    borderColor: UI.border,
     borderWidth: 1,
-    paddingHorizontal: 16,
+    borderRadius: UI.radiusCard,
+    paddingHorizontal: 18,
   },
   infoRow: {
     borderBottomColor: '#E5E5E5',
@@ -559,26 +590,26 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
   infoLabel: {
+    fontFamily: FONT.semibold,
     color: '#666666',
     fontSize: 12,
-    fontWeight: '600',
   },
   infoValue: {
+    fontFamily: FONT.semibold,
     color: '#000000',
     fontSize: 14,
-    fontWeight: '600',
     lineHeight: 20,
   },
   section: {
     gap: 12,
   },
   sectionTitle: {
+    fontFamily: FONT.extrabold,
     color: '#000000',
     fontSize: 16,
-    fontWeight: '800',
   },
   notice: {
-    borderRadius: 14,
+    borderRadius: 20,
     borderWidth: 1,
     gap: 4,
     padding: 14,
@@ -588,45 +619,50 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
   },
+  // Sukses = oranye; gagal & peringatan = merah (teks putih); netral = putih bergaris.
   noticeSuccess: {
-    backgroundColor: '#F0FDF4',
-    borderColor: '#86EFAC',
+    backgroundColor: UI.accent,
+    borderColor: UI.accent,
   },
   noticeDanger: {
-    backgroundColor: '#FEF2F2',
-    borderColor: '#FCA5A5',
+    backgroundColor: UI.danger,
+    borderColor: UI.danger,
   },
   noticeWarning: {
-    backgroundColor: '#FFFBEB',
-    borderColor: '#FCD34D',
+    backgroundColor: UI.danger,
+    borderColor: UI.danger,
   },
   noticeNeutral: {
-    backgroundColor: '#F5F5F5',
-    borderColor: '#E5E5E5',
+    backgroundColor: UI.page,
+    borderColor: UI.border,
   },
   noticeTitle: {
+    fontFamily: FONT.extrabold,
     color: '#000000',
     fontSize: 14,
-    fontWeight: '800',
   },
   noticeTitleSuccess: {
-    color: '#15803D',
+    color: UI.onColor,
   },
   noticeTitleDanger: {
-    color: '#B91C1C',
+    color: UI.onColor,
   },
   noticeTitleWarning: {
-    color: '#B45309',
+    color: UI.onColor,
+  },
+  noticeTextOnColor: {
+    color: UI.onColor,
   },
   noticeText: {
+    fontFamily: FONT.regular,
     color: '#404040',
     fontSize: 13,
     lineHeight: 20,
   },
   primaryButton: {
     alignItems: 'center',
-    backgroundColor: '#000000',
-    borderRadius: 14,
+    backgroundColor: UI.ink,
+    borderRadius: 999,
     minHeight: 52,
     justifyContent: 'center',
     padding: 16,
@@ -635,9 +671,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E5E5',
   },
   primaryButtonText: {
+    fontFamily: FONT.bold,
     color: '#FFFFFF',
     fontSize: 15,
-    fontWeight: '700',
   },
   primaryButtonTextDisabled: {
     color: '#737373',
@@ -645,17 +681,17 @@ const styles = StyleSheet.create({
   secondaryButton: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderColor: '#000000',
-    borderRadius: 14,
-    borderWidth: 1,
+    borderColor: UI.ink,
+    borderRadius: 999,
+    borderWidth: 1.5,
     minHeight: 48,
     justifyContent: 'center',
     padding: 14,
   },
   secondaryButtonText: {
+    fontFamily: FONT.bold,
     color: '#000000',
     fontSize: 15,
-    fontWeight: '700',
   },
   disabled: {
     opacity: 0.5,

@@ -48,12 +48,20 @@ import {
   toClockTime,
 } from '@/utils/session-time';
 
+import {
+  ensureDefaultLaboratories,
+  isLaboratoryId,
+  subscribeLaboratories,
+  type LaboratoryLocation,
+} from '@/features/assistant/services/laboratory-service';
+
 // ==========================================
 // FORM KOSONG
 // ==========================================
 
 interface SessionForm {
   scheduleId: string;
+  labId: string;
   sessionNote: string;
   /** Tanggal pertemuan (bagian jam diabaikan). */
   tanggal: Date;
@@ -74,9 +82,28 @@ function timesFromSchedule(scheduleTime: string) {
 function createEmptyForm(): SessionForm {
   return {
     scheduleId: '',
+    labId: '',
     sessionNote: '',
     ...timesFromSchedule(''),
   };
+}
+
+function findMatchingLaboratoryId(
+  locationText: string | undefined,
+  laboratories: LaboratoryLocation[],
+): string {
+  const normalized = locationText?.trim().toLowerCase() ?? '';
+  if (!normalized) return '';
+
+  const exactMatch = laboratories.find(
+    (lab) => lab.name.toLowerCase() === normalized || lab.id === normalized,
+  );
+  if (exactMatch) return exactMatch.id;
+
+  const partialMatch = laboratories.find((lab) =>
+    normalized.includes(lab.name.toLowerCase()),
+  );
+  return partialMatch?.id ?? '';
 }
 
 type SessionActionType = 'delete' | 'open' | 'close';
@@ -130,14 +157,18 @@ export default function AssistantSessionsScreen() {
   // DATA FIRESTORE
   const [schedules, setSchedules] = useState<PracticumSchedule[]>([]);
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
+  const [laboratories, setLaboratories] = useState<LaboratoryLocation[]>([]);
 
   // LOADING
   const [loading, setLoading] = useState(true);
+  const [labsLoading, setLabsLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [processingAction, setProcessingAction] = useState(false);
 
   // ERROR DAN NOTIFIKASI
   const [error, setError] = useState('');
+  const [labsError, setLabsError] = useState('');
+  const [labRetryNonce, setLabRetryNonce] = useState(0);
   const [pageMessage, setPageMessage] = useState('');
   const [modalError, setModalError] = useState('');
   const [actionError, setActionError] = useState('');
@@ -145,6 +176,8 @@ export default function AssistantSessionsScreen() {
   // MODAL TAMBAH / EDIT
   const [modalVisible, setModalVisible] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingLegacyWithoutLab, setEditingLegacyWithoutLab] = useState(false);
+  const [labManuallySelected, setLabManuallySelected] = useState(false);
 
   const [form, setForm] = useState<SessionForm>(createEmptyForm);
 
@@ -201,6 +234,99 @@ export default function AssistantSessionsScreen() {
   }, [profile, authLoading]);
 
   // ==========================================
+  // MENGAMBIL LOKASI LABORATORIUM REAL-TIME
+  // ==========================================
+
+  useEffect(() => {
+    if (authLoading) return;
+
+    if (!profile || profile.role !== 'asisten') {
+      setLaboratories([]);
+      setLabsLoading(false);
+      return;
+    }
+
+    let active = true;
+    let seeding = true;
+    setLabsLoading(true);
+    setLabsError('');
+
+    const unsubscribeLaboratories = subscribeLaboratories(
+      (data) => {
+        if (!active) return;
+        setLaboratories(data);
+        if (!seeding || data.length > 0) {
+          setLabsLoading(false);
+        }
+      },
+      (firebaseError) => {
+        if (!active) return;
+        setLabsError(firebaseError.message);
+        setLabsLoading(false);
+      },
+    );
+
+    ensureDefaultLaboratories()
+      .then(() => {
+        if (!active) return;
+        seeding = false;
+        setLabsLoading(false);
+      })
+      .catch((seedError: unknown) => {
+        if (!active) return;
+        seeding = false;
+        setLabsLoading(false);
+        setLabsError(
+          seedError instanceof Error
+            ? seedError.message
+            : 'Gagal memuat daftar lokasi laboratorium.',
+        );
+      });
+
+    return () => {
+      active = false;
+      unsubscribeLaboratories();
+    };
+  }, [profile, authLoading, labRetryNonce]);
+
+  useEffect(() => {
+    if (
+      !modalVisible ||
+      editingId ||
+      labManuallySelected ||
+      form.labId ||
+      laboratories.length === 0
+    ) {
+      return;
+    }
+
+    const selectedSchedule = schedules.find(
+      (item) => item.id === form.scheduleId,
+    );
+    const matchedLabId = findMatchingLaboratoryId(
+      selectedSchedule?.classRoom,
+      laboratories,
+    );
+
+    setForm((previous) =>
+      previous.labId
+        ? previous
+        : {
+            ...previous,
+            labId: matchedLabId || laboratories[0].id,
+          },
+    );
+  }, [
+    modalVisible,
+    editingId,
+    labManuallySelected,
+    form.labId,
+    form.scheduleId,
+    laboratories,
+    schedules,
+  ]);
+
+  // ==========================================
   // FORM TAMBAH SESI
   // ==========================================
 
@@ -214,12 +340,21 @@ export default function AssistantSessionsScreen() {
       return;
     }
 
+    const firstSchedule = schedules[0];
+    const matchedLabId = findMatchingLaboratoryId(
+      firstSchedule.classRoom,
+      laboratories,
+    );
+
     setEditingId(null);
+    setEditingLegacyWithoutLab(false);
+    setLabManuallySelected(false);
 
     setForm({
-      scheduleId: schedules[0].id,
+      scheduleId: firstSchedule.id,
+      labId: matchedLabId || (laboratories[0]?.id ?? ''),
       sessionNote: '',
-      ...timesFromSchedule(schedules[0].scheduleTime),
+      ...timesFromSchedule(firstSchedule.scheduleTime),
     });
 
     setModalError('');
@@ -249,7 +384,14 @@ export default function AssistantSessionsScreen() {
       return;
     }
 
+    const hasStoredLab = Boolean(item.labId && isLaboratoryId(item.labId));
+    const resolvedLabId = hasStoredLab
+      ? (item.labId as string)
+      : findMatchingLaboratoryId(item.labName ?? item.classRoom, laboratories);
+
     setEditingId(item.id);
+    setEditingLegacyWithoutLab(!hasStoredLab);
+    setLabManuallySelected(true);
 
     const linkedSchedule = schedules.find(
       (schedule) => schedule.id === item.scheduleId,
@@ -257,6 +399,7 @@ export default function AssistantSessionsScreen() {
 
     setForm({
       scheduleId: item.scheduleId,
+      labId: resolvedLabId,
       sessionNote: item.sessionNote || '',
       ...(item.waktuMulai && item.waktuSelesai
         ? {
@@ -280,6 +423,8 @@ export default function AssistantSessionsScreen() {
 
     setModalVisible(false);
     setEditingId(null);
+    setEditingLegacyWithoutLab(false);
+    setLabManuallySelected(false);
     setForm(createEmptyForm());
     setModalError('');
   }
@@ -311,6 +456,12 @@ export default function AssistantSessionsScreen() {
       return;
     }
 
+    const selectedLab = laboratories.find((lab) => lab.id === form.labId);
+    if (!selectedLab || !isLaboratoryId(selectedLab.id)) {
+      setModalError('Pilih lokasi laboratorium terlebih dahulu.');
+      return;
+    }
+
     const waktuMulai = combineDateAndTime(form.tanggal, toClockTime(form.jamMulai));
     const waktuSelesai = combineDateAndTime(form.tanggal, toClockTime(form.jamSelesai));
 
@@ -327,9 +478,11 @@ export default function AssistantSessionsScreen() {
     const input: SessionInput = {
       scheduleId: selectedSchedule.id,
       classId: selectedSchedule.classId,
+      labId: selectedLab.id,
+      labName: selectedLab.name,
       practicumName: selectedSchedule.practicumName,
       moduleTitle: selectedSchedule.moduleTitle,
-      classRoom: selectedSchedule.classRoom,
+      classRoom: selectedLab.name,
       scheduleTime: selectedSchedule.scheduleTime,
       waktuMulai,
       waktuSelesai,
@@ -351,6 +504,8 @@ export default function AssistantSessionsScreen() {
 
       setModalVisible(false);
       setEditingId(null);
+      setEditingLegacyWithoutLab(false);
+      setLabManuallySelected(false);
       setForm(createEmptyForm());
 
     } catch (firebaseError) {
@@ -470,6 +625,16 @@ export default function AssistantSessionsScreen() {
           ? 'BERLANGSUNG'
           : 'SELESAI';
 
+    const linkedLab = item.labId
+      ? laboratories.find((lab) => lab.id === item.labId)
+      : undefined;
+    const baseLocation = linkedLab?.name || item.labName || item.classRoom || '-';
+    const locationDisplay = linkedLab
+      ? `${baseLocation} (Radius ${linkedLab.radius} m)`
+      : item.labId
+        ? baseLocation
+        : `${baseLocation} (Belum ditautkan ke titik lab)`;
+
     return (
       <View style={styles.sessionItem}>
         <View style={styles.card}>
@@ -527,11 +692,11 @@ export default function AssistantSessionsScreen() {
 
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>
-                Ruangan
+                Lokasi Laboratorium
               </Text>
 
               <Text style={styles.detailValue}>
-                {item.classRoom}
+                {locationDisplay}
               </Text>
             </View>
 
@@ -864,12 +1029,25 @@ export default function AssistantSessionsScreen() {
                         pressed && styles.pressed,
                       ]}
                       onPress={() => {
-                        setForm((previous) => ({
-                          ...previous,
-                          scheduleId: item.id,
-                          // Saat membuat sesi baru, isi otomatis tanggal & jam dari jadwal.
-                          ...(editingId ? {} : timesFromSchedule(item.scheduleTime)),
-                        }));
+                        setForm((previous) => {
+                          const matchedLabId =
+                            !editingId && !labManuallySelected
+                              ? findMatchingLaboratoryId(
+                                  item.classRoom,
+                                  laboratories,
+                                ) ||
+                                previous.labId ||
+                                (laboratories[0]?.id ?? '')
+                              : previous.labId;
+
+                          return {
+                            ...previous,
+                            scheduleId: item.id,
+                            labId: matchedLabId,
+                            // Saat membuat sesi baru, isi otomatis tanggal & jam dari jadwal.
+                            ...(editingId ? {} : timesFromSchedule(item.scheduleTime)),
+                          };
+                        });
 
                         setModalError('');
                       }}
@@ -907,6 +1085,97 @@ export default function AssistantSessionsScreen() {
                   );
                 })}
               </View>
+
+              {/* PILIH LOKASI LABORATORIUM */}
+              <Text style={styles.label}>
+                Pilih Lokasi Laboratorium
+              </Text>
+
+              {editingLegacyWithoutLab ? (
+                <View style={styles.legacyLabNotice}>
+                  <Text style={styles.legacyLabNoticeText}>
+                    Sesi ini belum memiliki referensi titik lab. Pilih salah
+                    satu lokasi laboratorium di bawah sebelum menyimpan.
+                  </Text>
+                </View>
+              ) : null}
+
+              {labsLoading && laboratories.length === 0 ? (
+                <View style={styles.labStateBox}>
+                  <ActivityIndicator size="small" color="#000000" />
+                  <Text style={styles.labStateText}>
+                    Memuat 4 lokasi laboratorium...
+                  </Text>
+                </View>
+              ) : labsError && laboratories.length === 0 ? (
+                <View style={styles.labErrorBox}>
+                  <Text style={styles.labErrorText}>{labsError}</Text>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.labRetryButton,
+                      pressed && styles.pressed,
+                    ]}
+                    onPress={() => setLabRetryNonce((prev) => prev + 1)}
+                    disabled={saving}
+                  >
+                    <Text style={styles.labRetryButtonText}>
+                      Muat Ulang Lokasi
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <View style={styles.scheduleOptions}>
+                  {laboratories.map((lab) => {
+                    const selected = form.labId === lab.id;
+
+                    return (
+                      <Pressable
+                        key={lab.id}
+                        style={({ pressed }) => [
+                          styles.scheduleOption,
+                          selected && styles.scheduleOptionSelected,
+                          pressed && styles.pressed,
+                        ]}
+                        onPress={() => {
+                          setLabManuallySelected(true);
+                          setForm((previous) => ({
+                            ...previous,
+                            labId: lab.id,
+                          }));
+                          setModalError('');
+                        }}
+                        disabled={saving}
+                      >
+                        <View style={styles.scheduleOptionHeader}>
+                          <Text
+                            style={[
+                              styles.scheduleOptionTitle,
+                              selected && styles.scheduleOptionTitleSelected,
+                            ]}
+                          >
+                            {lab.name}
+                          </Text>
+
+                          {selected ? (
+                            <View style={styles.selectedMark}>
+                              <SessionIcon
+                                name="check"
+                                size={17}
+                                color="#000000"
+                              />
+                            </View>
+                          ) : null}
+                        </View>
+
+                        <Text style={styles.scheduleOptionDetail}>
+                          Radius {lab.radius} m · {lab.latitude.toFixed(5)},{' '}
+                          {lab.longitude.toFixed(5)}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              )}
 
               {/* TANGGAL & JAM SESI */}
               <Text style={styles.label}>
@@ -1634,6 +1903,60 @@ const styles = StyleSheet.create({
   selectedMark: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+
+  legacyLabNotice: {
+    backgroundColor: '#FEF3C7',
+    borderRadius: 10,
+    marginBottom: 9,
+    padding: 11,
+  },
+
+  legacyLabNoticeText: {
+    color: '#92400E',
+    fontSize: 12,
+    lineHeight: 17,
+  },
+
+  labStateBox: {
+    alignItems: 'center',
+    backgroundColor: '#F5F5F7',
+    borderRadius: 12,
+    flexDirection: 'row',
+    gap: 10,
+    padding: 14,
+  },
+
+  labStateText: {
+    color: '#555555',
+    fontSize: 12,
+  },
+
+  labErrorBox: {
+    backgroundColor: '#FEE2E2',
+    borderRadius: 12,
+    gap: 9,
+    padding: 12,
+  },
+
+  labErrorText: {
+    color: '#991B1B',
+    fontSize: 12,
+    lineHeight: 17,
+  },
+
+  labRetryButton: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#991B1B',
+    borderRadius: 8,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+  },
+
+  labRetryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
   },
 
   // INPUT

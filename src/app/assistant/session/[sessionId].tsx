@@ -372,6 +372,11 @@ export default function AssistantSessionDetailScreen() {
   const isScheduled = session.status === 'dijadwalkan';
   const isOpen = session.status === 'dibuka';
   const isClosed = session.status === 'ditutup';
+  const baseLocation = session.labName || session.classRoom || '-';
+  const locationValue =
+    session.labId && session.labRadius
+      ? `${baseLocation} (Radius presensi ${session.labRadius} m)`
+      : baseLocation;
 
   // ========================================
   // TAMPILAN UTAMA
@@ -414,7 +419,7 @@ export default function AssistantSessionDetailScreen() {
           <InfoRow
             icon="pin"
             label="Lokasi"
-            value={session.classRoom}
+            value={locationValue}
           />
 
           <InfoRow

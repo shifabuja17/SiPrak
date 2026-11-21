@@ -37,10 +37,11 @@
       ],
       "expo-status-bar",
       "expo-web-browser",
+      "react-native-maps",
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "SiPrak membutuhkan lokasi untuk memastikan kamu berada di laboratorium saat presensi."
+          "locationWhenInUsePermission": "Izinkan $(PRODUCT_NAME) mengakses lokasi Anda untuk presensi di laboratorium dan menampilkan posisi Anda di peta."
         }
       ],
       "@react-native-community/datetimepicker"

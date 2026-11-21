@@ -11,8 +11,14 @@ import {
   runTransaction,
   serverTimestamp,
   updateDoc,
+  type DocumentData,
 } from 'firebase/firestore';
 
+import {
+  getLaboratoryPreset,
+  isLaboratoryId,
+  type LaboratoryId,
+} from '@/features/assistant/services/laboratory-service';
 import { db } from '@/lib/firebase';
 import { toDateValue } from '@/utils/session-time';
 
@@ -29,6 +35,8 @@ export interface SessionRecord {
   id: string;
   scheduleId: string;
   classId: string;
+  labId?: string;
+  labName?: string;
   practicumName: string;
   moduleTitle: string;
   classRoom: string;
@@ -44,6 +52,8 @@ export interface SessionRecord {
 export interface SessionInput {
   scheduleId: string;
   classId: string;
+  labId: LaboratoryId;
+  labName: string;
   practicumName: string;
   moduleTitle: string;
   classRoom: string;
@@ -66,6 +76,54 @@ function validateSessionTimes(input: SessionInput) {
   }
 }
 
+function readOptionalText(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function mapSessionRecord(id: string, data: DocumentData): SessionRecord {
+  const labId = readOptionalText(data.labId);
+  const presetLabName =
+    labId && isLaboratoryId(labId) ? getLaboratoryPreset(labId).name : undefined;
+  const labName = readOptionalText(data.labName) ?? presetLabName;
+  const classRoom = readOptionalText(data.classRoom) ?? labName ?? '';
+
+  return {
+    id,
+    scheduleId: readOptionalText(data.scheduleId) ?? '',
+    classId: readOptionalText(data.classId) ?? '',
+    ...(labId ? { labId } : {}),
+    ...(labName ? { labName } : {}),
+    practicumName: readOptionalText(data.practicumName) ?? '',
+    moduleTitle: readOptionalText(data.moduleTitle) ?? '',
+    classRoom,
+    scheduleTime: readOptionalText(data.scheduleTime) ?? '',
+    waktuMulai: toDateValue(data.waktuMulai),
+    waktuSelesai: toDateValue(data.waktuSelesai),
+    status: data.status as SessionStatus,
+    sessionNote: typeof data.sessionNote === 'string' ? data.sessionNote : '',
+    createdBy: readOptionalText(data.createdBy) ?? '',
+  };
+}
+
+function validateSessionLabInput(input: SessionInput): SessionInput {
+  if (!isLaboratoryId(input.labId)) {
+    throw new Error('Pilih lokasi laboratorium yang valid.');
+  }
+
+  const trimmedLabName = input.labName.trim();
+  if (!trimmedLabName) {
+    throw new Error('Nama lokasi laboratorium wajib diisi.');
+  }
+
+  return {
+    ...input,
+    labName: trimmedLabName,
+    classRoom: input.classRoom.trim() || trimmedLabName,
+  };
+}
+
 // ==========================================
 // MENGAMBIL SEMUA SESI SECARA REAL-TIME
 // ==========================================
@@ -82,15 +140,9 @@ export function subscribeSessions(
   return onSnapshot(
     sessionsQuery,
     (snapshot) => {
-      const sessions = snapshot.docs.map((item) => {
-        const data = item.data();
-        return {
-          ...data,
-          id: item.id,
-          waktuMulai: toDateValue(data.waktuMulai),
-          waktuSelesai: toDateValue(data.waktuSelesai),
-        };
-      }) as SessionRecord[];
+      const sessions = snapshot.docs.map((item) =>
+        mapSessionRecord(item.id, item.data()),
+      );
 
       onData(sessions);
     },
@@ -107,9 +159,10 @@ export async function createSession(
   createdBy: string,
 ) {
   validateSessionTimes(input);
+  const validInput = validateSessionLabInput(input);
 
   await addDoc(collection(db, 'sessions'), {
-    ...input,
+    ...validInput,
     status: 'dijadwalkan',
     createdBy,
     createdAt: serverTimestamp(),
@@ -126,6 +179,7 @@ export async function updateSession(
   input: SessionInput,
 ) {
   validateSessionTimes(input);
+  const validInput = validateSessionLabInput(input);
 
   const sessionRef = doc(db, 'sessions', sessionId);
 
@@ -142,7 +196,7 @@ export async function updateSession(
   }
 
   await updateDoc(sessionRef, {
-    ...input,
+    ...validInput,
     updatedAt: serverTimestamp(),
   });
 }

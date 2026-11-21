@@ -14,7 +14,7 @@ import Svg, {
   Rect,
 } from 'react-native-svg';
 
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 
 import { useAuth } from '@/context/AuthContext';
 
@@ -174,6 +174,57 @@ function LeaveIcon() {
         strokeWidth={2.5}
         strokeLinecap="round"
         strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+function LocationIcon() {
+  return (
+    <Svg
+      width={34}
+      height={34}
+      viewBox="0 0 48 48"
+      fill="none"
+    >
+      <Path
+        d="M38 20c0 10-14 22-14 22S10 30 10 20a14 14 0 1 1 28 0Z"
+        stroke="#000000"
+        strokeWidth={2.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Circle
+        cx="24"
+        cy="20"
+        r="5.5"
+        stroke="#000000"
+        strokeWidth={2.5}
+      />
+    </Svg>
+  );
+}
+
+function MapViewIcon() {
+  return (
+    <Svg
+      width={34}
+      height={34}
+      viewBox="0 0 48 48"
+      fill="none"
+    >
+      <Path
+        d="M6 12L18 7L30 13L42 8V36L30 41L18 35L6 40V12Z"
+        stroke="#000000"
+        strokeWidth={2.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M18 7V35M30 13V41"
+        stroke="#000000"
+        strokeWidth={2.5}
+        strokeLinecap="round"
       />
     </Svg>
   );
@@ -386,6 +437,56 @@ export default function AssistantScheduleScreen() {
                     </Text>
                   </Pressable>
                 </View>
+
+                {/* LOKASI LABORATORIUM */}
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.menuBannerTile,
+                    pressed && styles.pressed,
+                  ]}
+                  onPress={() =>
+                    router.push('/assistant/laboratories' as Href)
+                  }
+                >
+                  <View style={styles.menuBannerIcon}>
+                    <LocationIcon />
+                  </View>
+
+                  <View style={styles.menuBannerContent}>
+                    <Text style={styles.menuBannerTitle}>
+                      Lokasi Laboratorium
+                    </Text>
+                    <Text style={styles.menuBannerSubtitle}>
+                      Atur koordinat & radius 4 lokasi praktikum
+                    </Text>
+                  </View>
+
+                  <Text style={styles.menuBannerArrow}>›</Text>
+                </Pressable>
+
+                {/* PETA LABORATORIUM */}
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.menuBannerTile,
+                    pressed && styles.pressed,
+                  ]}
+                  onPress={() => router.push('/maps' as Href)}
+                >
+                  <View style={styles.menuBannerIcon}>
+                    <MapViewIcon />
+                  </View>
+
+                  <View style={styles.menuBannerContent}>
+                    <Text style={styles.menuBannerTitle}>
+                      Peta Laboratorium
+                    </Text>
+                    <Text style={styles.menuBannerSubtitle}>
+                      Lihat marker & area radius 4 lab di peta
+                    </Text>
+                  </View>
+
+                  <Text style={styles.menuBannerArrow}>›</Text>
+                </Pressable>
               </View>
 
               {/* JUDUL DAFTAR SESI */}
@@ -547,6 +648,48 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     textAlign: 'center',
+  },
+
+  menuBannerTile: {
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 17,
+    flexDirection: 'row',
+    gap: 13,
+    padding: 12,
+  },
+
+  menuBannerIcon: {
+    alignItems: 'center',
+    backgroundColor: '#E0E2E9',
+    borderRadius: 14,
+    height: 54,
+    justifyContent: 'center',
+    width: 54,
+  },
+
+  menuBannerContent: {
+    flex: 1,
+    gap: 3,
+  },
+
+  menuBannerTitle: {
+    color: '#000000',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+
+  menuBannerSubtitle: {
+    color: '#666666',
+    fontSize: 12,
+    lineHeight: 17,
+  },
+
+  menuBannerArrow: {
+    color: '#000000',
+    fontSize: 22,
+    fontWeight: '700',
+    paddingHorizontal: 4,
   },
 
   pressed: {

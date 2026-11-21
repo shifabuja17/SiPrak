@@ -12,11 +12,11 @@ import { useAuth } from '@/context/AuthContext';
 import { usePracticum } from '@/context/PracticumContext';
 
 export default function HeaderProfileBar() {
-  const { profile, logout } = useAuth();
+  const { user, profile, logout } = useAuth();
   const { currentUser } = usePracticum();
   const [loggingOut, setLoggingOut] = useState(false);
 
-  const isFirebaseAuthenticated = profile !== null;
+  const isFirebaseAuthenticated = Boolean(user || profile);
   const displayName = profile ? profile.nama : currentUser.nama;
   const roleLabel = profile
     ? profile.role === 'asisten'
@@ -28,9 +28,12 @@ export default function HeaderProfileBar() {
   const displayNim = (profile ? profile.nim : currentUser.nim) ?? '-';
 
   function confirmLogout() {
-    // Alert.alert tidak berfungsi di react-native-web, jadi web memakai window.confirm.
     if (Platform.OS === 'web') {
-      if (window.confirm('Yakin ingin keluar dari akun ini?')) {
+      const confirmed =
+        typeof window !== 'undefined' && typeof window.confirm === 'function'
+          ? window.confirm('Yakin ingin keluar dari akun ini?')
+          : true;
+      if (confirmed) {
         void handleLogout();
       }
       return;
@@ -50,8 +53,12 @@ export default function HeaderProfileBar() {
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Terjadi kesalahan saat logout.';
-      if (Platform.OS === 'web') {
-        window.alert(`Gagal keluar: ${message}`);
+      if (
+        Platform.OS === 'web' &&
+        typeof window !== 'undefined' &&
+        typeof window.alert === 'function'
+      ) {
+        window.alert(message);
       } else {
         Alert.alert('Gagal keluar', message);
       }

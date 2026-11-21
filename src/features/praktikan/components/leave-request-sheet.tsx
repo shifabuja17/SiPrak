@@ -28,6 +28,7 @@ import {
   LEAVE_REASON_MIN_LENGTH,
   validateLeaveReason,
 } from '@/features/praktikan/utils/leave-validation';
+import { FONT } from '@/constants/fonts';
 
 export interface LeaveRequestSheetProps {
   visible: boolean;
@@ -530,11 +531,12 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   title: {
+    fontFamily: FONT.extrabold,
     color: '#000000',
     fontSize: 20,
-    fontWeight: '800',
   },
   subtitle: {
+    fontFamily: FONT.regular,
     color: '#666666',
     fontSize: 13,
     lineHeight: 19,
@@ -550,28 +552,31 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   sectionLabel: {
+    fontFamily: FONT.bold,
     color: '#000000',
     fontSize: 13,
-    fontWeight: '700',
   },
   sessionInfoBox: {
-    backgroundColor: '#F2F2F2',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#8E8E93',
+    borderWidth: 1,
     borderRadius: 12,
     gap: 4,
     padding: 12,
   },
   sessionName: {
+    fontFamily: FONT.bold,
     color: '#000000',
     fontSize: 14,
-    fontWeight: '700',
   },
   sessionModule: {
+    fontFamily: FONT.semibold,
     color: '#404040',
     fontSize: 13,
-    fontWeight: '600',
     lineHeight: 19,
   },
   sessionMeta: {
+    fontFamily: FONT.regular,
     color: '#666666',
     fontSize: 12,
     lineHeight: 18,
@@ -608,19 +613,21 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   sessionOptionName: {
+    fontFamily: FONT.bold,
     color: '#000000',
     fontSize: 14,
-    fontWeight: '700',
   },
   sessionOptionTextMuted: {
     color: '#525252',
   },
   sessionOptionModule: {
+    fontFamily: FONT.regular,
     color: '#404040',
     fontSize: 13,
     lineHeight: 18,
   },
   sessionOptionSchedule: {
+    fontFamily: FONT.regular,
     color: '#666666',
     fontSize: 12,
   },
@@ -654,29 +661,34 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   blockTagText: {
+    fontFamily: FONT.bold,
     color: '#404040',
     fontSize: 11,
-    fontWeight: '700',
   },
   emptySessionsBox: {
-    backgroundColor: '#F2F2F2',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#8E8E93',
+    borderWidth: 1,
     borderRadius: 12,
     padding: 14,
   },
   emptySessionsText: {
+    fontFamily: FONT.regular,
     color: '#666666',
     fontSize: 13,
     lineHeight: 19,
   },
   blockedNoticeBox: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#E00000',
+    borderColor: '#E00000',
+    borderWidth: 1,
     borderRadius: 12,
     padding: 12,
   },
   blockedNoticeText: {
-    color: '#B45309',
+    fontFamily: FONT.semibold,
+    color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: '600',
     lineHeight: 18,
   },
   inputSection: {
@@ -688,14 +700,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   counterText: {
+    fontFamily: FONT.semibold,
     color: '#666666',
     fontSize: 12,
-    fontWeight: '600',
   },
   counterTextError: {
-    color: '#B91C1C',
+    color: '#E00000',
   },
   textArea: {
+    fontFamily: FONT.regular,
     backgroundColor: '#FFFFFF',
     borderColor: '#BFBFBF',
     borderRadius: 12,
@@ -707,46 +720,48 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   textAreaError: {
-    borderColor: '#B91C1C',
+    borderColor: '#E00000',
   },
   textAreaDisabled: {
     backgroundColor: '#F5F5F5',
     color: '#737373',
   },
   helperText: {
+    fontFamily: FONT.regular,
     color: '#666666',
     fontSize: 12,
   },
   aiNoticeBox: {
-    backgroundColor: '#F5F5F5',
-    borderColor: '#E5E5E5',
-    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#8E8E93',
     borderWidth: 1,
+    borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
   aiNoticeText: {
+    fontFamily: FONT.regular,
     color: '#404040',
     fontSize: 12,
     lineHeight: 17,
   },
   inlineErrorText: {
-    color: '#B91C1C',
+    fontFamily: FONT.semibold,
+    color: '#E00000',
     fontSize: 12,
-    fontWeight: '600',
     lineHeight: 17,
   },
   submitErrorBox: {
-    backgroundColor: '#FEE2E2',
-    borderColor: '#FCA5A5',
+    backgroundColor: '#E00000',
+    borderColor: '#E00000',
     borderRadius: 10,
     borderWidth: 1,
     padding: 10,
   },
   submitErrorText: {
-    color: '#B91C1C',
+    fontFamily: FONT.semibold,
+    color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: '600',
     lineHeight: 18,
   },
   actions: {
@@ -764,9 +779,9 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   cancelText: {
+    fontFamily: FONT.bold,
     color: '#000000',
     fontSize: 14,
-    fontWeight: '700',
   },
   submitButton: {
     alignItems: 'center',
@@ -786,12 +801,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   submitText: {
+    fontFamily: FONT.bold,
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '700',
     textAlign: 'center',
   },
   submittingText: {
+    fontFamily: FONT.regular,
     flexShrink: 1,
     fontSize: 12,
     lineHeight: 16,

@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import type { LeaveRequestStatus } from '@/features/praktikan/types';
+import { FONT } from '@/constants/fonts';
 
 interface LeaveStatusBadgeProps {
   status: LeaveRequestStatus;
@@ -15,18 +16,18 @@ interface LeaveBadgeVisualConfig {
 const LEAVE_STATUS_CONFIG: Record<LeaveRequestStatus, LeaveBadgeVisualConfig> = {
   menunggu: {
     label: 'MENUNGGU',
-    background: '#FEF3C7',
-    color: '#B45309',
+    background: '#F4F4F5',
+    color: '#111014',
   },
   diterima: {
     label: 'DITERIMA',
-    background: '#DCFCE7',
-    color: '#15803D',
+    background: '#111014',
+    color: '#FFFFFF',
   },
   ditolak: {
     label: 'DITOLAK',
-    background: '#FEE2E2',
-    color: '#B91C1C',
+    background: '#E00000',
+    color: '#FFFFFF',
   },
 };
 
@@ -55,8 +56,8 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   label: {
+    fontFamily: FONT.bold,
     fontSize: 11,
-    fontWeight: '700',
     letterSpacing: 0.3,
   },
 });

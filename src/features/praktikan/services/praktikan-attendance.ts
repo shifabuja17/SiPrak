@@ -14,8 +14,11 @@ import {
   readString,
   toDateOrNull,
 } from '@/features/praktikan/services/firestore-helpers';
-import { getLaboratory } from '@/features/location/services/laboratory-service';
-import type { DeviceCoordinates, Laboratory } from '@/features/location/types';
+import {
+  getLaboratoryById,
+  type LaboratoryLocation,
+} from '@/features/assistant/services/laboratory-service';
+import type { DeviceCoordinates } from '@/features/location/types';
 import {
   checkWithinRadius,
   formatDistance,
@@ -34,7 +37,7 @@ export interface SubmitPraktikanAttendanceInput {
 }
 
 export interface SubmitPraktikanAttendanceResult {
-  lab: Laboratory;
+  lab: LaboratoryLocation;
   check: RadiusCheckResult;
 }
 
@@ -315,19 +318,23 @@ export async function submitPraktikanAttendance({
     );
   }
 
-  let lab: Laboratory;
+  // Titik lokasi dikelola modul Laboratorium (P2) di `laboratories/{labId}`.
+  let lab: LaboratoryLocation | null;
   try {
-    lab = await getLaboratory(labId);
+    lab = await getLaboratoryById(labId);
   } catch (err) {
-    throw err instanceof Error && !(err as { code?: string }).code
-      ? err
-      : mapPraktikanFirestoreError(err);
+    throw err instanceof Error ? err : mapPraktikanFirestoreError(err);
+  }
+  if (!lab) {
+    throw new Error(
+      'Koordinat titik lokasi sesi ini belum diatur Asisten. Presensi belum dapat dilakukan.',
+    );
   }
 
   const check = checkWithinRadius(location, lab, lab.radius);
   if (!check.withinRadius) {
     throw new Error(
-      `Kamu berada ${formatDistance(check.distance)} dari ${lab.nama}, di luar radius presensi ${formatDistance(lab.radius)}.`,
+      `Kamu berada ${formatDistance(check.distance)} dari ${lab.name}, di luar radius presensi ${formatDistance(lab.radius)}.`,
     );
   }
 

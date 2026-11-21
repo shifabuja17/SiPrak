@@ -89,11 +89,11 @@ function mapClassDoc(id: string, data: DocumentData): PraktikanClass {
     id,
     practicumName: readString(data.practicumName),
     className: readString(data.className),
-    name: readString(data.name),
-    code: readString(data.code),
+    name: readString(data.name) ?? readString(data.nama),
+    code: readString(data.code) ?? readString(data.kode),
     classRoom: readString(data.classRoom),
     room: readString(data.room),
-    description: readString(data.description),
+    description: readString(data.description) ?? readString(data.deskripsi),
     createdAt: toDateOrNull(data.createdAt),
   };
 }

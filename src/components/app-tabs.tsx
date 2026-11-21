@@ -1,50 +1,166 @@
+import { router, usePathname, type Href } from 'expo-router';
+import { TabList, TabSlot, TabTrigger, Tabs, type TabTriggerSlotProps } from 'expo-router/ui';
+import type { ReactNode } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
-import { NativeTabs } from 'expo-router/unstable-native-tabs';
-import { useColorScheme } from 'react-native';
+const INK = '#111014';
+const ON_INK = '#FFFFFF';
 
-import { Colors } from '@/constants/theme';
+type IconName = 'home' | 'history' | 'leave' | 'map' | 'profile';
 
-export default function AppTabs() {
-  const scheme = useColorScheme();
-  const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
-
+function TabIcon({ name, color }: { name: IconName; color: string }) {
+  const stroke = { stroke: color, strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
   return (
-    <NativeTabs
-      backgroundColor={colors.background}
-      indicatorColor={colors.backgroundElement}
-      labelStyle={{
-        selected: { color: colors.text },
-      }}
-    >
-      <NativeTabs.Trigger name="schedule">
-        <NativeTabs.Trigger.Label>
-          Jadwal
-        </NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          src={require('@/assets/images/tabIcons/home.png')}
-          renderingMode="template"
-        />
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="explore">
-        <NativeTabs.Trigger.Label>
-          Riwayat
-        </NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          src={require('@/assets/images/tabIcons/explore.png')}
-          renderingMode="template"
-        />
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="leave">
-        <NativeTabs.Trigger.Label>
-          Izin
-        </NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          sf={{ default: 'doc.text', selected: 'doc.text.fill' }}
-          md="event_note"
-        />
-      </NativeTabs.Trigger>
-    </NativeTabs>
+    <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+      {name === 'home' ? (
+        <Path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1v-8.5Z" {...stroke} />
+      ) : null}
+      {name === 'history' ? (
+        <>
+          <Circle cx={12} cy={12} r={8} {...stroke} />
+          <Path d="M12 7.5V12l3 2" {...stroke} />
+        </>
+      ) : null}
+      {name === 'leave' ? (
+        <>
+          <Rect x={5} y={3.5} width={14} height={17} rx={2.5} {...stroke} />
+          <Path d="M8.5 9h7M8.5 12.5h7M8.5 16h4" {...stroke} />
+        </>
+      ) : null}
+      {name === 'map' ? (
+        <>
+          <Path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z" {...stroke} />
+          <Circle cx={12} cy={10} r={2.4} {...stroke} />
+        </>
+      ) : null}
+      {name === 'profile' ? (
+        <>
+          <Circle cx={12} cy={8.5} r={3.5} {...stroke} />
+          <Path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5" {...stroke} />
+        </>
+      ) : null}
+    </Svg>
   );
 }
+
+type TabButtonProps = TabTriggerSlotProps & { icon: IconName; label: string; path: string };
+
+/** Tombol di dalam pill; tab aktif tampil sebagai lingkaran putih. */
+// `ref` dari TabTrigger tidak diteruskan: tipenya tidak cocok dengan Pressable dan tombol ini tidak membutuhkannya.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function TabButton({ icon, label, path, isFocused: _isFocused, ref: _ref, ...props }: TabButtonProps) {
+  // Tab aktif ditentukan dari URL; `isFocused` bawaan TabTrigger tidak selalu akurat.
+  const pathname = usePathname();
+  const isFocused = pathname === path || pathname.startsWith(`${path}/`);
+  return (
+    <Pressable
+      {...props}
+      onPress={() => {
+        if (!isFocused) router.navigate(path as Href);
+      }}
+      accessibilityRole="tab"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: Boolean(isFocused) }}
+      // Style berupa array biasa (bukan fungsi): TabTrigger `asChild` menggabungkan style
+      // dan style berbentuk fungsi akan terbuang di proses itu.
+      style={[styles.item, isFocused && styles.itemActive]}
+    >
+      <TabIcon name={icon} color={isFocused ? INK : ON_INK} />
+    </Pressable>
+  );
+}
+
+function Pill({ children }: { children: ReactNode }) {
+  const insets = useSafeAreaInsets();
+  return (
+    // Melayang di atas konten: area di sekitar pill transparan dan tidak menangkap sentuhan.
+    <View
+      pointerEvents="box-none"
+      style={[styles.barArea, { paddingBottom: Math.max(insets.bottom, 12) }]}
+    >
+      <View style={styles.pill}>{children}</View>
+    </View>
+  );
+}
+
+/**
+ * Tab bar Praktikan: pill gelap melayang dengan ikon, tab aktif berupa lingkaran putih.
+ * Dipakai di semua platform (native & web).
+ */
+export default function AppTabs() {
+  return (
+    <Tabs style={styles.root}>
+      <TabSlot style={styles.slot} />
+      <Pill>
+        <TabList style={styles.tabList}>
+          <TabTrigger name="schedule" href="/schedule" asChild>
+            <TabButton icon="home" label="Jadwal" path="/schedule" />
+          </TabTrigger>
+          <TabTrigger name="explore" href="/explore" asChild>
+            <TabButton icon="history" label="Riwayat" path="/explore" />
+          </TabTrigger>
+          <TabTrigger name="leave" href="/leave" asChild>
+            <TabButton icon="leave" label="Izin" path="/leave" />
+          </TabTrigger>
+          {/* Peta laboratorium (FR-13 s.d. FR-16) adalah halaman terpisah, bukan tab: dibuka di atas tab. */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Peta laboratorium"
+            onPress={() => router.push('/maps')}
+            style={({ pressed }) => [styles.item, pressed && styles.pressed]}
+          >
+            <TabIcon name="map" color={ON_INK} />
+          </Pressable>
+          <TabTrigger name="profile" href="/profile" asChild>
+            <TabButton icon="profile" label="Profil" path="/profile" />
+          </TabTrigger>
+        </TabList>
+      </Pill>
+    </Tabs>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: {
+    backgroundColor: '#FFFFFF',
+    flex: 1,
+  },
+  slot: {
+    flex: 1,
+  },
+  barArea: {
+    bottom: 0,
+    left: 0,
+    paddingHorizontal: 20,
+    position: 'absolute',
+    right: 0,
+  },
+  pill: {
+    alignItems: 'center',
+    backgroundColor: INK,
+    borderRadius: 40,
+    flexDirection: 'row',
+    padding: 6,
+  },
+  // space-between + padding pill 6 -> jarak lingkaran ke tepi kiri/kanan sama dengan ke atas/bawah.
+  tabList: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  item: {
+    alignItems: 'center',
+    borderRadius: 30,
+    height: 60,
+    justifyContent: 'center',
+    width: 60,
+  },
+  itemActive: {
+    backgroundColor: ON_INK,
+  },
+  pressed: {
+    opacity: 0.7,
+  },
+});

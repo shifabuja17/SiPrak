@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import BackButton from '@/components/common/BackButton';
 import StatusBadge, {
   type StatusBadgeStatus,
 } from '@/components/common/StatusBadge';
@@ -39,6 +40,9 @@ import {
   formatMeetingTitle,
 } from '@/features/praktikan/utils/format';
 import { showLeaveSubmitSuccessAlert } from '@/features/praktikan/utils/leave-feedback';
+import { BackLink, Chip, Tile, UI, classColor } from '@/features/praktikan/ui/praktikan-ui';
+import { formatClock, formatSessionDate } from '@/utils/session-time';
+import { FONT } from '@/constants/fonts';
 
 export default function SessionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -218,14 +222,7 @@ function PraktikanSessionDetail({
           />
         ) : null}
 
-        <SessionOverview
-          practicumName={session.practicumName}
-          status={session.status}
-          moduleTitle={session.moduleTitle}
-          classRoom={session.classRoom}
-          scheduleTime={session.scheduleTime}
-          sessionNote={session.sessionNote}
-        />
+        <SessionHero session={session} />
 
         <PraktikanAttendanceSection session={session} />
 
@@ -536,6 +533,48 @@ function AssistantSessionDetail({
   );
 }
 
+/** Ringkasan sesi untuk Praktikan dengan gaya kartu Beranda (warna per kelas). */
+function SessionHero({ session }: { session: PraktikanSession }) {
+  const statusLabel =
+    session.status === 'dibuka'
+      ? 'Berlangsung'
+      : session.status === 'ditutup'
+        ? 'Selesai'
+        : 'Belum dibuka';
+  const range =
+    session.waktuMulai && session.waktuSelesai
+      ? `${formatClock(session.waktuMulai)} - ${formatClock(session.waktuSelesai)} WIB`
+      : null;
+
+  return (
+    <>
+      <BackLink label="Kembali" onPress={() => router.back()} />
+      <Tile color={classColor(session.classId ?? session.practicumName)}>
+        <Chip label={statusLabel} tone={session.status === 'dibuka' ? 'solid' : 'neutral'} />
+        <Text style={styles.heroTitle}>{session.practicumName}</Text>
+        <Text style={styles.heroModule}>{formatMeetingTitle(session.moduleTitle)}</Text>
+        <View style={styles.heroMeta}>
+          {session.waktuMulai ? (
+            <>
+              <Text style={styles.heroMetaText}>{formatSessionDate(session.waktuMulai)}</Text>
+              {range ? <Text style={styles.heroMetaText}>{range}</Text> : null}
+            </>
+          ) : (
+            <Text style={styles.heroMetaText}>{session.scheduleTime}</Text>
+          )}
+          <Text style={styles.heroMetaText}>{session.classRoom}</Text>
+        </View>
+        {session.sessionNote ? (
+          <View style={styles.heroNote}>
+            <Text style={styles.heroNoteLabel}>Catatan Sesi</Text>
+            <Text style={styles.heroNoteText}>{session.sessionNote}</Text>
+          </View>
+        ) : null}
+      </Tile>
+    </>
+  );
+}
+
 function SessionOverview({
   practicumName,
   status,
@@ -553,12 +592,7 @@ function SessionOverview({
 }) {
   return (
     <>
-      <Pressable
-        onPress={() => router.back()}
-        style={styles.backButton}
-      >
-        <Text style={styles.backText}>‹ Kembali ke jadwal</Text>
-      </Pressable>
+      <BackButton label="Kembali ke jadwal" onPress={() => router.back()} />
 
       <View style={styles.titleBlock}>
         <Text style={styles.title}>{practicumName}</Text>
@@ -606,10 +640,49 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    gap: 22,
-    padding: 20,
-    paddingTop: 32,
+    gap: 20,
+    padding: UI.padding,
+    paddingTop: 16,
     paddingBottom: 40,
+  },
+  heroTitle: {
+    fontFamily: FONT.extrabold,
+    color: UI.onColor,
+    fontSize: 26,
+    letterSpacing: -0.5,
+    lineHeight: 30,
+  },
+  heroModule: {
+    fontFamily: FONT.regular,
+    color: UI.onColor,
+    fontSize: 15,
+  },
+  heroMeta: {
+    gap: 1,
+    marginTop: 4,
+  },
+  heroMetaText: {
+    fontFamily: FONT.regular,
+    color: UI.onColor,
+    fontSize: 14,
+  },
+  heroNote: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    gap: 3,
+    marginTop: 6,
+    padding: 12,
+  },
+  heroNoteLabel: {
+    fontFamily: FONT.bold,
+    color: UI.muted,
+    fontSize: 11,
+  },
+  heroNoteText: {
+    fontFamily: FONT.regular,
+    color: UI.ink,
+    fontSize: 14,
+    lineHeight: 20,
   },
   stateScreenPadding: {
     flex: 1,
@@ -622,22 +695,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 20,
   },
-  backButton: {
-    alignSelf: 'flex-start',
-    paddingVertical: 5,
-  },
-  backText: {
-    color: '#000000',
-    fontSize: 14,
-    fontWeight: '700',
-  },
   titleBlock: {
     gap: 10,
   },
   title: {
+    fontFamily: FONT.extrabold,
     color: '#000000',
     fontSize: 25,
-    fontWeight: '800',
     lineHeight: 32,
   },
   infoCard: {
@@ -657,50 +721,56 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
   infoLabel: {
+    fontFamily: FONT.semibold,
     color: '#666666',
     fontSize: 12,
-    fontWeight: '600',
   },
   infoValue: {
+    fontFamily: FONT.semibold,
     color: '#000000',
     fontSize: 14,
-    fontWeight: '600',
     lineHeight: 20,
   },
   primaryButton: {
     alignItems: 'center',
-    backgroundColor: '#000000',
-    borderRadius: 14,
-    padding: 16,
+    backgroundColor: UI.ink,
+    borderRadius: 999,
+    justifyContent: 'center',
+    minHeight: 50,
+    paddingHorizontal: 22,
   },
   primaryButtonText: {
+    fontFamily: FONT.bold,
     color: '#FFFFFF',
     fontSize: 15,
-    fontWeight: '700',
   },
   secondaryButton: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderColor: '#000000',
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 15,
+    borderColor: UI.ink,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    justifyContent: 'center',
+    minHeight: 50,
+    paddingHorizontal: 22,
   },
   secondaryButtonText: {
+    fontFamily: FONT.bold,
     color: '#000000',
     fontSize: 15,
-    fontWeight: '700',
   },
   notice: {
     alignItems: 'center',
-    backgroundColor: '#F2F2F2',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#8E8E93',
+    borderWidth: 1,
     borderRadius: 14,
     padding: 15,
   },
   noticeText: {
+    fontFamily: FONT.semibold,
     color: '#404040',
     fontSize: 14,
-    fontWeight: '600',
     lineHeight: 21,
     textAlign: 'center',
   },
@@ -718,19 +788,20 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   modalTitle: {
+    fontFamily: FONT.extrabold,
     color: '#000000',
     fontSize: 20,
-    fontWeight: '800',
   },
   modalDescription: {
+    fontFamily: FONT.regular,
     color: '#404040',
     fontSize: 14,
     lineHeight: 21,
   },
   inputLabel: {
+    fontFamily: FONT.bold,
     color: '#000000',
     fontSize: 13,
-    fontWeight: '700',
   },
   noteInput: {
     borderColor: '#BFBFBF',
@@ -754,9 +825,9 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   cancelButtonText: {
+    fontFamily: FONT.bold,
     color: '#000000',
     fontSize: 14,
-    fontWeight: '700',
   },
   confirmButton: {
     alignItems: 'center',
@@ -766,20 +837,20 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   confirmButtonText: {
+    fontFamily: FONT.bold,
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '700',
   },
   leaveSectionStack: {
     gap: 10,
   },
   leaveSummaryCard: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#D9D9D9',
-    borderRadius: 18,
+    backgroundColor: UI.page,
+    borderColor: UI.border,
     borderWidth: 1,
+    borderRadius: UI.radiusCard,
     gap: 10,
-    padding: 16,
+    padding: 18,
   },
   leaveSummaryHeader: {
     alignItems: 'center',
@@ -788,59 +859,61 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   leaveSummaryTitle: {
+    fontFamily: FONT.bold,
     color: '#000000',
     flex: 1,
     fontSize: 15,
-    fontWeight: '700',
   },
   leaveMetaText: {
+    fontFamily: FONT.semibold,
     color: '#666666',
     fontSize: 12,
-    fontWeight: '600',
   },
   leaveReasonBox: {
-    backgroundColor: '#F5F5F5',
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
     gap: 4,
     padding: 12,
   },
   leaveReasonLabel: {
+    fontFamily: FONT.bold,
     color: '#525252',
     fontSize: 12,
-    fontWeight: '700',
   },
   leaveReasonText: {
+    fontFamily: FONT.regular,
     color: '#171717',
     fontSize: 13,
     lineHeight: 19,
   },
   leaveNoteBox: {
-    borderRadius: 12,
+    borderRadius: 18,
     borderWidth: 1,
     gap: 4,
     padding: 12,
   },
   leaveNoteAccepted: {
-    backgroundColor: '#DCFCE7',
-    borderColor: '#86EFAC',
+    backgroundColor: '#F47321',
+    borderColor: '#F47321',
   },
   leaveNoteRejected: {
-    backgroundColor: '#FEE2E2',
-    borderColor: '#FCA5A5',
+    backgroundColor: '#E00000',
+    borderColor: '#E00000',
   },
   leaveNoteLabel: {
+    fontFamily: FONT.bold,
     fontSize: 12,
-    fontWeight: '700',
   },
   leaveNoteText: {
+    fontFamily: FONT.regular,
     fontSize: 13,
     lineHeight: 19,
   },
   leaveNoteTextAccepted: {
-    color: '#166534',
+    color: '#FFFFFF',
   },
   leaveNoteTextRejected: {
-    color: '#991B1B',
+    color: '#FFFFFF',
   },
   pressed: {
     opacity: 0.65,

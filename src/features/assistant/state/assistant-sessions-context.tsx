@@ -28,6 +28,11 @@ import {
   type SessionAttendanceRecap,
 } from '../services/attendance-service';
 
+import {
+  subscribeLaboratories,
+  type LaboratoryLocation,
+} from '../services/laboratory-service';
+
 // ==========================================
 // TIPE CONTEXT
 // ==========================================
@@ -73,6 +78,11 @@ export function AssistantSessionsProvider({
     Record<string, SessionAttendanceRecap[]>
   >({});
 
+  // DATA LOKASI LABORATORIUM REAL-TIME
+  const [laboratoriesById, setLaboratoriesById] = useState<
+    Record<string, LaboratoryLocation>
+  >({});
+
   // ========================================
   // MENDENGARKAN DATA SESI DAN PRESENSI
   // ========================================
@@ -87,6 +97,7 @@ export function AssistantSessionsProvider({
     if (!userId || !isAssistant) {
       setSessionRecords([]);
       setAttendanceBySession({});
+      setLaboratoriesById({});
       return;
     }
 
@@ -103,6 +114,23 @@ export function AssistantSessionsProvider({
 
     setSessionRecords([]);
     setAttendanceBySession({});
+    setLaboratoriesById({});
+
+    const unsubscribeLaboratories = subscribeLaboratories(
+      (labs) => {
+        if (!isActive) return;
+
+        const nextMap: Record<string, LaboratoryLocation> = {};
+        labs.forEach((lab) => {
+          nextMap[lab.id] = lab;
+        });
+        setLaboratoriesById(nextMap);
+      },
+      (error) => {
+        if (!isActive) return;
+        console.error('Gagal mengambil daftar laboratorium:', error);
+      },
+    );
 
     // ======================================
     // LISTENER DAFTAR SESI
@@ -208,6 +236,7 @@ export function AssistantSessionsProvider({
     return () => {
       isActive = false;
 
+      unsubscribeLaboratories();
       unsubscribeSessions();
 
       attendanceListeners.forEach((listener) => {
@@ -236,11 +265,22 @@ export function AssistantSessionsProvider({
             waktu: item.waktu ?? '-',
           }));
 
+      const linkedLab = session.labId
+        ? laboratoriesById[session.labId]
+        : undefined;
+      const resolvedLabName =
+        linkedLab?.name ?? session.labName ?? null;
+      const displayLocation =
+        resolvedLabName || session.classRoom || '-';
+
       return {
         id: session.id,
         practicumName: session.practicumName,
         moduleTitle: session.moduleTitle,
-        classRoom: session.classRoom,
+        classRoom: displayLocation,
+        labId: session.labId ?? null,
+        labName: resolvedLabName,
+        labRadius: linkedLab?.radius ?? null,
         scheduleTime: session.waktuMulai
           ? formatSessionTimeRange(session.waktuMulai, session.waktuSelesai)
           : session.scheduleTime,
@@ -249,7 +289,7 @@ export function AssistantSessionsProvider({
         attendances,
       };
     });
-  }, [sessionRecords, attendanceBySession]);
+  }, [sessionRecords, attendanceBySession, laboratoriesById]);
 
   // ========================================
   // MEMBUKA SESI

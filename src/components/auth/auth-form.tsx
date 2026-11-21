@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { FONT } from '@/constants/fonts';
 
 /** Kerangka layar login/registrasi: logo SiPrak, judul, dan konten form. */
 export function AuthShell({
@@ -176,16 +177,17 @@ const styles = StyleSheet.create({
     width: 58,
   },
   logoText: {
+    fontFamily: FONT.extrabold,
     color: '#FFFFFF',
     fontSize: 29,
-    fontWeight: '800',
   },
   appName: {
+    fontFamily: FONT.extrabold,
     color: '#000000',
     fontSize: 25,
-    fontWeight: '800',
   },
   brandSubtitle: {
+    fontFamily: FONT.regular,
     color: '#666666',
     fontSize: 12,
   },
@@ -193,12 +195,13 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   title: {
+    fontFamily: FONT.extrabold,
     color: '#000000',
     fontSize: 25,
-    fontWeight: '800',
     textAlign: 'center',
   },
   subtitle: {
+    fontFamily: FONT.regular,
     color: '#666666',
     fontSize: 12,
     lineHeight: 21,
@@ -208,11 +211,12 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   label: {
+    fontFamily: FONT.bold,
     color: '#000000',
     fontSize: 13,
-    fontWeight: '700',
   },
   input: {
+    fontFamily: FONT.regular,
     backgroundColor: '#FFFFFF',
     borderColor: '#D9D9D9',
     borderRadius: 14,
@@ -230,6 +234,7 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   errorText: {
+    fontFamily: FONT.regular,
     color: '#000000',
     fontSize: 12,
     lineHeight: 18,
@@ -253,8 +258,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#999999',
   },
   buttonText: {
+    fontFamily: FONT.bold,
     fontSize: 14,
-    fontWeight: '700',
   },
   buttonTextPrimary: {
     color: '#FFFFFF',
@@ -268,13 +273,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   linkPrompt: {
+    fontFamily: FONT.regular,
     color: '#666666',
     fontSize: 12,
   },
   linkAction: {
+    fontFamily: FONT.extrabold,
     color: '#000000',
     fontSize: 12,
-    fontWeight: '800',
   },
   pressed: {
     opacity: 0.65,

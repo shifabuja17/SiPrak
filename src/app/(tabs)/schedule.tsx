@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { useMemo } from 'react';
 import {
   FlatList,
@@ -25,47 +25,9 @@ import {
 } from '@/features/praktikan/components/praktikan-state-view';
 import { usePraktikanSessions } from '@/features/praktikan/hooks/use-praktikan-sessions';
 import { useMyAttendanceMap } from '@/features/praktikan/hooks/use-session-attendance';
-import type {
-  PraktikanSession,
-  SessionAttendanceDoc,
-} from '@/features/praktikan/types';
-import {
-  formatAttendanceTimeWIB,
-  formatMeetingTitle,
-} from '@/features/praktikan/utils/format';
-
-function getPersonalAttendanceSummary(
-  session: PraktikanSession,
-  attendance: SessionAttendanceDoc | null | undefined,
-  attendanceLoading: boolean,
-  attendanceError: string | null,
-): { text: string; tone: 'present' | 'open' | 'absent' | 'neutral' } {
-  if (attendance) {
-    const timeLabel = formatAttendanceTimeWIB(attendance.waktu);
-    return {
-      text: timeLabel ? `Sudah presensi · ${timeLabel}` : 'Sudah presensi',
-      tone: 'present',
-    };
-  }
-
-  if (attendanceLoading) {
-    return { text: 'Memeriksa presensi...', tone: 'neutral' };
-  }
-
-  if (attendanceError) {
-    return { text: 'Status presensi gagal dimuat', tone: 'neutral' };
-  }
-
-  if (session.status === 'dibuka') {
-    return { text: 'Belum presensi · Sesi dibuka', tone: 'open' };
-  }
-
-  if (session.status === 'ditutup') {
-    return { text: 'Tidak hadir', tone: 'absent' };
-  }
-
-  return { text: 'Sesi belum dibuka', tone: 'neutral' };
-}
+import PraktikanHome from '@/features/praktikan/components/praktikan-home';
+import { formatMeetingTitle } from '@/features/praktikan/utils/format';
+import { FONT } from '@/constants/fonts';
 
 export default function ScheduleScreen() {
   const {
@@ -114,7 +76,6 @@ function PraktikanScheduleList() {
 
   const {
     attendanceBySessionId,
-    loading: attendanceLoading,
     error: attendanceError,
     retry: retryAttendance,
   } = useMyAttendanceMap(sessionIds);
@@ -169,72 +130,34 @@ function PraktikanScheduleList() {
     );
   }
 
+  const banners =
+    !showFatalError && sessions.length > 0 && (sessionsError || attendanceError) ? (
+      <View style={styles.bannerStack}>
+        {sessionsError ? (
+          <PraktikanInlineErrorBanner
+            title="Gagal Memperbarui Jadwal"
+            message={sessionsError}
+            onRetry={retrySessions}
+          />
+        ) : null}
+
+        {attendanceError ? (
+          <PraktikanInlineErrorBanner
+            title="Gagal Memuat Status Presensi"
+            message={attendanceError}
+            onRetry={retryAttendance}
+          />
+        ) : null}
+      </View>
+    ) : null;
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" />
-
-      <FlatList
-        contentContainerStyle={styles.content}
-        data={showInitialLoading || showFatalError ? [] : sessions}
-        keyExtractor={(item) => item.id}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-        ListHeaderComponent={
-          <View style={styles.header}>
-            <Text style={styles.title}>Jadwal Praktikum</Text>
-
-            <Text style={styles.subtitle}>
-              Pantau jadwal sesi dan lakukan presensi saat sesi dibuka Asisten.
-            </Text>
-
-            <HeaderProfileBar />
-
-            {!showFatalError && sessions.length > 0 && (sessionsError || attendanceError) ? (
-              <View style={styles.bannerStack}>
-                {sessionsError ? (
-                  <PraktikanInlineErrorBanner
-                    title="Gagal Memperbarui Jadwal"
-                    message={sessionsError}
-                    onRetry={retrySessions}
-                  />
-                ) : null}
-
-                {attendanceError ? (
-                  <PraktikanInlineErrorBanner
-                    title="Gagal Memuat Status Presensi"
-                    message={attendanceError}
-                    onRetry={retryAttendance}
-                  />
-                ) : null}
-              </View>
-            ) : null}
-
-            <Text style={styles.sectionTitle}>Sesi Praktikum</Text>
-          </View>
-        }
-        renderItem={({ item }) => {
-          const summary = getPersonalAttendanceSummary(
-            item,
-            attendanceBySessionId[item.id],
-            attendanceLoading,
-            attendanceError,
-          );
-
-          return (
-            <ScheduleSessionCard
-              id={item.id}
-              practicumName={item.practicumName}
-              status={item.status}
-              moduleTitle={item.moduleTitle}
-              classRoom={item.classRoom}
-              scheduleTime={item.scheduleTime}
-              footerText={summary.text}
-              footerTone={summary.tone}
-            />
-          );
-        }}
-        ListEmptyComponent={renderEmptyState}
-      />
-    </SafeAreaView>
+    <PraktikanHome
+      sessions={showInitialLoading || showFatalError ? [] : sessions}
+      attendanceBySessionId={attendanceBySessionId}
+      banners={banners}
+      emptyState={renderEmptyState()}
+    />
   );
 }
 
@@ -264,6 +187,8 @@ function LegacyScheduleList() {
 
             <HeaderProfileBar />
 
+            <MapShortcutCard />
+
             <Text style={styles.sectionTitle}>Sesi Praktikum</Text>
           </View>
         }
@@ -287,6 +212,25 @@ function LegacyScheduleList() {
         }
       />
     </SafeAreaView>
+  );
+}
+
+function MapShortcutCard() {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={() => router.push('/maps' as Href)}
+      style={({ pressed }) => [styles.mapShortcutCard, pressed && styles.pressed]}
+    >
+      <View style={styles.mapShortcutTextGroup}>
+        <Text style={styles.mapShortcutTitle}>Peta Lokasi Laboratorium</Text>
+        <Text style={styles.mapShortcutSubtitle}>
+          Lihat posisi marker & radius area presensi 4 lab praktikum
+        </Text>
+      </View>
+
+      <Text style={styles.mapShortcutArrow}>›</Text>
+    </Pressable>
   );
 }
 
@@ -374,12 +318,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   title: {
+    fontFamily: FONT.extrabold,
     color: '#000000',
     fontSize: 28,
-    fontWeight: '800',
     marginTop: 5,
   },
   subtitle: {
+    fontFamily: FONT.regular,
     color: '#666666',
     fontSize: 14,
     lineHeight: 21,
@@ -389,10 +334,43 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   sectionTitle: {
+    fontFamily: FONT.bold,
     color: '#000000',
     fontSize: 18,
-    fontWeight: '700',
     marginTop: 16,
+  },
+  mapShortcutCard: {
+    alignItems: 'center',
+    backgroundColor: '#F2F2F5',
+    borderColor: '#D9D9D9',
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'space-between',
+    marginTop: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+  },
+  mapShortcutTextGroup: {
+    flex: 1,
+    gap: 2,
+  },
+  mapShortcutTitle: {
+    fontFamily: FONT.bold,
+    color: '#000000',
+    fontSize: 14,
+  },
+  mapShortcutSubtitle: {
+    fontFamily: FONT.regular,
+    color: '#555555',
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  mapShortcutArrow: {
+    fontFamily: FONT.bold,
+    color: '#000000',
+    fontSize: 22,
   },
   separator: {
     height: 12,
@@ -415,16 +393,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   sessionName: {
+    fontFamily: FONT.bold,
     color: '#000000',
     flex: 1,
     fontSize: 17,
-    fontWeight: '700',
     lineHeight: 23,
   },
   module: {
+    fontFamily: FONT.semibold,
     color: '#404040',
     fontSize: 14,
-    fontWeight: '600',
     lineHeight: 20,
   },
   metadata: {
@@ -434,10 +412,12 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   metadataLabel: {
+    fontFamily: FONT.regular,
     color: '#666666',
     fontSize: 12,
   },
   metadataValue: {
+    fontFamily: FONT.regular,
     color: '#404040',
     fontSize: 13,
     lineHeight: 19,
@@ -452,10 +432,10 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   attendance: {
+    fontFamily: FONT.semibold,
     color: '#404040',
     flex: 1,
     fontSize: 13,
-    fontWeight: '600',
   },
   attendancePresent: {
     color: '#15803D',
@@ -467,8 +447,8 @@ const styles = StyleSheet.create({
     color: '#B91C1C',
   },
   detailText: {
+    fontFamily: FONT.bold,
     color: '#000000',
     fontSize: 12,
-    fontWeight: '700',
   },
 });

@@ -20,7 +20,9 @@ export function SessionCard({ session, onPress }: SessionCardProps) {
       <View style={styles.metadata}>
         <View style={styles.metadataRow}>
           <SessionMetadataIcon type="location" />
-          <Text style={styles.metaText}>{session.classRoom}</Text>
+          <Text style={styles.metaText}>
+            {session.labName || session.classRoom || '-'}
+          </Text>
         </View>
         <View style={styles.metadataRow}>
           <SessionMetadataIcon type="time" />

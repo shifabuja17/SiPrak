@@ -11,6 +11,7 @@ import { PraktikanInlineErrorBanner } from '@/features/praktikan/components/prak
 import { useSessionAttendance } from '@/features/praktikan/hooks/use-session-attendance';
 import type { PraktikanSession } from '@/features/praktikan/types';
 import { formatAttendanceTimeWIB } from '@/features/praktikan/utils/format';
+import { FONT } from '@/constants/fonts';
 
 type ButtonVariant = 'ACTIVE' | 'DISABLED' | 'SUCCESS';
 
@@ -160,19 +161,19 @@ const styles = StyleSheet.create({
   },
   button: {
     alignItems: 'center',
-    borderRadius: 14,
-    padding: 16,
+    borderRadius: 999,
+    justifyContent: 'center',
+    minHeight: 52,
+    paddingHorizontal: 22,
   },
   buttonActive: {
-    backgroundColor: '#000000',
+    backgroundColor: '#111014',
   },
   buttonDisabled: {
     backgroundColor: '#E5E5E5',
   },
   buttonSuccess: {
-    backgroundColor: '#DCFCE7',
-    borderColor: '#15803D',
-    borderWidth: 1,
+    backgroundColor: '#111014',
   },
   buttonLoadingRow: {
     alignItems: 'center',
@@ -180,8 +181,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   buttonText: {
+    fontFamily: FONT.bold,
     fontSize: 15,
-    fontWeight: '700',
     lineHeight: 21,
     textAlign: 'center',
   },
@@ -192,7 +193,7 @@ const styles = StyleSheet.create({
     color: '#666666',
   },
   buttonTextSuccess: {
-    color: '#15803D',
+    color: '#FFFFFF',
   },
   pressed: {
     opacity: 0.65,

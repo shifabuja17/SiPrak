@@ -1,17 +1,3 @@
-/**
- * Kontrak data titik lokasi praktikum di `laboratories/{labId}` (disepakati P1 & P2, Sprint 3).
- * Data dikelola Asisten lewat modul P2; modul presensi P1 hanya membaca.
- */
-export interface Laboratory {
-  id: string;
-  nama: string;
-  gedung: string | null;
-  latitude: number;
-  longitude: number;
-  /** Radius presensi dalam meter. */
-  radius: number;
-}
-
 export interface DeviceCoordinates {
   latitude: number;
   longitude: number;

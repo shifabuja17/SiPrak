@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
+import { FONT } from '@/constants/fonts';
 
 export interface LeaveAiInfoBoxProps {
   kategoriAI?: string | null;
@@ -38,37 +39,38 @@ export function LeaveAiInfoBox({ kategoriAI }: LeaveAiInfoBoxProps) {
 
 const styles = StyleSheet.create({
   aiBadgeBox: {
-    backgroundColor: '#EEF2FF',
-    borderColor: '#C7D2FE',
-    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#8E8E93',
+    borderRadius: 14,
     borderWidth: 1,
     gap: 4,
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
   aiBadgeText: {
-    color: '#3730A3',
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 12,
-    fontWeight: '700',
     lineHeight: 17,
   },
   aiHelperText: {
-    color: '#4338CA',
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
     fontSize: 11,
     lineHeight: 16,
   },
   aiUnavailableBox: {
-    backgroundColor: '#F5F5F5',
-    borderColor: '#E5E5E5',
-    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#8E8E93',
+    borderRadius: 14,
     borderWidth: 1,
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
   aiUnavailableText: {
+    fontFamily: FONT.semibold,
     color: '#525252',
     fontSize: 12,
-    fontWeight: '600',
     lineHeight: 17,
   },
 });
