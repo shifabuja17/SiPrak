@@ -367,7 +367,7 @@ export default function AssistantLaboratoriesScreen() {
               styles.openMapButton,
               pressed && styles.pressed,
             ]}
-            onPress={() => router.push('/maps' as Href)}
+            onPress={() => router.navigate('/assistant/maps' as Href)}
           >
             <Text style={styles.openMapButtonText}>
               Lihat 4 Lokasi di Peta
@@ -516,7 +516,7 @@ export default function AssistantLaboratoriesScreen() {
       >
         <KeyboardAvoidingView
           style={styles.modalKeyboard}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior="padding"
         >
           <View style={styles.modalBackdrop}>
             <Pressable

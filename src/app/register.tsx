@@ -1,6 +1,5 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Text } from 'react-native';
 
 import {
   AuthButton,
@@ -57,7 +56,7 @@ export default function RegisterScreen() {
 
   return (
     <AuthShell
-      title="Buat Akun"
+      title="Daftar Akun"
       subtitle="Daftar sebagai praktikan untuk mengikuti kegiatan praktikum."
     >
       <AuthField
@@ -122,15 +121,9 @@ export default function RegisterScreen() {
 
       <AuthLink
         prompt="Sudah punya akun?"
-        action="Masuk"
+        action="Lanjut masuk"
         onPress={() => router.replace('/login')}
       />
-
-      <Text
-        style={{ color: '#777777', fontSize: 12, textAlign: 'center' }}
-      >
-        Akun baru selalu berperan sebagai praktikan. Akun asisten diatur oleh admin.
-      </Text>
     </AuthShell>
   );
 }

@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   Alert,
+  KeyboardAvoidingView,
   Modal,
   Pressable,
   ScrollView,
@@ -40,7 +41,7 @@ import {
   formatMeetingTitle,
 } from '@/features/praktikan/utils/format';
 import { showLeaveSubmitSuccessAlert } from '@/features/praktikan/utils/leave-feedback';
-import { BackLink, Chip, Tile, UI, classColor } from '@/features/praktikan/ui/praktikan-ui';
+import { BackLink, Chip, classColor, MetaLine, Tile, UI } from '@/features/praktikan/ui/praktikan-ui';
 import { formatClock, formatSessionDate } from '@/utils/session-time';
 import { FONT } from '@/constants/fonts';
 
@@ -473,7 +474,8 @@ function AssistantSessionDetail({
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.modalBackdrop}>
+        {/* Kartu ikut naik di atas keyboard saat kolom catatan diisi. */}
+        <KeyboardAvoidingView behavior="padding" style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>
               {session.status === 'dijadwalkan'
@@ -527,7 +529,7 @@ function AssistantSessionDetail({
               </Pressable>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -556,13 +558,13 @@ function SessionHero({ session }: { session: PraktikanSession }) {
         <View style={styles.heroMeta}>
           {session.waktuMulai ? (
             <>
-              <Text style={styles.heroMetaText}>{formatSessionDate(session.waktuMulai)}</Text>
-              {range ? <Text style={styles.heroMetaText}>{range}</Text> : null}
+              <MetaLine icon="date" textStyle={styles.heroMetaText}>{formatSessionDate(session.waktuMulai)}</MetaLine>
+              {range ? <MetaLine icon="time" textStyle={styles.heroMetaText}>{range}</MetaLine> : null}
             </>
           ) : (
-            <Text style={styles.heroMetaText}>{session.scheduleTime}</Text>
+            <MetaLine icon="time" textStyle={styles.heroMetaText}>{session.scheduleTime}</MetaLine>
           )}
-          <Text style={styles.heroMetaText}>{session.classRoom}</Text>
+          <MetaLine icon="place" textStyle={styles.heroMetaText}>{session.classRoom}</MetaLine>
         </View>
         {session.sessionNote ? (
           <View style={styles.heroNote}>

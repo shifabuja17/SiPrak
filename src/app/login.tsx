@@ -1,6 +1,5 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Text } from 'react-native';
 
 import {
   AuthButton,
@@ -68,8 +67,8 @@ export default function LoginScreen() {
 
   return (
     <AuthShell
-      title="Selamat Datang!"
-      subtitle="Masuk dengan akun SiPrak untuk melanjutkan."
+      title="Selamat Datang di SiPrak"
+      subtitle="Silakan masuk untuk melanjutkan."
     >
       <AuthField
         label="Email"
@@ -104,15 +103,10 @@ export default function LoginScreen() {
 
       <AuthLink
         prompt="Belum punya akun?"
-        action="Daftar"
+        action="Daftar di sini"
         onPress={() => router.replace('/register')}
       />
 
-      <Text
-        style={{ color: '#777777', fontSize: 12, textAlign: 'center' }}
-      >
-        Peran (asisten/praktikan) mengikuti akun yang kamu gunakan.
-      </Text>
     </AuthShell>
   );
 }

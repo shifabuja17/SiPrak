@@ -20,11 +20,12 @@ import {
 } from '@/features/praktikan/utils/format';
 import {
   Chip,
+  classColor,
+  MetaLine,
   Screen,
   ScreenTitle,
   Tile,
   UI,
-  classColor,
 } from '@/features/praktikan/ui/praktikan-ui';
 import { formatClock, formatSessionDate } from '@/utils/session-time';
 import { FONT } from '@/constants/fonts';
@@ -193,13 +194,13 @@ function HistoryTile({ entry }: { entry: HistoryEntry }) {
       <View style={styles.tileMeta}>
         {session.waktuMulai ? (
           <>
-            <Text style={styles.tileMetaText}>{formatSessionDate(session.waktuMulai)}</Text>
-            {range ? <Text style={styles.tileMetaText}>{range}</Text> : null}
+            <MetaLine icon="date" textStyle={styles.tileMetaText}>{formatSessionDate(session.waktuMulai)}</MetaLine>
+            {range ? <MetaLine icon="time" textStyle={styles.tileMetaText}>{range}</MetaLine> : null}
           </>
         ) : (
-          <Text style={styles.tileMetaText}>{session.scheduleTime}</Text>
+          <MetaLine icon="time" textStyle={styles.tileMetaText}>{session.scheduleTime}</MetaLine>
         )}
-        <Text style={styles.tileMetaText}>{session.classRoom}</Text>
+        <MetaLine icon="place" textStyle={styles.tileMetaText}>{session.classRoom}</MetaLine>
       </View>
     </Tile>
   );

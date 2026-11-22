@@ -5,7 +5,6 @@ import {
   KeyboardAvoidingView,
   FlatList,
   Modal,
-  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -63,6 +62,8 @@ import { FONT } from '@/constants/fonts';
 interface SessionForm {
   scheduleId: string;
   labId: string;
+  /** Modul/materi pertemuan ini (berbeda tiap sesi, tidak disalin dari jadwal). */
+  moduleTitle: string;
   sessionNote: string;
   /** Tanggal pertemuan (bagian jam diabaikan). */
   tanggal: Date;
@@ -84,6 +85,7 @@ function createEmptyForm(): SessionForm {
   return {
     scheduleId: '',
     labId: '',
+    moduleTitle: '',
     sessionNote: '',
     ...timesFromSchedule(''),
   };
@@ -354,6 +356,7 @@ export default function AssistantSessionsScreen() {
     setForm({
       scheduleId: firstSchedule.id,
       labId: matchedLabId || (laboratories[0]?.id ?? ''),
+      moduleTitle: '',
       sessionNote: '',
       ...timesFromSchedule(firstSchedule.scheduleTime),
     });
@@ -401,6 +404,7 @@ export default function AssistantSessionsScreen() {
     setForm({
       scheduleId: item.scheduleId,
       labId: resolvedLabId,
+      moduleTitle: item.moduleTitle || '',
       sessionNote: item.sessionNote || '',
       ...(item.waktuMulai && item.waktuSelesai
         ? {
@@ -457,6 +461,11 @@ export default function AssistantSessionsScreen() {
       return;
     }
 
+    if (!form.moduleTitle.trim()) {
+      setModalError('Isi modul atau materi pertemuan ini.');
+      return;
+    }
+
     const selectedLab = laboratories.find((lab) => lab.id === form.labId);
     if (!selectedLab || !isLaboratoryId(selectedLab.id)) {
       setModalError('Pilih lokasi laboratorium terlebih dahulu.');
@@ -482,7 +491,7 @@ export default function AssistantSessionsScreen() {
       labId: selectedLab.id,
       labName: selectedLab.name,
       practicumName: selectedSchedule.practicumName,
-      moduleTitle: selectedSchedule.moduleTitle,
+      moduleTitle: form.moduleTitle.trim(),
       classRoom: selectedLab.name,
       scheduleTime: selectedSchedule.scheduleTime,
       waktuMulai,
@@ -992,7 +1001,7 @@ export default function AssistantSessionsScreen() {
       >
         <KeyboardAvoidingView
           style={styles.modalOverlay}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior="padding"
         >
           <Pressable
             style={StyleSheet.absoluteFill}
@@ -1013,7 +1022,7 @@ export default function AssistantSessionsScreen() {
                 </Text>
 
                 <Text style={styles.modalSubtitle}>
-                  Pilih jadwal praktikum, tentukan tanggal dan jam pertemuan, lalu lengkapi catatan sesi.
+                  Pilih jadwal praktikum, isi modul pertemuan, tentukan tanggal dan jam, lalu lengkapi catatan sesi.
                 </Text>
               </View>
 
@@ -1081,16 +1090,32 @@ export default function AssistantSessionsScreen() {
                       </View>
 
                       <Text style={styles.scheduleOptionDetail}>
-                        {item.moduleTitle}
-                      </Text>
-
-                      <Text style={styles.scheduleOptionDetail}>
                         {item.classRoom} · {item.scheduleTime}
                       </Text>
                     </Pressable>
                   );
                 })}
               </View>
+
+              {/* MODUL / MATERI PERTEMUAN */}
+              <Text style={styles.label}>
+                Modul / Materi
+              </Text>
+
+              <TextInput
+                style={styles.input}
+                placeholder="Contoh: Modul 3: Regresi Linear"
+                placeholderTextColor="#8E8E93"
+                value={form.moduleTitle}
+                onChangeText={(value) => {
+                  setForm((previous) => ({
+                    ...previous,
+                    moduleTitle: value,
+                  }));
+                  setModalError('');
+                }}
+                editable={!saving}
+              />
 
               {/* PILIH LOKASI LABORATORIUM */}
               <Text style={styles.label}>

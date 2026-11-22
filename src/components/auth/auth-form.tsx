@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StatusBar,
@@ -30,7 +30,7 @@ export function AuthShell({
       <StatusBar barStyle="dark-content" />
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior="padding"
         style={styles.flex}
       >
         <ScrollView
@@ -38,13 +38,12 @@ export function AuthShell({
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.brand}>
-            <View style={styles.logo}>
-              <Text style={styles.logoText}>S</Text>
-            </View>
-            <Text style={styles.appName}>SiPrak</Text>
-            <Text style={styles.brandSubtitle}>
-              Sistem Informasi Praktikum
-            </Text>
+            <Image
+              source={require('../../../assets/images/siprak-logo.png')}
+              style={styles.logo}
+              accessibilityRole="image"
+              accessibilityLabel="Logo SiPrak"
+            />
           </View>
 
           <View style={styles.headingContainer}>
@@ -169,27 +168,8 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   logo: {
-    alignItems: 'center',
-    backgroundColor: '#000000',
-    borderRadius: 16,
-    height: 58,
-    justifyContent: 'center',
-    width: 58,
-  },
-  logoText: {
-    fontFamily: FONT.extrabold,
-    color: '#FFFFFF',
-    fontSize: 29,
-  },
-  appName: {
-    fontFamily: FONT.extrabold,
-    color: '#000000',
-    fontSize: 25,
-  },
-  brandSubtitle: {
-    fontFamily: FONT.regular,
-    color: '#666666',
-    fontSize: 12,
+    height: 96,
+    width: 96,
   },
   headingContainer: {
     gap: 7,
@@ -247,7 +227,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   buttonPrimary: {
-    backgroundColor: '#000000',
+    backgroundColor: '#F47321',
   },
   buttonSecondary: {
     backgroundColor: '#FFFFFF',

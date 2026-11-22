@@ -255,7 +255,6 @@ async function seed(db: Firestore, asisten: Account, praktikan: Account[], apply
       key: 'pm',
       classKey: 'pm',
       practicumName: 'Praktikum Pembelajaran Mesin',
-      moduleTitle: 'Modul 3: Regresi Linear',
       lab: 'lab-b-informatika' as LabId,
       start: '07:00',
       end: '09:00',
@@ -265,7 +264,6 @@ async function seed(db: Firestore, asisten: Account, praktikan: Account[], apply
       key: 'ppb',
       classKey: 'ppb',
       practicumName: 'Praktikum Pemrograman Perangkat Bergerak',
-      moduleTitle: 'Modul 5: Maps dan Geolocation',
       lab: 'lab-c-informatika' as LabId,
       start: '13:00',
       end: '15:30',
@@ -279,7 +277,6 @@ async function seed(db: Firestore, asisten: Account, praktikan: Account[], apply
     batch.set(ref, {
       classId: classIds[item.classKey],
       practicumName: item.practicumName,
-      moduleTitle: item.moduleTitle,
       classRoom: LABORATORIES.find((lab) => lab.id === item.lab)!.name,
       scheduleTime: scheduleText(item.day, item.start, item.end),
       createdBy: asisten.uid,

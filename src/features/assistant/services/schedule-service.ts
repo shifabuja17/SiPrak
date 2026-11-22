@@ -16,7 +16,11 @@ export interface PracticumSchedule {
   id: string;
   classId: string;
   practicumName: string;
-  moduleTitle: string;
+  /**
+   * Data lama: modul kini milik tiap sesi (berbeda per pertemuan), bukan jadwal.
+   * Field ini hanya ada pada dokumen jadwal yang dibuat sebelum perubahan tersebut.
+   */
+  moduleTitle?: string;
   classRoom: string;
   scheduleTime: string;
   createdBy: string;
@@ -25,7 +29,6 @@ export interface PracticumSchedule {
 export interface ScheduleInput {
   classId: string;
   practicumName: string;
-  moduleTitle: string;
   classRoom: string;
   scheduleTime: string;
 }

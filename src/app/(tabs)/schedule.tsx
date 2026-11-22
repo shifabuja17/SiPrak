@@ -219,7 +219,7 @@ function MapShortcutCard() {
   return (
     <Pressable
       accessibilityRole="button"
-      onPress={() => router.push('/maps' as Href)}
+      onPress={() => router.navigate('/maps' as Href)}
       style={({ pressed }) => [styles.mapShortcutCard, pressed && styles.pressed]}
     >
       <View style={styles.mapShortcutTextGroup}>

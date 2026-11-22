@@ -112,6 +112,11 @@ function validateSessionLabInput(input: SessionInput): SessionInput {
     throw new Error('Pilih lokasi laboratorium yang valid.');
   }
 
+  // Modul milik tiap sesi (berbeda per pertemuan), bukan disalin dari jadwal.
+  if (!input.moduleTitle.trim()) {
+    throw new Error('Modul atau materi pertemuan wajib diisi.');
+  }
+
   const trimmedLabName = input.labName.trim();
   if (!trimmedLabName) {
     throw new Error('Nama lokasi laboratorium wajib diisi.');

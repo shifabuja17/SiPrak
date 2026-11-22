@@ -5,7 +5,6 @@ import {
   KeyboardAvoidingView,
   FlatList,
   Modal,
-  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -42,7 +41,6 @@ import { FONT } from '@/constants/fonts';
 const EMPTY_FORM: ScheduleInput = {
   classId: '',
   practicumName: '',
-  moduleTitle: '',
   classRoom: '',
   scheduleTime: '',
 };
@@ -150,7 +148,6 @@ export default function AssistantSchedulesScreen() {
     setForm({
       classId: item.classId,
       practicumName: item.practicumName,
-      moduleTitle: item.moduleTitle,
       classRoom: item.classRoom,
       scheduleTime: item.scheduleTime,
     });
@@ -196,7 +193,6 @@ export default function AssistantSchedulesScreen() {
     const input: ScheduleInput = {
       classId: form.classId,
       practicumName: form.practicumName.trim(),
-      moduleTitle: form.moduleTitle.trim(),
       classRoom: form.classRoom.trim(),
       scheduleTime: form.scheduleTime.trim(),
     };
@@ -204,7 +200,6 @@ export default function AssistantSchedulesScreen() {
     if (
       !input.classId ||
       !input.practicumName ||
-      !input.moduleTitle ||
       !input.classRoom ||
       !input.scheduleTime
     ) {
@@ -337,16 +332,6 @@ export default function AssistantSchedulesScreen() {
 
               <Text style={styles.detailValue}>
                 {selectedClass?.nama ?? 'Kelas tidak ditemukan'}
-              </Text>
-            </View>
-
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>
-                Modul
-              </Text>
-
-              <Text style={styles.detailValue}>
-                {item.moduleTitle}
               </Text>
             </View>
 
@@ -544,7 +529,7 @@ export default function AssistantSchedulesScreen() {
       >
         <KeyboardAvoidingView
           style={styles.modalOverlay}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior="padding"
         >
           <Pressable
             style={StyleSheet.absoluteFill}
@@ -622,22 +607,6 @@ export default function AssistantSchedulesScreen() {
                 value={form.practicumName}
                 onChangeText={(value) =>
                   updateField('practicumName', value)
-                }
-                editable={!saving}
-              />
-
-              {/* MODUL */}
-              <Text style={styles.label}>
-                Modul
-              </Text>
-
-              <TextInput
-                style={styles.input}
-                placeholder="Contoh: Modul 1 - Pengenalan React Native"
-                placeholderTextColor="#8E8E93"
-                value={form.moduleTitle}
-                onChangeText={(value) =>
-                  updateField('moduleTitle', value)
                 }
                 editable={!saving}
               />

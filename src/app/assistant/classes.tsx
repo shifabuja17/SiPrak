@@ -5,7 +5,6 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -438,7 +437,7 @@ export default function AssistantClassesScreen() {
       >
         <KeyboardAvoidingView
           style={styles.modalKeyboard}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior="padding"
         >
           <View style={styles.modalBackdrop}>
             <ScrollView

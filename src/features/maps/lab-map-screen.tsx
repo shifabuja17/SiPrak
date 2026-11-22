@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import {
   useCallback,
   useEffect,
@@ -41,7 +40,7 @@ import type {
   LabActivityItem,
   LabActivitySessionStatus,
 } from '@/services/lab-activities-service';
-import BackButton from '@/components/common/BackButton';
+import { TAB_BAR_SPACE } from '@/features/praktikan/ui/praktikan-ui';
 import { openAppLocationSettings } from '@/services/location-service';
 import { FONT } from '@/constants/fonts';
 
@@ -57,7 +56,8 @@ const USER_FOCUS_DELTA = 0.0025;
 const FIT_EDGE_PADDING = {
   top: 96,
   right: 56,
-  bottom: 96,
+  // Ruang navbar melayang di bawah peta.
+  bottom: 96 + TAB_BAR_SPACE,
   left: 56,
 };
 
@@ -571,14 +571,6 @@ export default function MapsScreen() {
     centerMapOnLaboratories(validLaboratories, false);
   }, [mapReady, mapLayoutReady, validLaboratories, centerMapOnLaboratories]);
 
-  function handleBack() {
-    if (router.canGoBack()) {
-      router.back();
-      return;
-    }
-    router.replace('/');
-  }
-
   function handleSelectLab(lab: LaboratoryLocation) {
     setSelectedLabId(lab.id);
 
@@ -709,10 +701,8 @@ export default function MapsScreen() {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" />
 
-      {/* HEADER */}
+      {/* HEADER (sama dengan tab lain: judul besar, tanpa tombol kembali) */}
       <View style={styles.header}>
-        <BackButton onPress={handleBack} />
-
         <View style={styles.headerTitleGroup}>
           <Text style={styles.title}>Peta Laboratorium</Text>
           <Text style={styles.subtitle}>
@@ -1256,34 +1246,36 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    alignItems: 'center',
+    alignItems: 'flex-end',
     backgroundColor: '#FFFFFF',
-    borderBottomColor: '#E5E5E5',
-    borderBottomWidth: 1,
     flexDirection: 'row',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 11,
+    gap: 12,
+    paddingBottom: 14,
+    paddingHorizontal: 20,
+    paddingTop: 16,
   },
   headerTitleGroup: {
     flex: 1,
-    gap: 1,
+    gap: 4,
   },
   title: {
     fontFamily: FONT.extrabold,
-    color: '#000000',
-    fontSize: 17,
+    color: '#111014',
+    fontSize: 28,
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontFamily: FONT.semibold,
-    color: '#666666',
-    fontSize: 11,
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
+    fontSize: 14,
+    lineHeight: 20,
   },
   resetButton: {
-    backgroundColor: '#000000',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    backgroundColor: '#111014',
+    borderRadius: 999,
+    justifyContent: 'center',
+    minHeight: 40,
+    paddingHorizontal: 16,
   },
   resetButtonText: {
     fontFamily: FONT.bold,
@@ -1425,7 +1417,8 @@ const styles = StyleSheet.create({
 
   // FLOATING BOTTOM DETAIL CARD
   floatingDetailContainer: {
-    bottom: 16,
+    // Di atas navbar melayang (TAB_BAR_SPACE dikurangi sedikit napas).
+    bottom: TAB_BAR_SPACE - 12,
     left: 14,
     position: 'absolute',
     right: 14,

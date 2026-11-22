@@ -79,7 +79,6 @@ function RootNavigator() {
         {/* Halaman pendukung */}
         <Stack.Screen name="session/[id]" />
         <Stack.Screen name="attendance/[sessionId]" />
-        <Stack.Screen name="maps" />
       </Stack.Protected>
 
       {/* Navigasi khusus Asisten (Praktikan diarahkan kembali ke Jadwal) */}

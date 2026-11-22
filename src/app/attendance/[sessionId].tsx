@@ -30,7 +30,7 @@ import {
   PraktikanLoadingState,
 } from '@/features/praktikan/components/praktikan-state-view';
 import { useSessionAttendance } from '@/features/praktikan/hooks/use-session-attendance';
-import { BackLink, Chip, Tile, UI, classColor } from '@/features/praktikan/ui/praktikan-ui';
+import { BackLink, Chip, classColor, MetaLine, Tile, UI } from '@/features/praktikan/ui/praktikan-ui';
 import { subscribeSessionById } from '@/features/praktikan/services/praktikan-sessions';
 import type { PraktikanSession } from '@/features/praktikan/types';
 import {
@@ -233,17 +233,17 @@ function AttendanceContent({ sessionId }: { sessionId: string }) {
         <View style={styles.heroMeta}>
           {session.waktuMulai ? (
             <>
-              <Text style={styles.heroMetaText}>{formatSessionDate(session.waktuMulai)}</Text>
+              <MetaLine icon="date" textStyle={styles.heroMetaText}>{formatSessionDate(session.waktuMulai)}</MetaLine>
               {session.waktuSelesai ? (
-                <Text style={styles.heroMetaText}>
+                <MetaLine icon="time" textStyle={styles.heroMetaText}>
                   {formatClock(session.waktuMulai)} - {formatClock(session.waktuSelesai)} WIB
-                </Text>
+                </MetaLine>
               ) : null}
             </>
           ) : (
-            <Text style={styles.heroMetaText}>{session.scheduleTime}</Text>
+            <MetaLine icon="time" textStyle={styles.heroMetaText}>{session.scheduleTime}</MetaLine>
           )}
-          <Text style={styles.heroMetaText}>{session.classRoom}</Text>
+          <MetaLine icon="place" textStyle={styles.heroMetaText}>{session.classRoom}</MetaLine>
         </View>
       </Tile>
 

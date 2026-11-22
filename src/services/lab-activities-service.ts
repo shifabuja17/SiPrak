@@ -519,7 +519,8 @@ export function computeLabRealtimeActivities(
     const { practicumName, className, classCode } =
       resolvePracticumAndClassInfo(session, schedule, classRecord);
 
-    const rawModuleTitle = schedule?.moduleTitle ?? session.moduleTitle;
+    // Modul milik sesi; modul di jadwal hanya ada pada data lama dan jadi cadangan.
+    const rawModuleTitle = session.moduleTitle ?? schedule?.moduleTitle;
     const moduleTitle = rawModuleTitle
       ? formatMeetingTitle(rawModuleTitle)
       : null;

@@ -19,7 +19,7 @@ import type {
 } from '@/features/praktikan/types';
 import { formatMeetingTitle } from '@/features/praktikan/utils/format';
 import { formatClock, formatSessionDate } from '@/utils/session-time';
-import { TAB_BAR_SPACE, classColor } from '@/features/praktikan/ui/praktikan-ui';
+import { classColor, MetaLine, TAB_BAR_SPACE } from '@/features/praktikan/ui/praktikan-ui';
 import { FONT } from '@/constants/fonts';
 
 const TIME_ZONE = 'Asia/Jakarta';
@@ -356,13 +356,13 @@ function FeaturedCard({
       <View style={styles.featuredDetails}>
         {session.waktuMulai ? (
           <>
-            <Text style={styles.featuredMeta}>{formatSessionDate(session.waktuMulai)}</Text>
-            {timeLine ? <Text style={styles.featuredMeta}>{timeLine}</Text> : null}
+            <MetaLine icon="date" textStyle={styles.featuredMeta}>{formatSessionDate(session.waktuMulai)}</MetaLine>
+            {timeLine ? <MetaLine icon="time" textStyle={styles.featuredMeta}>{timeLine}</MetaLine> : null}
           </>
         ) : (
-          <Text style={styles.featuredMeta}>{session.scheduleTime}</Text>
+          <MetaLine icon="time" textStyle={styles.featuredMeta}>{session.scheduleTime}</MetaLine>
         )}
-        <Text style={styles.featuredMeta}>{session.classRoom}</Text>
+        <MetaLine icon="place" textStyle={styles.featuredMeta}>{session.classRoom}</MetaLine>
       </View>
 
       <Pressable
@@ -416,13 +416,11 @@ function SessionTile({
 
       <View style={styles.tileMeta}>
         {session.waktuMulai ? (
-          <Text style={styles.tileMetaText}>{range} WIB</Text>
+          <MetaLine icon="time" textStyle={styles.tileMetaText}>{range} WIB</MetaLine>
         ) : (
-          <Text style={styles.tileMetaText}>{session.scheduleTime}</Text>
+          <MetaLine icon="time" textStyle={styles.tileMetaText}>{session.scheduleTime}</MetaLine>
         )}
-        <Text style={styles.tileMetaText} numberOfLines={1}>
-          {session.classRoom}
-        </Text>
+        <MetaLine icon="place" textStyle={styles.tileMetaText} numberOfLines={1}>{session.classRoom}</MetaLine>
       </View>
     </Pressable>
   );

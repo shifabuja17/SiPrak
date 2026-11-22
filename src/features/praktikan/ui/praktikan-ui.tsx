@@ -15,9 +15,11 @@ import {
   Text,
   View,
   type StyleProp,
+  type TextStyle,
   type ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import BackButton from '@/components/common/BackButton';
 import { useAuth } from '@/context/AuthContext';
@@ -173,6 +175,73 @@ const chipFg = StyleSheet.create({
 });
 
 // ==========================================
+// BARIS INFO BERIKON (tanggal, jam, lokasi)
+// ==========================================
+
+export type MetaIcon = 'date' | 'time' | 'place';
+
+function MetaIconSvg({ name, color }: { name: MetaIcon; color: string }) {
+  const stroke = {
+    stroke: color,
+    strokeWidth: 1.8,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+  };
+  return (
+    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+      {name === 'date' ? (
+        <>
+          <Rect x={3.5} y={5} width={17} height={15.5} rx={2.5} {...stroke} />
+          <Path d="M3.5 10h17M8 3v4M16 3v4" {...stroke} />
+        </>
+      ) : null}
+      {name === 'time' ? (
+        <>
+          <Circle cx={12} cy={12} r={8.5} {...stroke} />
+          <Path d="M12 7.5V12l3 2" {...stroke} />
+        </>
+      ) : null}
+      {name === 'place' ? (
+        <>
+          <Path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z" {...stroke} />
+          <Circle cx={12} cy={10} r={2.4} {...stroke} />
+        </>
+      ) : null}
+    </Svg>
+  );
+}
+
+/**
+ * Satu baris info sesi dengan ikon di kiri: `date` (kalender) untuk hari & tanggal,
+ * `time` (jam) untuk waktu, `place` (pin) untuk lokasi lab. Ikon putih karena kartu
+ * sesi berwarna oranye; ganti lewat `color` bila dipakai di latar terang.
+ */
+export function MetaLine({
+  icon,
+  children,
+  textStyle,
+  color = UI.onColor,
+  numberOfLines,
+}: {
+  icon: MetaIcon;
+  children: ReactNode;
+  textStyle?: StyleProp<TextStyle>;
+  color?: string;
+  numberOfLines?: number;
+}) {
+  return (
+    <View style={styles.metaLine}>
+      <View style={styles.metaIcon} accessibilityElementsHidden importantForAccessibility="no">
+        <MetaIconSvg name={icon} color={color} />
+      </View>
+      <Text style={[textStyle, styles.metaText]} numberOfLines={numberOfLines}>
+        {children}
+      </Text>
+    </View>
+  );
+}
+
+// ==========================================
 // TOMBOL
 // ==========================================
 
@@ -261,6 +330,17 @@ export function useConfirmLogout() {
 }
 
 const styles = StyleSheet.create({
+  metaLine: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 7,
+  },
+  metaIcon: {
+    opacity: 0.95,
+  },
+  metaText: {
+    flexShrink: 1,
+  },
   safeArea: {
     backgroundColor: UI.page,
     flex: 1,

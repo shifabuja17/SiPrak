@@ -20,12 +20,13 @@ import type {
 import { formatDateTimeWIB, formatMeetingTitle } from '@/features/praktikan/utils/format';
 import {
   Chip,
+  type ChipTone,
+  classColor,
+  MetaLine,
   Screen,
   ScreenTitle,
   Tile,
   UI,
-  classColor,
-  type ChipTone,
 } from '@/features/praktikan/ui/praktikan-ui';
 import { formatClock, formatSessionDate } from '@/utils/session-time';
 import { FONT } from '@/constants/fonts';
@@ -178,13 +179,13 @@ function LeaveTile({
         <View style={styles.meta}>
           {session.waktuMulai ? (
             <>
-              <Text style={styles.metaText}>{formatSessionDate(session.waktuMulai)}</Text>
-              {range ? <Text style={styles.metaText}>{range}</Text> : null}
+              <MetaLine icon="date" textStyle={styles.metaText}>{formatSessionDate(session.waktuMulai)}</MetaLine>
+              {range ? <MetaLine icon="time" textStyle={styles.metaText}>{range}</MetaLine> : null}
             </>
           ) : (
-            <Text style={styles.metaText}>{session.scheduleTime}</Text>
+            <MetaLine icon="time" textStyle={styles.metaText}>{session.scheduleTime}</MetaLine>
           )}
-          <Text style={styles.metaText}>{session.classRoom}</Text>
+          <MetaLine icon="place" textStyle={styles.metaText}>{session.classRoom}</MetaLine>
         </View>
       ) : null}
 

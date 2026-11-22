@@ -465,7 +465,7 @@ export default function AssistantScheduleScreen() {
                     styles.menuBannerTile,
                     pressed && styles.pressed,
                   ]}
-                  onPress={() => router.push('/maps' as Href)}
+                  onPress={() => router.navigate('/assistant/maps' as Href)}
                 >
                   <View style={styles.menuBannerIcon}>
                     <MapViewIcon />

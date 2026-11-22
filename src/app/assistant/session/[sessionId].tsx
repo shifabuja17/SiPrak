@@ -2,6 +2,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
   Modal,
   Pressable,
   SafeAreaView,
@@ -506,7 +507,8 @@ export default function AssistantSessionDetailScreen() {
         visible={modalVisible}
         onRequestClose={closeActionModal}
       >
-        <View style={styles.modalBackdrop}>
+        {/* Kartu ikut naik di atas keyboard saat kolom catatan diisi. */}
+        <KeyboardAvoidingView behavior="padding" style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
 
             {/* TOMBOL TUTUP MODAL */}
@@ -609,7 +611,7 @@ export default function AssistantSessionDetailScreen() {
             </View>
 
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
