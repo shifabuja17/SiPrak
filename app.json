@@ -18,6 +18,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
+      "googleServicesFile": "./google-services.json",
       "package": "com.shifa_buja17.SiPrak"
     },
     "web": {
@@ -44,7 +45,14 @@
           "locationWhenInUsePermission": "Izinkan $(PRODUCT_NAME) mengakses lokasi Anda untuk presensi di laboratorium dan menampilkan posisi Anda di peta."
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-notifications",
+        {
+          "color": "#F47321",
+          "defaultChannel": "siprak-default"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
@@ -60,6 +68,6 @@
         "projectId": "ff5c893a-5b31-40b9-99bc-0eb83150bf36"
       }
     },
-    "owner": "alyssashane"
+    "owner": "alyssashanes-team"
   }
 }

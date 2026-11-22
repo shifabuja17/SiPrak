@@ -18,6 +18,7 @@ import AssistantHeader from '@/components/common/AssistantHeader';
 import { AttendanceSummary } from '@/features/assistant/components/attendance-summary';
 import { useAssistantSessions } from '@/features/assistant/state/assistant-sessions-context';
 import { FONT } from '@/constants/fonts';
+import { withNotificationNote } from '@/features/notifications/utils/dispatch-message';
 
 type IconName =
   | 'book'
@@ -282,6 +283,7 @@ export default function AssistantSessionDetailScreen() {
   // STATE PROSES DAN ERROR
   const [processingAction, setProcessingAction] = useState(false);
   const [actionError, setActionError] = useState('');
+  const [notificationNote, setNotificationNote] = useState('');
 
   // ========================================
   // MEMBUKA MODAL KONFIRMASI
@@ -320,7 +322,8 @@ export default function AssistantSessionDetailScreen() {
 
       if (session.status === 'dijadwalkan') {
         // Membuka sesi sekaligus menyimpan catatan ke Firebase.
-        await openSession(session.id, sessionNote);
+        const notifyResult = await openSession(session.id, sessionNote);
+        setNotificationNote(withNotificationNote('Sesi dibuka.', notifyResult));
       } else if (session.status === 'dibuka') {
         // Menutup sesi melalui Firebase.
         await closeSession(session.id);
@@ -392,6 +395,11 @@ export default function AssistantSessionDetailScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
       >
+        {/* STATUS NOTIFIKASI (FR-19) */}
+        {notificationNote ? (
+          <Text style={styles.notificationNote}>{notificationNote}</Text>
+        ) : null}
+
         {/* JUDUL SESI */}
         <View style={styles.heading}>
           <Text style={styles.pageSubtitle}>
@@ -620,6 +628,13 @@ export default function AssistantSessionDetailScreen() {
 // ==========================================
 
 const styles = StyleSheet.create({
+  notificationNote: {
+    color: '#5F5F66',
+    fontFamily: FONT.medium,
+    fontSize: 13,
+    lineHeight: 19,
+    marginBottom: 12,
+  },
   safeArea: {
     backgroundColor: '#FFFFFF',
     flex: 1,

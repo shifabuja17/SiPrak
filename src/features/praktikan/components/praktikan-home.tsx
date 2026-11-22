@@ -21,6 +21,7 @@ import { formatMeetingTitle } from '@/features/praktikan/utils/format';
 import { formatClock, formatSessionDate } from '@/utils/session-time';
 import { TAB_BAR_SPACE, classColor } from '@/features/praktikan/ui/praktikan-ui';
 import { FONT } from '@/constants/fonts';
+import { NotificationStatusBanner } from '@/features/notifications/components/notification-status-banner';
 
 const TIME_ZONE = 'Asia/Jakarta';
 
@@ -281,6 +282,9 @@ export default function PraktikanHome({
             );
           })}
         </ScrollView>
+
+        {/* STATUS IZIN NOTIFIKASI (hanya tampil jika notifikasi tidak aktif) */}
+        <NotificationStatusBanner />
 
         {/* DAFTAR SESI */}
         <Text style={styles.sectionTitle}>Jadwal Kamu</Text>

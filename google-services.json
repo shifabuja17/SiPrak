@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "907413353609",
+    "project_id": "siprak-10999",
+    "storage_bucket": "siprak-10999.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:907413353609:android:5776df5bdebd75d0c28258",
+        "android_client_info": {
+          "package_name": "com.shifa_buja17.SiPrak"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBmULzm4Y84Rf3chI7QjSXSHaXSwUkEbSA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

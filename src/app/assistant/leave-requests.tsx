@@ -30,6 +30,7 @@ import {
   type SessionRecord,
 } from '@/features/assistant/services/session-service';
 import { FONT } from '@/constants/fonts';
+import { withNotificationNote } from '@/features/notifications/utils/dispatch-message';
 
 // ==========================================
 // TIPE AKSI
@@ -364,16 +365,19 @@ export default function LeaveRequestsScreen() {
       setActionError('');
       setPageMessage('');
 
-      await reviewLeaveRequest(
+      const notifyResult = await reviewLeaveRequest(
         requestId,
         status,
         currentUid,
       );
 
       setPageMessage(
-        status === 'diterima'
-          ? 'Pengajuan izin berhasil diterima.'
-          : 'Pengajuan izin berhasil ditolak.',
+        withNotificationNote(
+          status === 'diterima'
+            ? 'Pengajuan izin berhasil diterima.'
+            : 'Pengajuan izin berhasil ditolak.',
+          notifyResult,
+        ),
       );
 
       setReviewTarget(null);

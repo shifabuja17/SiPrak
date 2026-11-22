@@ -34,6 +34,7 @@ import {
   type PracticumClass,
 } from '@/features/assistant/services/class-service';
 import { FONT } from '@/constants/fonts';
+import { withNotificationNote } from '@/features/notifications/utils/dispatch-message';
 
 // ==========================================
 // FORM KOSONG
@@ -228,9 +229,9 @@ export default function AssistantSchedulesScreen() {
       setPageMessage('');
 
       if (editingId) {
-        await updateSchedule(editingId, input);
+        const notifyResult = await updateSchedule(editingId, input);
 
-        setPageMessage('Jadwal berhasil diperbarui.');
+        setPageMessage(withNotificationNote('Jadwal berhasil diperbarui.', notifyResult));
       } else {
         await createSchedule(input, profile!.uid);
 

@@ -10,6 +10,7 @@ import {
 
 import { formatSessionTimeRange } from '@/utils/session-time';
 import { useAuth } from '@/context/AuthContext';
+import type { NotificationDispatchResult } from '@/features/notifications/types';
 
 import type {
   AttendanceRecord,
@@ -43,7 +44,7 @@ type AssistantSessionsContextValue = {
   openSession: (
     sessionId: string,
     note?: string,
-  ) => Promise<void>;
+  ) => Promise<NotificationDispatchResult>;
 
   closeSession: (
     sessionId: string,
@@ -297,7 +298,7 @@ export function AssistantSessionsProvider({
 
   const openSession = useCallback(
     async (sessionId: string, note?: string) => {
-      await openFirebaseSession(sessionId, note);
+      return openFirebaseSession(sessionId, note);
     },
     [],
   );

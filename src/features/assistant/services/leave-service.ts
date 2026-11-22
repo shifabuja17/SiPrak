@@ -9,6 +9,8 @@ import {
 } from 'firebase/firestore';
 
 import { db } from '@/lib/firebase';
+import { notifyLeaveDecision } from '@/features/notifications/services/notification-triggers';
+import type { NotificationDispatchResult } from '@/features/notifications/types';
 
 export type LeaveRequestStatus =
   | 'menunggu'
@@ -89,10 +91,10 @@ export async function reviewLeaveRequest(
   requestId: string,
   status: 'diterima' | 'ditolak',
   reviewedBy: string
-) {
+): Promise<NotificationDispatchResult> {
   const requestRef = doc(db, 'leaveRequests', requestId);
 
-  await runTransaction(db, async (transaction) => {
+  const target = await runTransaction(db, async (transaction) => {
     const requestSnapshot = await transaction.get(requestRef);
 
     if (!requestSnapshot.exists()) {
@@ -108,5 +110,17 @@ export async function reviewLeaveRequest(
       reviewedBy,
       reviewedAt: serverTimestamp(),
     });
+
+    return {
+      uid: String(requestSnapshot.data().uid ?? ''),
+      sessionId: String(requestSnapshot.data().sessionId ?? ''),
+    };
+  });
+
+  // FR-21 / FR-22: keputusan sudah tersimpan; kegagalan notifikasi tidak membatalkannya.
+  return notifyLeaveDecision({
+    uid: target.uid,
+    sessionId: target.sessionId,
+    decision: status,
   });
 }
