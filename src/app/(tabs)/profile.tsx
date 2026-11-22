@@ -1,5 +1,8 @@
 import { StyleSheet, Text, View } from 'react-native';
 
+import AccountInfoCard from '@/components/common/account-info-card';
+import LogoutAction from '@/components/common/logout-action';
+import PersonIcon from '@/components/common/person-icon';
 import { useAuth } from '@/context/AuthContext';
 import {
   PraktikanErrorState,
@@ -8,20 +11,17 @@ import {
 import { usePraktikanSessions } from '@/features/praktikan/hooks/use-praktikan-sessions';
 import {
   Chip,
-  PillButton,
   Screen,
   ScreenTitle,
   SectionTitle,
   SoftCard,
   UI,
-  useConfirmLogout,
 } from '@/features/praktikan/ui/praktikan-ui';
 import { FONT } from '@/constants/fonts';
 
 /** Profil Praktikan: identitas akun, kelas yang diikuti, dan tombol keluar. */
 export default function ProfileScreen() {
   const { user, profile, status } = useAuth();
-  const confirmLogout = useConfirmLogout();
   const { classes, loading, error, retry } = usePraktikanSessions();
 
   if (status === 'loading') {
@@ -29,7 +29,6 @@ export default function ProfileScreen() {
   }
 
   const nama = profile?.nama ?? 'Praktikan';
-  const initial = nama.charAt(0).toUpperCase() || '?';
   const email = profile?.email ?? user?.email ?? '-';
 
   return (
@@ -38,7 +37,7 @@ export default function ProfileScreen() {
 
       <View style={styles.identity}>
         <View style={styles.avatar} accessibilityElementsHidden importantForAccessibility="no">
-          <Text style={styles.avatarText}>{initial}</Text>
+          <PersonIcon size={36} color="#FFFFFF" />
         </View>
         <Text style={styles.name}>{nama}</Text>
         <View>
@@ -46,11 +45,7 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      <SoftCard>
-        <InfoRow label="NIM" value={profile?.nim ?? '-'} />
-        <View style={styles.divider} />
-        <InfoRow label="Email" value={email} />
-      </SoftCard>
+      <AccountInfoCard nim={profile?.nim ?? '-'} email={email} />
 
       <SectionTitle>Kelas yang Diikuti</SectionTitle>
 
@@ -77,19 +72,8 @@ export default function ProfileScreen() {
         </View>
       )}
 
-      <PillButton label="Keluar dari Akun" variant="danger" onPress={confirmLogout} />
+      <LogoutAction />
     </Screen>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.infoRow}>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue} selectable>
-        {value}
-      </Text>
-    </View>
   );
 }
 
@@ -107,35 +91,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 80,
   },
-  avatarText: {
-    fontFamily: FONT.extrabold,
-    color: '#FFFFFF',
-    fontSize: 32,
-  },
   name: {
     fontFamily: FONT.extrabold,
     color: UI.ink,
     fontSize: 22,
     letterSpacing: -0.3,
     textAlign: 'center',
-  },
-  infoRow: {
-    gap: 3,
-  },
-  infoLabel: {
-    fontFamily: FONT.semibold,
-    color: UI.muted,
-    fontSize: 12,
-  },
-  infoValue: {
-    fontFamily: FONT.semibold,
-    color: UI.ink,
-    fontSize: 15,
-  },
-  divider: {
-    backgroundColor: UI.line,
-    height: 1,
-    marginVertical: 8,
   },
   classList: {
     gap: 10,

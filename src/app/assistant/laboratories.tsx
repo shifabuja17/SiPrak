@@ -671,7 +671,7 @@ const styles = StyleSheet.create({
   pageContent: {
     gap: 16,
     paddingHorizontal: 20,
-    paddingTop: 25,
+    paddingTop: 16,
   },
   centered: {
     alignItems: 'center',
@@ -834,10 +834,10 @@ const styles = StyleSheet.create({
   labCard: {
     backgroundColor: '#FFFFFF',
     borderColor: '#8E8E93',
-    borderRadius: 18,
+    borderRadius: 26,
     borderWidth: 1,
     gap: 14,
-    padding: 17,
+    padding: 18,
   },
   cardHeader: {
     alignItems: 'center',
@@ -951,9 +951,9 @@ const styles = StyleSheet.create({
   emptyCard: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 17,
+    borderRadius: 20,
     gap: 8,
-    padding: 25,
+    padding: 20,
     borderColor: '#8E8E93',
     borderWidth: 1,
   },

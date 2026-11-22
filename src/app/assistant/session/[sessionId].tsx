@@ -5,7 +5,6 @@ import {
   KeyboardAvoidingView,
   Modal,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -13,6 +12,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import AssistantHeader from '@/components/common/AssistantHeader';
@@ -350,7 +350,7 @@ export default function AssistantSessionDetailScreen() {
 
   if (!session) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
         <StatusBar barStyle="dark-content" />
         <AssistantHeader />
 
@@ -385,7 +385,7 @@ export default function AssistantSessionDetailScreen() {
   // ========================================
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
       <StatusBar barStyle="dark-content" />
       <AssistantHeader />
 
@@ -632,7 +632,7 @@ const styles = StyleSheet.create({
   content: {
     gap: 20,
     paddingHorizontal: 20,
-    paddingTop: 24,
+    paddingTop: 16,
     paddingBottom: 40,
   },
 
@@ -679,7 +679,7 @@ const styles = StyleSheet.create({
   infoCard: {
     backgroundColor: '#FFFFFF',
     borderColor: '#8E8E93',
-    borderRadius: 18,
+    borderRadius: 26,
     borderWidth: 1,
     paddingHorizontal: 16,
     paddingTop: 18,

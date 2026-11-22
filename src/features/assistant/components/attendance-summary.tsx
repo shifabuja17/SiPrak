@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import type { AttendanceRecord } from '../types';
 import { FONT } from '@/constants/fonts';
+import PersonIcon from '@/components/common/person-icon';
 
 interface AttendanceSummaryProps {
   records: AttendanceRecord[];
@@ -32,9 +33,7 @@ export function AttendanceSummary({
         records.map((record) => (
           <View key={record.uid} style={styles.record}>
             <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {record.nama.charAt(0).toUpperCase()}
-              </Text>
+              <PersonIcon size={18} color="#111014" />
             </View>
 
             <View style={styles.identity}>
@@ -97,11 +96,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderColor: '#8E8E93',
-    borderRadius: 15,
+    borderRadius: 26,
     borderWidth: 1,
     flexDirection: 'row',
     gap: 12,
-    padding: 14,
+    padding: 18,
   },
   avatar: {
     alignItems: 'center',
@@ -112,11 +111,6 @@ const styles = StyleSheet.create({
     width: 40,
     borderColor: '#8E8E93',
     borderWidth: 1,
-  },
-  avatarText: {
-    fontFamily: FONT.bold,
-    color: '#111014',
-    fontSize: 16,
   },
   identity: {
     flex: 1,

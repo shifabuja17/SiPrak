@@ -6,8 +6,6 @@
 import type { ReactNode } from 'react';
 import {
   ActivityIndicator,
-  Alert,
-  Platform,
   Pressable,
   ScrollView,
   StatusBar,
@@ -22,7 +20,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import BackButton from '@/components/common/BackButton';
-import { useAuth } from '@/context/AuthContext';
 import { FONT } from '@/constants/fonts';
 
 export const UI = {
@@ -302,32 +299,6 @@ export function PillButton({
 // ==========================================
 // LOGOUT
 // ==========================================
-
-/** Konfirmasi lalu logout; web memakai window.confirm karena Alert tidak berjalan di web. */
-export function useConfirmLogout() {
-  const { logout } = useAuth();
-
-  async function run() {
-    try {
-      await logout();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Terjadi kesalahan saat logout.';
-      if (Platform.OS === 'web') window.alert(`Gagal keluar: ${message}`);
-      else Alert.alert('Gagal keluar', message);
-    }
-  }
-
-  return () => {
-    if (Platform.OS === 'web') {
-      if (window.confirm('Yakin ingin keluar dari akun ini?')) void run();
-      return;
-    }
-    Alert.alert('Keluar', 'Yakin ingin keluar dari akun ini?', [
-      { text: 'Batal', style: 'cancel' },
-      { text: 'Keluar', style: 'destructive', onPress: () => void run() },
-    ]);
-  };
-}
 
 const styles = StyleSheet.create({
   metaLine: {

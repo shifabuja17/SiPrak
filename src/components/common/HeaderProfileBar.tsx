@@ -11,6 +11,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { usePracticum } from '@/context/PracticumContext';
 import { FONT } from '@/constants/fonts';
+import PersonIcon from '@/components/common/person-icon';
 
 export default function HeaderProfileBar() {
   const { user, profile, logout } = useAuth();
@@ -71,9 +72,7 @@ export default function HeaderProfileBar() {
   return (
     <View style={styles.container}>
       <View style={styles.avatar}>
-        <Text style={styles.avatarText}>
-          {displayName.charAt(0).toUpperCase() || '?'}
-        </Text>
+        <PersonIcon size={18} color="#000000" />
       </View>
 
       <View style={styles.profileDetails}>
@@ -128,10 +127,6 @@ const styles = StyleSheet.create({
     height: 38,
     justifyContent: 'center',
     width: 38,
-  },
-  avatarText: {
-    fontFamily: FONT.extrabold,
-    color: '#000000',
   },
   profileDetails: {
     flex: 1,

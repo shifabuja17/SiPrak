@@ -4,13 +4,13 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
@@ -446,7 +446,7 @@ export default function LeaveRequestsScreen() {
   // ========================================
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
       <StatusBar barStyle="dark-content" />
 
       <AssistantHeader />
@@ -913,7 +913,7 @@ const styles = StyleSheet.create({
 
   content: {
     paddingHorizontal: 20,
-    paddingTop: 24,
+    paddingTop: 16,
     paddingBottom: 40,
   },
 
@@ -945,9 +945,9 @@ const styles = StyleSheet.create({
   // RINGKASAN
   summaryCard: {
     backgroundColor: '#F47321',
-    borderRadius: 18,
+    borderRadius: 26,
     marginBottom: 23,
-    padding: 19,
+    padding: 18,
   },
 
   summaryLabel: {
@@ -1092,10 +1092,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderColor: '#8E8E93',
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: 1,
     gap: 10,
-    padding: 25,
+    padding: 20,
   },
 
   emptyIcon: {
@@ -1129,11 +1129,11 @@ const styles = StyleSheet.create({
   requestCard: {
     backgroundColor: '#FFFFFF',
     borderColor: '#8E8E93',
-    borderRadius: 17,
+    borderRadius: 26,
     borderWidth: 1,
     gap: 14,
     marginBottom: 14,
-    padding: 16,
+    padding: 18,
   },
 
   cardHeader: {

@@ -1,3 +1,4 @@
+import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 
 import {
@@ -6,7 +7,6 @@ import {
   FlatList,
   Modal,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -14,6 +14,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import AssistantHeader from '@/components/common/AssistantHeader';
 
@@ -33,6 +34,7 @@ import {
   type PracticumClass,
 } from '@/features/assistant/services/class-service';
 import { FONT } from '@/constants/fonts';
+import { classLabel } from '@/features/assistant/utils/class-label';
 
 // ==========================================
 // FORM KOSONG
@@ -51,6 +53,11 @@ const EMPTY_FORM: ScheduleInput = {
 
 export default function AssistantSchedulesScreen() {
   const { profile } = useAuth();
+
+  // Dibuka dari halaman Praktikum & Peserta: hanya jadwal kelas ini, kelas terkunci di form.
+  const params = useLocalSearchParams<{ classId?: string }>();
+  const lockedClassId =
+    typeof params.classId === 'string' && params.classId ? params.classId : null;
 
   // DATA FIRESTORE
   const [classes, setClasses] = useState<PracticumClass[]>([]);
@@ -131,7 +138,7 @@ export default function AssistantSchedulesScreen() {
 
     setForm({
       ...EMPTY_FORM,
-      classId: classes[0].id,
+      classId: lockedClassId ?? classes[0].id,
     });
 
     setModalError('');
@@ -190,9 +197,12 @@ export default function AssistantSchedulesScreen() {
   // ==========================================
 
   async function handleSave() {
+    const selectedClass = classes.find((item) => item.id === form.classId);
+
     const input: ScheduleInput = {
       classId: form.classId,
-      practicumName: form.practicumName.trim(),
+      // Nama praktikum diambil dari kelas, mis. "Praktikum Sistem Operasi E1".
+      practicumName: selectedClass ? classLabel(selectedClass) : '',
       classRoom: form.classRoom.trim(),
       scheduleTime: form.scheduleTime.trim(),
     };
@@ -395,12 +405,22 @@ export default function AssistantSchedulesScreen() {
   // TAMPILAN UTAMA
   // ==========================================
 
+  const lockedClass = lockedClassId
+    ? classes.find((item) => item.id === lockedClassId)
+    : undefined;
+  const visibleSchedules = lockedClassId
+    ? schedules.filter((item) => item.classId === lockedClassId)
+    : schedules;
+  const pickableClasses = lockedClassId
+    ? classes.filter((item) => item.id === lockedClassId)
+    : classes;
+
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
       <StatusBar barStyle="dark-content" />
 
       <FlatList
-        data={schedules}
+        data={visibleSchedules}
         keyExtractor={(item) => item.id}
         renderItem={renderSchedule}
         contentContainerStyle={styles.content}
@@ -419,7 +439,7 @@ export default function AssistantSchedulesScreen() {
               {/* JUDUL HALAMAN */}
               <View style={styles.header}>
                 <Text style={styles.title}>
-                  Manajemen Jadwal
+                  {lockedClass ? `Jadwal ${classLabel(lockedClass)}` : 'Jadwal Praktikum'}
                 </Text>
 
                 <Text style={styles.subtitle}>
@@ -563,7 +583,7 @@ export default function AssistantSchedulesScreen() {
               </Text>
 
               <View style={styles.classOptions}>
-                {classes.map((item) => {
+                {pickableClasses.map((item) => {
                   const selected = form.classId === item.id;
 
                   return (
@@ -582,7 +602,7 @@ export default function AssistantSchedulesScreen() {
                           selected && styles.classOptionTextSelected,
                         ]}
                       >
-                        {item.nama} ({item.kode})
+                        {classLabel(item)}
                       </Text>
 
                       {selected ? (
@@ -594,22 +614,6 @@ export default function AssistantSchedulesScreen() {
                   );
                 })}
               </View>
-
-              {/* NAMA PRAKTIKUM */}
-              <Text style={styles.label}>
-                Nama Praktikum
-              </Text>
-
-              <TextInput
-                style={styles.input}
-                placeholder="Contoh: Praktikum Pemrograman Mobile"
-                placeholderTextColor="#8E8E93"
-                value={form.practicumName}
-                onChangeText={(value) =>
-                  updateField('practicumName', value)
-                }
-                editable={!saving}
-              />
 
               {/* RUANGAN */}
               <Text style={styles.label}>
@@ -807,7 +811,7 @@ const styles = StyleSheet.create({
 
   pageContent: {
     paddingHorizontal: 20,
-    paddingTop: 25,
+    paddingTop: 16,
     gap: 16,
   },
 
@@ -932,10 +936,10 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF',
     borderColor: '#8E8E93',
-    borderRadius: 18,
+    borderRadius: 26,
     borderWidth: 1,
     gap: 14,
-    padding: 17,
+    padding: 18,
   },
 
   cardHeader: {
@@ -1055,9 +1059,9 @@ const styles = StyleSheet.create({
   emptyCard: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
+    borderRadius: 20,
     marginHorizontal: 20,
-    padding: 25,
+    padding: 20,
     gap: 9,
     borderColor: '#8E8E93',
     borderWidth: 1,

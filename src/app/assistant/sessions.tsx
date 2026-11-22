@@ -6,7 +6,6 @@ import {
   FlatList,
   Modal,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -14,6 +13,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import Svg, { Path } from 'react-native-svg';
 
@@ -831,7 +831,7 @@ export default function AssistantSessionsScreen() {
 
   if (authLoading) {
     return (
-      <SafeAreaView style={styles.centered}>
+      <SafeAreaView style={styles.centered} edges={['top']}>
         <ActivityIndicator size="large" color="#111014" />
 
         <Text style={styles.mutedText}>
@@ -843,7 +843,7 @@ export default function AssistantSessionsScreen() {
 
   if (!profile || profile.role !== 'asisten') {
     return (
-      <SafeAreaView style={styles.centered}>
+      <SafeAreaView style={styles.centered} edges={['top']}>
         <Text style={styles.emptyTitle}>
           Akses Ditolak
         </Text>
@@ -860,7 +860,7 @@ export default function AssistantSessionsScreen() {
   // ==========================================
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
       <StatusBar barStyle="dark-content" />
 
       <FlatList
@@ -1449,7 +1449,7 @@ const styles = StyleSheet.create({
 
   pageContent: {
     paddingHorizontal: 20,
-    paddingTop: 25,
+    paddingTop: 16,
     gap: 16,
   },
 
@@ -1594,10 +1594,10 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF',
     borderColor: '#8E8E93',
-    borderRadius: 18,
+    borderRadius: 26,
     borderWidth: 1,
     gap: 15,
-    padding: 17,
+    padding: 18,
   },
 
   cardHeader: {
@@ -1819,9 +1819,9 @@ const styles = StyleSheet.create({
   emptyCard: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
+    borderRadius: 20,
     marginHorizontal: 20,
-    padding: 25,
+    padding: 20,
     gap: 9,
     borderColor: '#8E8E93',
     borderWidth: 1,

@@ -41,6 +41,9 @@ export interface PracticumSession {
   labName?: string | null;
   labRadius?: number | null;
   scheduleTime: string;
+  /** Tanggal + jam pertemuan (sesi Firestore); kosong untuk data lama. */
+  waktuMulai?: Date | null;
+  waktuSelesai?: Date | null;
   status: SessionStatus;
   sessionNote: string;
   attendances: AttendanceRecord[];

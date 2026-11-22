@@ -1,3 +1,4 @@
+import { router, type Href } from 'expo-router';
 import {
   useCallback,
   useEffect,
@@ -712,6 +713,20 @@ export default function MapsScreen() {
           </Text>
         </View>
 
+        {/* Asisten mengatur koordinat & radius 4 titik lokasi (FR-10, FR-11) dari peta. */}
+        {role === 'asisten' ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push('/assistant/laboratories' as Href)}
+            style={({ pressed }) => [
+              styles.editLabButton,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={styles.editLabButtonText}>Atur Lokasi</Text>
+          </Pressable>
+        ) : null}
+
         {Platform.OS !== 'web' ? (
           <Pressable
             accessibilityRole="button"
@@ -1280,6 +1295,19 @@ const styles = StyleSheet.create({
   resetButtonText: {
     fontFamily: FONT.bold,
     color: '#FFFFFF',
+    fontSize: 12,
+  },
+  editLabButton: {
+    borderColor: '#111014',
+    borderRadius: 999,
+    borderWidth: 1.5,
+    justifyContent: 'center',
+    minHeight: 40,
+    paddingHorizontal: 14,
+  },
+  editLabButtonText: {
+    fontFamily: FONT.bold,
+    color: '#111014',
     fontSize: 12,
   },
   inlineErrorBanner: {

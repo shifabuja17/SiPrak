@@ -8,7 +8,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 const INK = '#111014';
 const ON_INK = '#FFFFFF';
 
-type IconName = 'home' | 'history' | 'leave' | 'map' | 'profile';
+type IconName = 'home' | 'history' | 'leave' | 'map' | 'profile' | 'class' | 'session';
 
 function TabIcon({ name, color }: { name: IconName; color: string }) {
   const stroke = { stroke: color, strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
@@ -33,6 +33,20 @@ function TabIcon({ name, color }: { name: IconName; color: string }) {
         <>
           <Path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z" {...stroke} />
           <Circle cx={12} cy={10} r={2.4} {...stroke} />
+        </>
+      ) : null}
+      {name === 'class' ? (
+        <>
+          <Circle cx={9} cy={8.5} r={3} {...stroke} />
+          <Path d="M3.5 19c.6-3 2.8-4.8 5.5-4.8s4.9 1.8 5.5 4.8" {...stroke} />
+          <Circle cx={16.5} cy={9.5} r={2.5} {...stroke} />
+          <Path d="M15.5 14.4c2.4-.3 4.4 1.2 5 4.1" {...stroke} />
+        </>
+      ) : null}
+      {name === 'session' ? (
+        <>
+          <Rect x={5} y={4.5} width={14} height={16} rx={2.5} {...stroke} />
+          <Path d="M9 3.5h6v3H9zM8.8 13.2l2.2 2.2 4.2-4.4" {...stroke} />
         </>
       ) : null}
       {name === 'profile' ? (

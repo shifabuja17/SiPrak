@@ -6,7 +6,6 @@ import {
   KeyboardAvoidingView,
   Modal,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -14,6 +13,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import AssistantHeader from '@/components/common/AssistantHeader';
 
@@ -34,6 +34,12 @@ import {
   type PracticumClass,
 } from '@/features/assistant/services/class-service';
 import { FONT } from '@/constants/fonts';
+import {
+  subscribeSchedules,
+  type PracticumSchedule,
+} from '@/features/assistant/services/schedule-service';
+import { classLabel } from '@/features/assistant/utils/class-label';
+import PersonIcon from '@/components/common/person-icon';
 
 export default function ClassMembersScreen() {
   const params = useLocalSearchParams<{
@@ -42,6 +48,9 @@ export default function ClassMembersScreen() {
 
   const classId =
     typeof params.classId === 'string' ? params.classId : '';
+
+  // Jadwal milik kelas ini (FR-07), dikelola dari halaman Praktikum & Peserta.
+  const [classSchedules, setClassSchedules] = useState<PracticumSchedule[]>([]);
 
   const { profile, loading: authLoading } = useAuth();
 
@@ -138,6 +147,15 @@ export default function ClassMembersScreen() {
       }
     );
 
+    const unsubscribeSchedules = subscribeSchedules(
+      (data) => {
+        setClassSchedules(data.filter((item) => item.classId === classId));
+      },
+      (err) => {
+        setPageError(err.message);
+      }
+    );
+
     const unsubscribeUsers = subscribeAvailablePraktikan(
       (data) => {
         setAvailableUsers(data);
@@ -152,6 +170,7 @@ export default function ClassMembersScreen() {
     return () => {
       unsubscribeClasses();
       unsubscribeMembers();
+      unsubscribeSchedules();
       unsubscribeUsers();
     };
   }, [profile, authLoading, classId]);
@@ -340,7 +359,7 @@ export default function ClassMembersScreen() {
 
   if (authLoading) {
     return (
-      <SafeAreaView style={styles.centered}>
+      <SafeAreaView style={styles.centered} edges={['top']}>
         <ActivityIndicator size="large" color="#111014" />
 
         <Text style={styles.mutedText}>
@@ -352,7 +371,7 @@ export default function ClassMembersScreen() {
 
   if (!profile) {
     return (
-      <SafeAreaView style={styles.centered}>
+      <SafeAreaView style={styles.centered} edges={['top']}>
         <Text style={styles.emptyTitle}>
           Belum Login
         </Text>
@@ -366,7 +385,7 @@ export default function ClassMembersScreen() {
 
   if (profile.role !== 'asisten') {
     return (
-      <SafeAreaView style={styles.centered}>
+      <SafeAreaView style={styles.centered} edges={['top']}>
         <Text style={styles.emptyTitle}>
           Akses Ditolak
         </Text>
@@ -380,7 +399,7 @@ export default function ClassMembersScreen() {
 
   if (!loading && !currentClass) {
     return (
-      <SafeAreaView style={styles.centered}>
+      <SafeAreaView style={styles.centered} edges={['top']}>
         <Text style={styles.emptyTitle}>
           Kelas Tidak Ditemukan
         </Text>
@@ -402,7 +421,7 @@ export default function ClassMembersScreen() {
   // ==========================================
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
       <StatusBar
         barStyle="dark-content"
       />
@@ -421,11 +440,11 @@ export default function ClassMembersScreen() {
           {/* JUDUL HALAMAN */}
           <View style={styles.header}>
             <Text style={styles.title}>
-              Kelola Peserta
+              Peserta & Jadwal
             </Text>
 
             <Text style={styles.subtitle}>
-              Atur keanggotaan praktikan dalam kelas.
+              Atur peserta dan jadwal praktikum kelas ini.
             </Text>
           </View>
 
@@ -445,7 +464,7 @@ export default function ClassMembersScreen() {
               </View>
 
               <Text style={styles.className}>
-                {currentClass.nama}
+                {classLabel(currentClass)}
               </Text>
 
               <Text style={styles.classDescription}>
@@ -462,6 +481,46 @@ export default function ClassMembersScreen() {
               </Text>
             </View>
           ) : null}
+
+          {/* JADWAL KELAS (FR-07) */}
+          <View style={styles.sectionHeader}>
+            <View>
+              <Text style={styles.sectionTitle}>
+                Jadwal
+              </Text>
+
+              <Text style={styles.sectionCaption}>
+                {classSchedules.length > 0
+                  ? `${classSchedules.length} jadwal praktikum`
+                  : 'Belum ada jadwal untuk kelas ini.'}
+              </Text>
+            </View>
+          </View>
+
+          {classSchedules.map((item) => (
+            <View key={item.id} style={styles.scheduleCard}>
+              <Text style={styles.scheduleTime}>{item.scheduleTime}</Text>
+              <Text style={styles.scheduleRoom}>{item.classRoom}</Text>
+            </View>
+          ))}
+
+          <Pressable
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              styles.scheduleManageButton,
+              pressed && styles.pressed,
+            ]}
+            onPress={() =>
+              router.push({
+                pathname: '/assistant/schedules',
+                params: { classId },
+              })
+            }
+          >
+            <Text style={styles.scheduleManageText}>
+              Kelola Jadwal
+            </Text>
+          </Pressable>
 
           {/* RINGKASAN PESERTA */}
           <View style={styles.summary}>
@@ -546,12 +605,6 @@ export default function ClassMembersScreen() {
 
             /* DAFTAR KARTU PESERTA */
             members.map((member) => {
-              const initials = member.nama
-                .trim()
-                .split(/\s+/)
-                .slice(0, 2)
-                .map((part) => part.charAt(0).toUpperCase())
-                .join('');
 
               const joinedDate = member.joinedAt
                 ? member.joinedAt.toDate().toLocaleDateString('id-ID', {
@@ -570,9 +623,7 @@ export default function ClassMembersScreen() {
                   {/* IDENTITAS PESERTA */}
                   <View style={styles.memberIdentity}>
                     <View style={styles.avatar}>
-                      <Text style={styles.avatarText}>
-                        {initials || '?'}
-                      </Text>
+                      <PersonIcon size={22} color="#111014" />
                     </View>
 
                     <View style={styles.memberDetails}>
@@ -711,12 +762,6 @@ export default function ClassMembersScreen() {
                   eligibleUsers.map((user) => {
                     const selected = selectedUid === user.uid;
 
-                    const initials = user.nama
-                      .trim()
-                      .split(/\s+/)
-                      .slice(0, 2)
-                      .map((part) => part.charAt(0).toUpperCase())
-                      .join('');
 
                     return (
                       <Pressable
@@ -731,9 +776,7 @@ export default function ClassMembersScreen() {
                         }}
                       >
                         <View style={styles.avatar}>
-                          <Text style={styles.avatarText}>
-                            {initials || '?'}
-                          </Text>
+                          <PersonIcon size={22} color="#111014" />
                         </View>
 
                         <View style={styles.memberDetails}>
@@ -1051,7 +1094,7 @@ const styles = StyleSheet.create({
 
   pageContent: {
     paddingHorizontal: 20,
-    paddingTop: 25,
+    paddingTop: 16,
     gap: 16,
   },
 
@@ -1183,6 +1226,44 @@ const styles = StyleSheet.create({
   },
 
   // DAFTAR ANGGOTA
+  scheduleCard: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#8E8E93',
+    borderRadius: 26,
+    borderWidth: 1,
+    gap: 3,
+    marginBottom: 9,
+    padding: 18,
+  },
+
+  scheduleTime: {
+    fontFamily: FONT.bold,
+    color: '#111014',
+    fontSize: 15,
+  },
+
+  scheduleRoom: {
+    fontFamily: FONT.regular,
+    color: '#5F5F66',
+    fontSize: 13,
+  },
+
+  scheduleManageButton: {
+    alignItems: 'center',
+    borderColor: '#111014',
+    borderRadius: 999,
+    borderWidth: 1.5,
+    justifyContent: 'center',
+    marginBottom: 22,
+    minHeight: 46,
+  },
+
+  scheduleManageText: {
+    fontFamily: FONT.bold,
+    color: '#111014',
+    fontSize: 14,
+  },
+
   sectionHeader: {
     alignItems: 'center',
     flexDirection: 'row',
@@ -1222,10 +1303,10 @@ const styles = StyleSheet.create({
   memberCard: {
     backgroundColor: '#FFFFFF',
     borderColor: '#8E8E93',
-    borderRadius: 17,
+    borderRadius: 26,
     borderWidth: 1,
     gap: 15,
-    padding: 16,
+    padding: 18,
   },
 
   memberIdentity: {
@@ -1245,11 +1326,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
 
-  avatarText: {
-    fontFamily: FONT.extrabold,
-    color: '#111014',
-    fontSize: 17,
-  },
 
   memberDetails: {
     flex: 1,
@@ -1334,8 +1410,8 @@ const styles = StyleSheet.create({
   emptyCard: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 25,
+    borderRadius: 20,
+    padding: 20,
     gap: 9,
     borderColor: '#8E8E93',
     borderWidth: 1,
@@ -1481,7 +1557,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderColor: '#8E8E93',
-    borderRadius: 13,
+    borderRadius: 20,
     borderWidth: 1,
     flexDirection: 'row',
     gap: 11,

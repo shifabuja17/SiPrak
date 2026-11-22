@@ -6,7 +6,6 @@ import {
   KeyboardAvoidingView,
   Modal,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -14,6 +13,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import AssistantHeader from '@/components/common/AssistantHeader';
 
@@ -28,6 +28,7 @@ import {
   type PracticumClass,
 } from '@/features/assistant/services/class-service';
 import { FONT } from '@/constants/fonts';
+import { classLabel } from '@/features/assistant/utils/class-label';
 
 // Form kosong untuk tambah kelas.
 const EMPTY_FORM: ClassInput = {
@@ -208,7 +209,7 @@ export default function AssistantClassesScreen() {
 
   if (authLoading) {
     return (
-      <SafeAreaView style={styles.centered}>
+      <SafeAreaView style={styles.centered} edges={['top']}>
         <ActivityIndicator size="large" color="#111014" />
 
         <Text style={styles.mutedText}>
@@ -220,7 +221,7 @@ export default function AssistantClassesScreen() {
 
   if (!profile) {
     return (
-      <SafeAreaView style={styles.centered}>
+      <SafeAreaView style={styles.centered} edges={['top']}>
         <Text style={styles.emptyTitle}>
           Belum Login
         </Text>
@@ -234,7 +235,7 @@ export default function AssistantClassesScreen() {
 
   if (profile.role !== 'asisten') {
     return (
-      <SafeAreaView style={styles.centered}>
+      <SafeAreaView style={styles.centered} edges={['top']}>
         <Text style={styles.emptyTitle}>
           Akses Ditolak
         </Text>
@@ -251,7 +252,7 @@ export default function AssistantClassesScreen() {
   // ==========================================
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
       <StatusBar
         barStyle="dark-content"
       />
@@ -270,11 +271,11 @@ export default function AssistantClassesScreen() {
           {/* JUDUL HALAMAN */}
           <View style={styles.header}>
             <Text style={styles.title}>
-              Manajemen Kelas
+              Praktikum & Peserta
             </Text>
 
             <Text style={styles.subtitle}>
-              Kelola kelas praktikum dan peserta yang terdaftar.
+              Kelola kelas praktikum, peserta, dan jadwalnya.
             </Text>
           </View>
 
@@ -308,7 +309,7 @@ export default function AssistantClassesScreen() {
               </Text>
 
               <Text style={styles.sectionCaption}>
-                Pilih kelas untuk mengelola anggotanya.
+                Pilih kelas untuk mengelola peserta dan jadwalnya.
               </Text>
             </View>
 
@@ -356,12 +357,8 @@ export default function AssistantClassesScreen() {
               >
 
                 <View style={styles.classInfo}>
-                  <Text style={styles.classCode}>
-                    {item.kode}
-                  </Text>
-
                   <Text style={styles.className}>
-                    {item.nama}
+                    {classLabel(item)}
                   </Text>
 
                   <Text style={styles.classDescription}>
@@ -383,7 +380,7 @@ export default function AssistantClassesScreen() {
                   }
                 >
                   <Text style={styles.manageMembersText}>
-                    Kelola Peserta
+                    Kelola Peserta & Jadwal
                   </Text>
 
                   <Text style={styles.manageMembersArrow}>
@@ -456,13 +453,13 @@ export default function AssistantClassesScreen() {
                   </Text>
 
                   <Text style={styles.modalSubtitle}>
-                    Lengkapi informasi kelas praktikum.
+                    Isi nama praktikum dan kelasnya, mis. Praktikum Sistem Operasi E1.
                   </Text>
                 </View>
 
                 {/* INPUT NAMA KELAS */}
                 <Text style={styles.inputLabel}>
-                  Nama Kelas
+                  Nama Praktikum
                 </Text>
 
                 <TextInput
@@ -473,7 +470,7 @@ export default function AssistantClassesScreen() {
                       nama: value,
                     }))
                   }
-                  placeholder="Contoh: Praktikum Pemrograman Bergerak"
+                  placeholder="Contoh: Praktikum Sistem Operasi"
                   placeholderTextColor="#8E8E93"
                   style={styles.input}
                   editable={!saving}
@@ -484,7 +481,7 @@ export default function AssistantClassesScreen() {
 
                 {/* INPUT KODE KELAS */}
                 <Text style={styles.inputLabel}>
-                  Kode Kelas
+                  Kelas
                 </Text>
 
                 <TextInput
@@ -495,7 +492,7 @@ export default function AssistantClassesScreen() {
                       kode: value.toUpperCase(),
                     }))
                   }
-                  placeholder="Contoh: PPB-A"
+                  placeholder="Contoh: E1"
                   placeholderTextColor="#8E8E93"
                   style={styles.input}
                   editable={!saving}
@@ -690,7 +687,7 @@ const styles = StyleSheet.create({
 
   pageContent: {
     paddingHorizontal: 20,
-    paddingTop: 25,
+    paddingTop: 16,
     gap: 16,
   },
 
@@ -791,11 +788,11 @@ const styles = StyleSheet.create({
   classCard: {
     backgroundColor: '#FFFFFF',
     borderColor: '#8E8E93',
-    borderRadius: 18,
+    borderRadius: 26,
     borderWidth: 1,
     gap: 14,
     marginBottom: 4,
-    padding: 17,
+    padding: 18,
   },
 
   classInfo: {
@@ -896,8 +893,8 @@ const styles = StyleSheet.create({
   emptyCard: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 17,
-    padding: 25,
+    borderRadius: 20,
+    padding: 20,
     gap: 8,
     borderColor: '#8E8E93',
     borderWidth: 1,

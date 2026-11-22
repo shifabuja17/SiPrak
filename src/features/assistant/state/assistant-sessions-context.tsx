@@ -284,6 +284,8 @@ export function AssistantSessionsProvider({
         scheduleTime: session.waktuMulai
           ? formatSessionTimeRange(session.waktuMulai, session.waktuSelesai)
           : session.scheduleTime,
+        waktuMulai: session.waktuMulai,
+        waktuSelesai: session.waktuSelesai,
         status: session.status,
         sessionNote: session.sessionNote ?? '',
         attendances,
