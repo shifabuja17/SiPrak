@@ -44,8 +44,8 @@ import type {
 import { openAppLocationSettings } from '@/services/location-service';
 
 const INITIAL_REGION: Region = {
-  latitude: -7.04825,
-  longitude: 110.4414,
+  latitude: -7.0486375,
+  longitude: 110.441125,
   latitudeDelta: 0.004,
   longitudeDelta: 0.004,
 };

@@ -40,37 +40,39 @@ export interface LaboratoryPreset {
 }
 
 /**
- * 4 titik lokasi praktikum tetap beserta koordinat awal area kampus FSM UNDIP
- * dan radius default 50 meter. Asisten dapat memperbarui koordinat dan radius
- * masing-masing lokasi kapan saja tanpa tertimpa proses seeding.
+ * 4 titik lokasi praktikum tetap beserta koordinat referensi WGS84 area kampus FSM UNDIP
+ * (Plus Code level gedung: Gedung E FSM UNDIP `6P4GXC2R+P82` untuk Lab B/C/D,
+ * Dekanat FSM UNDIP `6P4GXC2R+9HQ` untuk Gedung AP) dan radius default 50 meter.
+ * Asisten dapat memperbarui koordinat dan radius masing-masing lokasi kapan saja
+ * tanpa tertimpa proses seeding.
  */
 export const DEFAULT_LABORATORIES: readonly LaboratoryPreset[] = [
   {
     id: 'lab-b-informatika',
     name: 'Lab B Informatika',
-    latitude: -7.04817,
-    longitude: 110.4414,
+    latitude: -7.0482375,
+    longitude: 110.440765625,
     radius: DEFAULT_LABORATORY_RADIUS_METERS,
   },
   {
     id: 'lab-c-informatika',
     name: 'Lab C Informatika',
-    latitude: -7.04822,
-    longitude: 110.44145,
+    latitude: -7.0482375,
+    longitude: 110.440765625,
     radius: DEFAULT_LABORATORY_RADIUS_METERS,
   },
   {
     id: 'lab-d-informatika',
     name: 'Lab D Informatika',
-    latitude: -7.04827,
-    longitude: 110.4415,
+    latitude: -7.0482375,
+    longitude: 110.440765625,
     radius: DEFAULT_LABORATORY_RADIUS_METERS,
   },
   {
     id: 'gedung-ap',
     name: 'Gedung AP',
-    latitude: -7.04835,
-    longitude: 110.44125,
+    latitude: -7.0490375,
+    longitude: 110.441484375,
     radius: DEFAULT_LABORATORY_RADIUS_METERS,
   },
 ] as const;
