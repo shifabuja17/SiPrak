@@ -34,6 +34,8 @@ export interface AttendanceRecord {
 
 export interface PracticumSession {
   id: string;
+  /** Kelas pemilik sesi (untuk rekap kehadiran per peserta). */
+  classId?: string;
   practicumName: string;
   moduleTitle: string;
   classRoom: string;

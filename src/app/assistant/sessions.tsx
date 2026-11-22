@@ -1,9 +1,10 @@
+import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
   FlatList,
+  KeyboardAvoidingView,
   Modal,
   Pressable,
   ScrollView,
@@ -21,39 +22,46 @@ import AssistantHeader from '@/components/common/AssistantHeader';
 
 import { useAuth } from '@/context/AuthContext';
 
-import AttendanceRecap from '@/features/assistant/components/attendance-recap';
+import { SessionTile } from '@/components/common/session-schedule';
+import AttendanceStats from '@/features/assistant/components/attendance-stats';
+import { NO_EXCUSED, useExcusedBySession } from '@/features/assistant/hooks/use-session-attendance';
 
 import {
   subscribeSchedules,
   type PracticumSchedule,
 } from '@/features/assistant/services/schedule-service';
 
+import DateTimeField from '@/components/common/DateTimeField';
+import Dropdown from '@/components/common/Dropdown';
 import {
+  closeSession,
   createSession,
   deleteSession,
+  openSession,
   subscribeSessions,
   updateSession,
-  openSession,
-  closeSession,
-  type SessionRecord,
   type SessionInput,
+  type SessionRecord,
 } from '@/features/assistant/services/session-service';
-import DateTimeField from '@/components/common/DateTimeField';
 import {
   combineDateAndTime,
   defaultSessionTimesFromSchedule,
-  formatSessionTimeRange,
   startOfDay,
   toClockTime,
 } from '@/utils/session-time';
 
+import { useTabBottomSpace } from '@/components/common/tab-screen';
+import { FONT } from '@/constants/fonts';
+import { useClassCodes } from '@/features/assistant/hooks/use-class-codes';
 import {
   ensureDefaultLaboratories,
   isLaboratoryId,
   subscribeLaboratories,
   type LaboratoryLocation,
 } from '@/features/assistant/services/laboratory-service';
-import { FONT } from '@/constants/fonts';
+import { withClassCode } from '@/features/assistant/utils/class-label';
+import { IconButton, IconButtonRow } from '@/components/common/IconButton';
+
 
 // ==========================================
 // FORM KOSONG
@@ -111,7 +119,7 @@ function findMatchingLaboratoryId(
 
 type SessionActionType = 'delete' | 'open' | 'close';
 
-type SessionIconName = 'plus' | 'check';
+type SessionIconName = 'plus';
 
 // ==========================================
 // KOMPONEN IKON SVG
@@ -136,25 +144,30 @@ function SessionIcon({
           strokeLinecap="round"
         />
       )}
-
-      {name === 'check' && (
-        <Path
-          d="M5 12L10 17L19 7"
-          stroke={color}
-          strokeWidth={2}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      )}
     </Svg>
   );
 }
+
+function TrashIcon() {
+  return (
+    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+      <Path d="M4 7H20M9 7V4.5H15V7M6.5 7L7.5 20H16.5L17.5 7M10 11V16M14 11V16" stroke="#E00000" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+/** Jeda agar modal edit selesai tertutup sebelum modal konfirmasi hapus dibuka (iOS). */
+const MODAL_SWAP_DELAY = 350;
 
 // ==========================================
 // HALAMAN MANAJEMEN SESI
 // ==========================================
 
 export default function AssistantSessionsScreen() {
+  const bottomSpace = useTabBottomSpace(40);
+  // uid praktikan dengan izin diterima, per sesi (untuk kolom "Izin" di rekap).
+  const excusedBySession = useExcusedBySession(true);
+  const classCodes = useClassCodes();
   const { profile, loading: authLoading } = useAuth();
 
   // DATA FIRESTORE
@@ -628,13 +641,6 @@ export default function AssistantSessionsScreen() {
   }: {
     item: SessionRecord;
   }) {
-    const statusLabel =
-      item.status === 'dijadwalkan'
-        ? 'BELUM DIBUKA'
-        : item.status === 'dibuka'
-          ? 'BERLANGSUNG'
-          : 'SELESAI';
-
     const linkedLab = item.labId
       ? laboratories.find((lab) => lab.id === item.labId)
       : undefined;
@@ -645,180 +651,73 @@ export default function AssistantSessionsScreen() {
         ? baseLocation
         : `${baseLocation} (Belum ditautkan ke titik lab)`;
 
+    const chip =
+      item.status === 'dibuka'
+        ? { label: 'Berlangsung', live: true }
+        : item.status === 'ditutup'
+          ? { label: 'Selesai', live: false }
+          : { label: 'Belum dibuka', live: false };
+
+    // Rekap kehadiran & pengajuan izin sesi ini; tersedia di semua status sesi.
+    const openCheckAttendance = () =>
+      router.push({
+        pathname: '/assistant/session/[sessionId]',
+        params: { sessionId: item.id },
+      });
+
     return (
       <View style={styles.sessionItem}>
-        <View style={styles.card}>
-
-          {/* HEADER KARTU */}
-          <View style={styles.cardHeader}>
-            <View style={styles.cardTitleContainer}>
-              <Text style={styles.sessionName}>
-                {item.practicumName}
-              </Text>
-
-              <View
-                style={[
-                  styles.statusBadge,
-                  item.status === 'dibuka' && styles.openBadge,
-                  item.status === 'ditutup' && styles.closedBadge,
-                ]}
-              >
-                <View
-                  style={[
-                    styles.statusDot,
-                    item.status === 'dibuka' && styles.openDot,
-                    item.status === 'ditutup' && styles.closedDot,
-                  ]}
-                />
-
-                <Text
-                  style={[
-                    styles.statusText,
-                    item.status !== 'dijadwalkan' && styles.statusTextOnColor,
-                  ]}
-                >
-                  {statusLabel}
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          {/* INFORMASI SESI */}
-          <View style={styles.detailGroup}>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>
-                ID Kelas
-              </Text>
-
-              <Text style={styles.detailValue}>
-                {item.classId}
-              </Text>
-            </View>
-
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>
-                Modul
-              </Text>
-
-              <Text style={styles.detailValue}>
-                {item.moduleTitle}
-              </Text>
-            </View>
-
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>
-                Lokasi Laboratorium
-              </Text>
-
-              <Text style={styles.detailValue}>
-                {locationDisplay}
-              </Text>
-            </View>
-
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>
-                Catatan Sesi
-              </Text>
-
-              <Text style={styles.detailValue}>
-                {item.sessionNote || 'Tidak ada catatan.'}
-              </Text>
-            </View>
-          </View>
-
-          {/* INFORMASI WAKTU */}
-          <View style={styles.timeBox}>
-            <Text style={styles.timeLabel}>
-              {item.waktuMulai ? 'WAKTU SESI' : 'JADWAL PRAKTIKUM'}
-            </Text>
-
-            <Text style={styles.timeValue}>
-              {item.waktuMulai
-                ? formatSessionTimeRange(item.waktuMulai, item.waktuSelesai)
-                : item.scheduleTime}
-            </Text>
-          </View>
+        <SessionTile
+          session={{
+            ...item,
+            practicumName: withClassCode(item.practicumName, classCodes.get(item.classId)),
+            classRoom: locationDisplay,
+          }}
+          chipLabel={chip.label}
+          live={chip.live}
+          showDate
+          chipInCorner
+        >
+          {item.sessionNote ? (
+            <Text style={styles.tileNote}>Catatan: {item.sessionNote}</Text>
+          ) : null}
 
           {/* REKAP KEHADIRAN REAL-TIME */}
-          <View style={styles.recapContainer}>
-            <Text style={styles.recapTitle}>
-              Rekap Kehadiran
-            </Text>
+          <AttendanceStats
+            sessionId={item.id}
+            classId={item.classId}
+            excusedUids={excusedBySession.get(item.id) ?? NO_EXCUSED}
+          />
 
-            <AttendanceRecap
-              sessionId={item.id}
-              classId={item.classId}
-            />
-          </View>
+          {/* TOMBOL AKSI: pojok kanan bawah kartu */}
+          <IconButtonRow>
+            {item.status === 'dijadwalkan' ? (
+              <>
+                <IconButton icon="edit" label="Edit sesi" onPress={() => openEditModal(item)} />
+              </>
+            ) : null}
 
-          {/* SESI BELUM DIBUKA */}
-          {item.status === 'dijadwalkan' && (
-            <View style={styles.actionContainer}>
-              <View style={styles.actionRow}>
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.editButton,
-                    pressed && styles.pressed,
-                  ]}
-                  onPress={() => openEditModal(item)}
-                >
-                  <Text style={styles.editButtonText}>
-                    Edit
-                  </Text>
-                </Pressable>
+            <IconButton icon="attendance" label="Cek presensi" onPress={openCheckAttendance} />
 
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.deleteButton,
-                    pressed && styles.pressed,
-                  ]}
-                  onPress={() => openActionModal('delete', item)}
-                >
-                  <Text style={styles.deleteButtonText}>
-                    Hapus
-                  </Text>
-                </Pressable>
-              </View>
-
-              <Pressable
-                style={({ pressed }) => [
-                  styles.openButton,
-                  pressed && styles.pressed,
-                ]}
+            {item.status === 'dijadwalkan' ? (
+              <IconButton
+                icon="play"
+                label="Buka sesi"
+                tone="accent"
                 onPress={() => openActionModal('open', item)}
-              >
-                <Text style={styles.openButtonText}>
-                  Buka Sesi
-                </Text>
-              </Pressable>
-            </View>
-          )}
+              />
+            ) : null}
 
-          {/* SESI SEDANG BERLANGSUNG */}
-          {item.status === 'dibuka' && (
-            <Pressable
-              style={({ pressed }) => [
-                styles.closeButton,
-                pressed && styles.pressed,
-              ]}
-              onPress={() => openActionModal('close', item)}
-            >
-              <Text style={styles.closeButtonText}>
-                Tutup Sesi
-              </Text>
-            </Pressable>
-          )}
-
-          {/* SESI SELESAI */}
-          {item.status === 'ditutup' && (
-            <View style={styles.lockedBox}>
-              <Text style={styles.lockedText}>
-                Sesi telah selesai. Presensi sudah ditutup.
-              </Text>
-            </View>
-          )}
-
-        </View>
+            {item.status === 'dibuka' ? (
+              <IconButton
+                icon="stop"
+                label="Tutup sesi"
+                tone="danger"
+                onPress={() => openActionModal('close', item)}
+              />
+            ) : null}
+          </IconButtonRow>
+        </SessionTile>
       </View>
     );
   }
@@ -867,7 +766,7 @@ export default function AssistantSessionsScreen() {
         data={sessions}
         keyExtractor={(item) => item.id}
         renderItem={renderSession}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: bottomSpace }]}
         showsVerticalScrollIndicator={false}
         ItemSeparatorComponent={() => (
           <View style={styles.separator} />
@@ -883,32 +782,13 @@ export default function AssistantSessionsScreen() {
               {/* JUDUL HALAMAN */}
               <View style={styles.header}>
                 <Text style={styles.title}>
-                  Manajemen Sesi
+                  Sesi & Presensi
                 </Text>
 
                 <Text style={styles.subtitle}>
-                  Buat dan kelola sesi berdasarkan jadwal praktikum.
+                  Buat dan kelola sesi beserta presensi praktikan.
                 </Text>
               </View>
-
-              {/* TOMBOL TAMBAH */}
-              <Pressable
-                style={({ pressed }) => [
-                  styles.addButton,
-                  pressed && styles.pressed,
-                ]}
-                onPress={openCreateModal}
-              >
-                <SessionIcon
-                  name="plus"
-                  size={19}
-                  color="#FFFFFF"
-                />
-
-                <Text style={styles.addButtonText}>
-                  Tambah Sesi
-                </Text>
-              </Pressable>
 
               {/* PESAN BERHASIL */}
               {pageMessage ? (
@@ -930,21 +810,23 @@ export default function AssistantSessionsScreen() {
 
               {/* HEADER DAFTAR SESI */}
               <View style={styles.sectionHeader}>
-                <View style={styles.sectionInfo}>
-                  <Text style={styles.sectionTitle}>
-                    Daftar Sesi
-                  </Text>
+                <Text style={styles.sectionTitle}>
+                  Daftar Sesi
+                </Text>
 
-                  <Text style={styles.sectionCaption}>
-                    Pantau status dan kehadiran praktikan.
-                  </Text>
-                </View>
-
-                <View style={styles.totalBadge}>
-                  <Text style={styles.totalText}>
-                    {sessions.length} sesi
-                  </Text>
-                </View>
+                {/* TOMBOL TAMBAH SESI */}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Tambah sesi"
+                  style={({ pressed }) => [
+                    styles.addButton,
+                    pressed && styles.pressed,
+                  ]}
+                  onPress={openCreateModal}
+                >
+                  <SessionIcon name="plus" size={16} color="#FFFFFF" />
+                  <Text style={styles.addButtonText}>Tambah Sesi</Text>
+                </Pressable>
               </View>
             </View>
           </View>
@@ -1016,14 +898,30 @@ export default function AssistantSessionsScreen() {
             >
               <View style={styles.modalHandle} />
 
-              <View style={styles.modalHeader}>
+              <View style={[styles.modalHeader, styles.modalHeaderRow]}>
                 <Text style={styles.modalTitle}>
                   {editingId ? 'Edit Sesi' : 'Tambah Sesi'}
                 </Text>
 
-                <Text style={styles.modalSubtitle}>
-                  Pilih jadwal praktikum, isi modul pertemuan, tentukan tanggal dan jam, lalu lengkapi catatan sesi.
-                </Text>
+                {/* HAPUS SESI (hanya saat edit) */}
+                {editingId ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Hapus sesi"
+                    hitSlop={6}
+                    disabled={saving}
+                    style={({ pressed }) => [styles.modalDeleteButton, pressed && styles.pressed]}
+                    onPress={() => {
+                      const target = sessions.find((session) => session.id === editingId);
+                      closeModal();
+                      if (target) {
+                        setTimeout(() => openActionModal('delete', target), MODAL_SWAP_DELAY);
+                      }
+                    }}
+                  >
+                    <TrashIcon />
+                  </Pressable>
+                ) : null}
               </View>
 
               {/* PILIH JADWAL */}
@@ -1031,71 +929,50 @@ export default function AssistantSessionsScreen() {
                 Pilih Jadwal Praktikum
               </Text>
 
-              <View style={styles.scheduleOptions}>
-                {schedules.map((item) => {
-                  const selected = form.scheduleId === item.id;
+              <Dropdown
+                value={form.scheduleId}
+                options={schedules.map((item) => ({
+                  value: item.id,
+                  label: item.practicumName,
+                  detail: `${item.classRoom} | ${item.scheduleTime}`,
+                }))}
+                placeholder="Pilih jadwal praktikum"
+                accessibilityLabel="Pilih jadwal praktikum"
+                disabled={saving}
+                onChange={(scheduleId) => {
+                  const item = schedules.find((schedule) => schedule.id === scheduleId);
+                  if (!item) return;
 
-                  return (
-                    <Pressable
-                      key={item.id}
-                      style={({ pressed }) => [
-                        styles.scheduleOption,
-                        selected && styles.scheduleOptionSelected,
-                        pressed && styles.pressed,
-                      ]}
-                      onPress={() => {
-                        setForm((previous) => {
-                          const matchedLabId =
-                            !editingId && !labManuallySelected
-                              ? findMatchingLaboratoryId(
-                                  item.classRoom,
-                                  laboratories,
-                                ) ||
-                                previous.labId ||
-                                (laboratories[0]?.id ?? '')
-                              : previous.labId;
+                  setForm((previous) => {
+                    const matchedLabId =
+                      !editingId && !labManuallySelected
+                        ? findMatchingLaboratoryId(item.classRoom, laboratories) ||
+                          previous.labId ||
+                          (laboratories[0]?.id ?? '')
+                        : previous.labId;
 
-                          return {
-                            ...previous,
-                            scheduleId: item.id,
-                            labId: matchedLabId,
-                            // Saat membuat sesi baru, isi otomatis tanggal & jam dari jadwal.
-                            ...(editingId ? {} : timesFromSchedule(item.scheduleTime)),
-                          };
-                        });
+                    // Jam mulai & selesai otomatis dari jadwal (tetap bisa diubah di bawah).
+                    // Sesi baru juga mendapat tanggal pertemuan terdekat sesuai hari jadwal;
+                    // saat edit, tanggal yang sudah dipilih dipertahankan.
+                    const fromSchedule = timesFromSchedule(item.scheduleTime);
+                    const times = editingId
+                      ? {
+                          jamMulai: combineDateAndTime(previous.tanggal, toClockTime(fromSchedule.jamMulai)),
+                          jamSelesai: combineDateAndTime(previous.tanggal, toClockTime(fromSchedule.jamSelesai)),
+                        }
+                      : fromSchedule;
 
-                        setModalError('');
-                      }}
-                      disabled={saving}
-                    >
-                      <View style={styles.scheduleOptionHeader}>
-                        <Text
-                          style={[
-                            styles.scheduleOptionTitle,
-                            selected && styles.scheduleOptionTitleSelected,
-                          ]}
-                        >
-                          {item.practicumName}
-                        </Text>
+                    return {
+                      ...previous,
+                      scheduleId: item.id,
+                      labId: matchedLabId,
+                      ...times,
+                    };
+                  });
 
-                        {selected ? (
-                          <View style={styles.selectedMark}>
-                            <SessionIcon
-                              name="check"
-                              size={17}
-                              color="#111014"
-                            />
-                          </View>
-                        ) : null}
-                      </View>
-
-                      <Text style={styles.scheduleOptionDetail}>
-                        {item.classRoom} · {item.scheduleTime}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
+                  setModalError('');
+                }}
+              />
 
               {/* MODUL / MATERI PERTEMUAN */}
               <Text style={styles.label}>
@@ -1103,7 +980,7 @@ export default function AssistantSessionsScreen() {
               </Text>
 
               <TextInput
-                style={styles.input}
+                style={[styles.input, styles.inputSingle]}
                 placeholder="Contoh: Modul 3: Regresi Linear"
                 placeholderTextColor="#8E8E93"
                 value={form.moduleTitle}
@@ -1155,57 +1032,22 @@ export default function AssistantSessionsScreen() {
                   </Pressable>
                 </View>
               ) : (
-                <View style={styles.scheduleOptions}>
-                  {laboratories.map((lab) => {
-                    const selected = form.labId === lab.id;
-
-                    return (
-                      <Pressable
-                        key={lab.id}
-                        style={({ pressed }) => [
-                          styles.scheduleOption,
-                          selected && styles.scheduleOptionSelected,
-                          pressed && styles.pressed,
-                        ]}
-                        onPress={() => {
-                          setLabManuallySelected(true);
-                          setForm((previous) => ({
-                            ...previous,
-                            labId: lab.id,
-                          }));
-                          setModalError('');
-                        }}
-                        disabled={saving}
-                      >
-                        <View style={styles.scheduleOptionHeader}>
-                          <Text
-                            style={[
-                              styles.scheduleOptionTitle,
-                              selected && styles.scheduleOptionTitleSelected,
-                            ]}
-                          >
-                            {lab.name}
-                          </Text>
-
-                          {selected ? (
-                            <View style={styles.selectedMark}>
-                              <SessionIcon
-                                name="check"
-                                size={17}
-                                color="#111014"
-                              />
-                            </View>
-                          ) : null}
-                        </View>
-
-                        <Text style={styles.scheduleOptionDetail}>
-                          Radius {lab.radius} m · {lab.latitude.toFixed(5)},{' '}
-                          {lab.longitude.toFixed(5)}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
+                <Dropdown
+                  value={form.labId}
+                  options={laboratories.map((lab) => ({
+                    value: lab.id,
+                    label: lab.name,
+                    detail: `Radius presensi ${lab.radius} m`,
+                  }))}
+                  placeholder="Pilih lokasi laboratorium"
+                  accessibilityLabel="Pilih lokasi laboratorium"
+                  disabled={saving}
+                  onChange={(labId) => {
+                    setLabManuallySelected(true);
+                    setForm((previous) => ({ ...previous, labId }));
+                    setModalError('');
+                  }}
+                />
               )}
 
               {/* TANGGAL & JAM SESI */}
@@ -1408,6 +1250,7 @@ export default function AssistantSessionsScreen() {
               <Pressable
                 style={[
                   styles.confirmButton,
+                  actionTarget?.type !== 'open' && styles.confirmDanger,
                   processingAction && styles.disabledButton,
                 ]}
                 onPress={handleSessionAction}
@@ -1439,8 +1282,6 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
-    borderWidth: 1,
   },
 
   content: {
@@ -1455,6 +1296,12 @@ const styles = StyleSheet.create({
 
   sessionItem: {
     paddingHorizontal: 20,
+  },
+  tileNote: {
+    fontFamily: FONT.regular,
+    color: '#FFFFFF',
+    fontSize: 13,
+    lineHeight: 18,
   },
 
   separator: {
@@ -1491,20 +1338,24 @@ const styles = StyleSheet.create({
   // TOMBOL TAMBAH
   addButton: {
     alignItems: 'center',
-    backgroundColor: '#111014',
-    borderRadius: 14,
+    backgroundColor: '#F47321',
+    borderRadius: 999,
     flexDirection: 'row',
-    gap: 9,
+    gap: 6,
     justifyContent: 'center',
-    paddingVertical: 16,
+    minHeight: 40,
+    paddingHorizontal: 16,
   },
 
   addButtonText: {
     fontFamily: FONT.bold,
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 13,
   },
 
+  confirmDanger: {
+    backgroundColor: '#E00000',
+  },
   pressed: {
     opacity: 0.65,
   },
@@ -1552,14 +1403,12 @@ const styles = StyleSheet.create({
   sectionHeader: {
     alignItems: 'center',
     flexDirection: 'row',
+    gap: 12,
     justifyContent: 'space-between',
+    marginBottom: 16,
     marginTop: 8,
   },
 
-  sectionInfo: {
-    flex: 1,
-    gap: 4,
-  },
 
   sectionTitle: {
     fontFamily: FONT.extrabold,
@@ -1567,253 +1416,46 @@ const styles = StyleSheet.create({
     fontSize: 19,
   },
 
-  sectionCaption: {
-    fontFamily: FONT.regular,
-    color: '#5F5F66',
-    fontSize: 11,
-    lineHeight: 17,
-    paddingBottom: 10,
-  },
 
-  totalBadge: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderColor: '#8E8E93',
-    borderWidth: 1,
-  },
 
-  totalText: {
-    fontFamily: FONT.bold,
-    color: '#5F5F66',
-    fontSize: 12,
-  },
 
   // KARTU SESI
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
-    borderRadius: 26,
-    borderWidth: 1,
-    gap: 15,
-    padding: 18,
-  },
 
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
 
-  cardTitleContainer: {
-    flex: 1,
-    gap: 9,
-  },
 
-  sessionName: {
-    fontFamily: FONT.extrabold,
-    color: '#111014',
-    fontSize: 17,
-    lineHeight: 23,
-  },
 
   // STATUS SESI
-  statusBadge: {
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    flexDirection: 'row',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderColor: '#8E8E93',
-    borderWidth: 1,
-  },
 
-  openBadge: {
-    backgroundColor: '#F47321',
-    borderColor: '#F47321',
-    borderWidth: 1,
-  },
 
-  closedBadge: {
-    backgroundColor: '#111014',
-    borderColor: '#111014',
-    borderWidth: 1,
-  },
 
-  statusDot: {
-    backgroundColor: '#8E8E93',
-    borderRadius: 4,
-    height: 7,
-    width: 7,
-  },
 
-  openDot: {
-    backgroundColor: '#FFFFFF',
-  },
 
-  closedDot: {
-    backgroundColor: '#FFFFFF',
-  },
 
-  statusText: {
-    fontFamily: FONT.extrabold,
-    color: '#5F5F66',
-    fontSize: 10,
-    letterSpacing: 0.3,
-  },
-  statusTextOnColor: {
-    color: '#FFFFFF',
-  },
 
   // DETAIL SESI
-  detailGroup: {
-    gap: 11,
-  },
 
-  detailRow: {
-    gap: 3,
-  },
 
-  detailLabel: {
-    fontFamily: FONT.semibold,
-    color: '#5F5F66',
-    fontSize: 11,
-  },
 
-  detailValue: {
-    fontFamily: FONT.regular,
-    color: '#5F5F66',
-    fontSize: 13,
-    lineHeight: 19,
-  },
 
   // WAKTU SESI
-  timeBox: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 13,
-    gap: 5,
-    borderColor: '#8E8E93',
-    borderWidth: 1,
-  },
 
-  timeLabel: {
-    fontFamily: FONT.extrabold,
-    color: '#5F5F66',
-    fontSize: 10,
-    letterSpacing: 0.5,
-  },
 
-  timeValue: {
-    fontFamily: FONT.extrabold,
-    color: '#111014',
-    fontSize: 14,
-  },
 
   // REKAP KEHADIRAN
-  recapContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 13,
-    gap: 10,
-    borderColor: '#8E8E93',
-    borderWidth: 1,
-  },
 
-  recapTitle: {
-    fontFamily: FONT.extrabold,
-    color: '#111014',
-    fontSize: 14,
-  },
 
   // TOMBOL AKSI
-  actionContainer: {
-    gap: 10,
-  },
 
-  actionRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
 
-  editButton: {
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
-    borderRadius: 10,
-    borderWidth: 1,
-    flex: 1,
-    padding: 11,
-  },
 
-  editButtonText: {
-    fontFamily: FONT.bold,
-    color: '#111014',
-    fontSize: 13,
-  },
 
-  deleteButton: {
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    flex: 1,
-    padding: 11,
-    borderColor: '#8E8E93',
-    borderWidth: 1,
-  },
 
-  deleteButtonText: {
-    fontFamily: FONT.bold,
-    color: '#5F5F66',
-    fontSize: 13,
-  },
 
-  openButton: {
-    alignItems: 'center',
-    backgroundColor: '#111014',
-    borderRadius: 11,
-    padding: 14,
-  },
 
-  openButtonText: {
-    fontFamily: FONT.bold,
-    color: '#FFFFFF',
-    fontSize: 13,
-  },
 
-  closeButton: {
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 11,
-    padding: 14,
-    borderColor: '#8E8E93',
-    borderWidth: 1,
-  },
 
-  closeButtonText: {
-    fontFamily: FONT.bold,
-    color: '#111014',
-    fontSize: 13,
-  },
 
-  lockedBox: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    padding: 12,
-    borderColor: '#8E8E93',
-    borderWidth: 1,
-  },
 
-  lockedText: {
-    fontFamily: FONT.regular,
-    color: '#5F5F66',
-    fontSize: 12,
-    lineHeight: 18,
-    textAlign: 'center',
-  },
 
   // KONDISI KOSONG
   emptyCard: {
@@ -1886,18 +1528,27 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
 
+  modalHeaderRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+  },
+  modalDeleteButton: {
+    alignItems: 'center',
+    borderColor: '#E00000',
+    borderRadius: 10,
+    borderWidth: 1,
+    height: 40,
+    justifyContent: 'center',
+    width: 40,
+  },
   modalTitle: {
     fontFamily: FONT.extrabold,
     color: '#111014',
     fontSize: 21,
   },
 
-  modalSubtitle: {
-    fontFamily: FONT.regular,
-    color: '#5F5F66',
-    fontSize: 12,
-    lineHeight: 19,
-  },
 
   // PILIH JADWAL
   label: {
@@ -1923,54 +1574,13 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
 
-  scheduleOptions: {
-    gap: 9,
-  },
 
-  scheduleOption: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 13,
-    gap: 5,
-  },
 
-  scheduleOptionSelected: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#111014',
-    borderWidth: 2,
-  },
 
-  scheduleOptionHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
 
-  scheduleOptionTitle: {
-    fontFamily: FONT.bold,
-    color: '#5F5F66',
-    flex: 1,
-    fontSize: 14,
-  },
 
-  scheduleOptionTitleSelected: {
-    color: '#111014',
-  },
 
-  scheduleOptionDetail: {
-    fontFamily: FONT.regular,
-    color: '#5F5F66',
-    fontSize: 12,
-    lineHeight: 18,
-  },
 
-  selectedMark: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
 
   legacyLabNotice: {
     backgroundColor: '#E00000',
@@ -2045,6 +1655,10 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
   },
 
+  inputSingle: {
+    minHeight: 48,
+  },
+
   modalError: {
     fontFamily: FONT.regular,
     color: '#E00000',
@@ -2079,7 +1693,7 @@ const styles = StyleSheet.create({
 
   saveButton: {
     alignItems: 'center',
-    backgroundColor: '#111014',
+    backgroundColor: '#F47321',
     borderRadius: 11,
     flex: 1,
     padding: 13,
@@ -2172,7 +1786,7 @@ const styles = StyleSheet.create({
 
   confirmButton: {
     alignItems: 'center',
-    backgroundColor: '#111014',
+    backgroundColor: '#F47321',
     borderRadius: 11,
     flex: 1,
     justifyContent: 'center',

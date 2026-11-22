@@ -19,6 +19,7 @@ import type {
   PraktikanSchedule,
   PraktikanSession,
 } from '@/features/praktikan/types';
+import { withClassCode } from '@/features/assistant/utils/class-label';
 
 export { mapPraktikanFirestoreError };
 
@@ -150,12 +151,14 @@ function mapSessionDoc(
     readString(data.dayTime) ??
     context.schedule?.dayTime;
 
-  const practicumName =
+  const practicumName = withClassCode(
     readString(data.practicumName) ??
-    className ??
-    context.schedule?.practicumName ??
-    context.classDoc?.practicumName ??
-    '-';
+      className ??
+      context.schedule?.practicumName ??
+      context.classDoc?.practicumName ??
+      '-',
+    context.classDoc?.code,
+  );
 
   const moduleTitle =
     readString(data.moduleTitle) ??

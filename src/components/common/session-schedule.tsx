@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, type ReactNode } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -272,6 +272,9 @@ export function SessionTile({
   live,
   color = COLORS.accent,
   footer,
+  children,
+  showDate = false,
+  chipInCorner = false,
   onPress,
 }: {
   session: ScheduleSession;
@@ -281,29 +284,52 @@ export function SessionTile({
   color?: string;
   /** Baris tambahan di bawah kartu, mis. jumlah praktikan hadir. */
   footer?: string;
-  onPress: () => void;
+  /** Isi tambahan di dalam kartu, mis. rekap kehadiran dan tombol aksi. */
+  children?: ReactNode;
+  /** Tampilkan tanggal (untuk daftar yang tidak dikelompokkan per hari). */
+  showDate?: boolean;
+  /** Letakkan chip status di pojok kanan atas, sejajar judul. */
+  chipInCorner?: boolean;
+  /** Tanpa onPress, kartu tidak bisa ditekan (hanya tombol di dalamnya). */
+  onPress?: () => void;
 }) {
   const range = timeRange(session);
 
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${session.practicumName}, ${chipLabel}`}
-      onPress={onPress}
-      style={({ pressed }) => [styles.tile, { backgroundColor: color }, pressed && styles.pressed]}
-    >
-      <View style={[styles.chip, live && styles.chipLive]}>
-        <Text style={[styles.chipText, live && styles.chipTextLive]}>{chipLabel}</Text>
-      </View>
+  const chip = (
+    <View style={[styles.chip, live && styles.chipLive]}>
+      <Text style={[styles.chipText, live && styles.chipTextLive]}>{chipLabel}</Text>
+    </View>
+  );
 
-      <Text style={styles.tileTitle} numberOfLines={3}>
-        {session.practicumName}
-      </Text>
+  const title = (
+    <Text style={[styles.tileTitle, chipInCorner && styles.flex]} numberOfLines={3}>
+      {session.practicumName}
+    </Text>
+  );
+
+  const content = (
+    <>
+      {chipInCorner ? (
+        <View style={styles.tileHeader}>
+          {title}
+          {chip}
+        </View>
+      ) : (
+        <>
+          {chip}
+          {title}
+        </>
+      )}
       <Text style={styles.tileModule} numberOfLines={2}>
         {formatMeetingTitle(session.moduleTitle)}
       </Text>
 
       <View style={styles.tileMeta}>
+        {showDate && session.waktuMulai ? (
+          <MetaLine icon="date" textStyle={styles.tileMetaText}>
+            {formatSessionDate(session.waktuMulai)}
+          </MetaLine>
+        ) : null}
         <MetaLine icon="time" textStyle={styles.tileMetaText}>
           {range ? `${range} WIB` : session.scheduleTime}
         </MetaLine>
@@ -313,6 +339,23 @@ export function SessionTile({
       </View>
 
       {footer ? <Text style={styles.tileFooter}>{footer}</Text> : null}
+
+      {children}
+    </>
+  );
+
+  if (!onPress) {
+    return <View style={[styles.tile, { backgroundColor: color }]}>{content}</View>;
+  }
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${session.practicumName}, ${chipLabel}`}
+      onPress={onPress}
+      style={({ pressed }) => [styles.tile, { backgroundColor: color }, pressed && styles.pressed]}
+    >
+      {content}
     </Pressable>
   );
 }
@@ -325,7 +368,7 @@ export function DaySessionList<T extends ScheduleSession>({
 }: {
   sessions: T[];
   dayKey: string;
-  renderSession: (session: T) => React.ReactNode;
+  renderSession: (session: T) => ReactNode;
 }) {
   const visible = sessionsOnDay(sessions, dayKey);
 
@@ -489,6 +532,14 @@ const styles = StyleSheet.create({
   },
   stack: {
     gap: 12,
+  },
+  flex: {
+    flex: 1,
+  },
+  tileHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 10,
   },
   tile: {
     borderRadius: 26,

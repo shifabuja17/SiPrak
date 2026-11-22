@@ -25,9 +25,10 @@ import MapView, {
   type Region,
 } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle as SvgCircle, Path } from 'react-native-svg';
+import Svg, { Path, Circle as SvgCircle } from 'react-native-svg';
 
 import StatusBadge from '@/components/common/StatusBadge';
+import { FONT } from '@/constants/fonts';
 import { useAuth } from '@/context/AuthContext';
 import {
   ensureDefaultLaboratories,
@@ -35,15 +36,14 @@ import {
   type LaboratoryId,
   type LaboratoryLocation,
 } from '@/features/assistant/services/laboratory-service';
+import { TAB_BAR_SPACE } from '@/features/praktikan/ui/praktikan-ui';
 import { useLabRealtimeActivities } from '@/hooks/use-lab-realtime-activities';
 import { useUserLocationTracking } from '@/hooks/use-user-location-tracking';
 import type {
   LabActivityItem,
   LabActivitySessionStatus,
 } from '@/services/lab-activities-service';
-import { TAB_BAR_SPACE } from '@/features/praktikan/ui/praktikan-ui';
 import { openAppLocationSettings } from '@/services/location-service';
-import { FONT } from '@/constants/fonts';
 
 const INITIAL_REGION: Region = {
   latitude: -7.04825,
@@ -53,6 +53,9 @@ const INITIAL_REGION: Region = {
 };
 
 const USER_FOCUS_DELTA = 0.0025;
+
+/** Jarak tombol bulat dari bawah: tepat di atas navbar melayang. */
+const FAB_BOTTOM = TAB_BAR_SPACE - 12;
 
 const FIT_EDGE_PADDING = {
   top: 96,
@@ -145,6 +148,37 @@ function CloseIcon() {
         strokeWidth={2.2}
         strokeLinecap="round"
       />
+    </Svg>
+  );
+}
+
+/** Ikon roda gigi untuk tombol "Atur Lokasi". */
+function SettingsIcon() {
+  return (
+    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
+      <SvgCircle cx={12} cy={12} r={3} stroke="#111014" strokeWidth={1.8} />
+      <Path
+        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+        stroke="#111014"
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+/** Ikon pin lokasi merah untuk tombol "Pusatkan". */
+function PinIcon() {
+  return (
+    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M12 21C12 21 19 14.9 19 9.5C19 5.4 15.9 2.5 12 2.5C8.1 2.5 5 5.4 5 9.5C5 14.9 12 21 12 21Z"
+        stroke="#E00000"
+        strokeWidth={1.9}
+        strokeLinejoin="round"
+      />
+      <SvgCircle cx={12} cy={9.5} r={2.6} stroke="#E00000" strokeWidth={1.9} />
     </Svg>
   );
 }
@@ -391,6 +425,9 @@ export default function MapsScreen() {
   } = useAuth();
 
   const mapRef = useRef<MapView | null>(null);
+  // Tinggi kartu detail lab, supaya tombol bulat di kanan bawah tetap di atasnya.
+  const [detailHeight, setDetailHeight] = useState(0);
+  const [mapSize, setMapSize] = useState({ width: 0, height: 0 });
   const hasAutoFittedRef = useRef(false);
 
   const [laboratories, setLaboratories] = useState<LaboratoryLocation[]>([]);
@@ -572,6 +609,25 @@ export default function MapsScreen() {
     centerMapOnLaboratories(validLaboratories, false);
   }, [mapReady, mapLayoutReady, validLaboratories, centerMapOnLaboratories]);
 
+  /**
+   * Selisih lintang agar titik lab berada di tengah ruang antara chip lab di atas
+   * dan kartu detail di bawah, bukan di tengah layar.
+   */
+  function labFocusLatitudeOffset(delta: number): number {
+    const { width, height } = mapSize;
+    if (width === 0 || height === 0) return delta * 0.2;
+
+    // Region persegi pada layar tegak: lebar peta = delta, tinggi = delta * h/w.
+    const visibleLatSpan = delta * Math.max(1, height / width);
+    // Kartu belum terukur saat pertama dipilih: pakai perkiraan tingginya.
+    const cardHeight = detailHeight > 0 ? detailHeight : 280;
+    const topCovered = 60; // baris chip lab
+    const bottomCovered = FAB_BOTTOM + cardHeight;
+    const targetY = (topCovered + Math.max(topCovered, height - bottomCovered)) / 2;
+    const shiftPx = height / 2 - targetY;
+    return (shiftPx / height) * visibleLatSpan;
+  }
+
   function handleSelectLab(lab: LaboratoryLocation) {
     setSelectedLabId(lab.id);
 
@@ -579,7 +635,9 @@ export default function MapsScreen() {
       const focusDelta = getFocusDeltaForRadius(lab.radius);
       mapRef.current.animateToRegion(
         {
-          latitude: lab.latitude,
+          // Geser pusat ke selatan supaya titik lab tampil di tengah area peta
+          // yang tidak tertutup kartu detail (kartu muncul di bagian bawah).
+          latitude: lab.latitude - labFocusLatitudeOffset(focusDelta),
           longitude: lab.longitude,
           latitudeDelta: focusDelta,
           longitudeDelta: focusDelta,
@@ -683,7 +741,11 @@ export default function MapsScreen() {
     Boolean(error) && validLaboratories.length === 0 && !loading;
 
   const selectedLabDetailCard = selectedLab ? (
-    <View style={styles.floatingDetailContainer} pointerEvents="box-none">
+    <View
+      style={styles.floatingDetailContainer}
+      pointerEvents="box-none"
+      onLayout={(event) => setDetailHeight(event.nativeEvent.layout.height)}
+    >
       <LabDetailCard
         lab={selectedLab}
         onClose={handleCloseDetail}
@@ -698,6 +760,39 @@ export default function MapsScreen() {
     </View>
   ) : null;
 
+  // Tombol bulat di kanan bawah, di atas navbar (dan di atas kartu detail bila terbuka).
+  const mapFabs = (
+    <View
+      pointerEvents="box-none"
+      style={[
+        styles.fabColumn,
+        { bottom: FAB_BOTTOM + (selectedLab ? detailHeight + 10 : 0) },
+      ]}
+    >
+      {/* Asisten mengatur koordinat & radius 4 titik lokasi (FR-10, FR-11) dari peta. */}
+      {role === 'asisten' ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Atur lokasi laboratorium"
+          onPress={() => router.push('/assistant/laboratories' as Href)}
+          style={({ pressed }) => [styles.fab, pressed && styles.pressed]}
+        >
+          <SettingsIcon />
+        </Pressable>
+      ) : null}
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Pusatkan peta ke semua laboratorium"
+        onPress={handleResetMap}
+        disabled={validLaboratories.length === 0 && !mapReady}
+        style={({ pressed }) => [styles.fab, pressed && styles.pressed]}
+      >
+        <PinIcon />
+      </Pressable>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" />
@@ -706,40 +801,7 @@ export default function MapsScreen() {
       <View style={styles.header}>
         <View style={styles.headerTitleGroup}>
           <Text style={styles.title}>Peta Laboratorium</Text>
-          <Text style={styles.subtitle}>
-            {validLaboratories.length > 0
-              ? `${validLaboratories.length} titik lokasi aktif`
-              : '4 titik lokasi praktikum'}
-          </Text>
         </View>
-
-        {/* Asisten mengatur koordinat & radius 4 titik lokasi (FR-10, FR-11) dari peta. */}
-        {role === 'asisten' ? (
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.push('/assistant/laboratories' as Href)}
-            style={({ pressed }) => [
-              styles.editLabButton,
-              pressed && styles.pressed,
-            ]}
-          >
-            <Text style={styles.editLabButtonText}>Atur Lokasi</Text>
-          </Pressable>
-        ) : null}
-
-        {Platform.OS !== 'web' ? (
-          <Pressable
-            accessibilityRole="button"
-            onPress={handleResetMap}
-            disabled={validLaboratories.length === 0 && !mapReady}
-            style={({ pressed }) => [
-              styles.resetButton,
-              pressed && styles.pressed,
-            ]}
-          >
-            <Text style={styles.resetButtonText}>Pusatkan</Text>
-          </Pressable>
-        ) : null}
       </View>
 
       {/* BANNER ERROR PARSIAL */}
@@ -963,7 +1025,11 @@ export default function MapsScreen() {
               showsUserLocation={false}
               showsMyLocationButton={false}
               onMapReady={() => setMapReady(true)}
-              onLayout={() => setMapLayoutReady(true)}
+              onLayout={(event) => {
+                const { width, height } = event.nativeEvent.layout;
+                setMapSize({ width, height });
+                setMapLayoutReady(true);
+              }}
               onPress={(event) => {
                 if (event.nativeEvent.action !== 'marker-press') {
                   handleCloseDetail();
@@ -1247,6 +1313,7 @@ export default function MapsScreen() {
             ) : null}
 
             {/* FLOATING DETAIL CARD / BOTTOM SHEET DI BAGIAN BAWAH PETA */}
+            {mapFabs}
             {selectedLabDetailCard}
           </>
         )}
@@ -1285,30 +1352,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
-  resetButton: {
-    backgroundColor: '#111014',
-    borderRadius: 999,
+  fabColumn: {
+    gap: 10,
+    position: 'absolute',
+    right: 14,
+    zIndex: 5,
+  },
+  fab: {
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#8E8E93',
+    borderRadius: 26,
+    borderWidth: 1,
+    elevation: 6,
+    height: 52,
     justifyContent: 'center',
-    minHeight: 40,
-    paddingHorizontal: 16,
-  },
-  resetButtonText: {
-    fontFamily: FONT.bold,
-    color: '#FFFFFF',
-    fontSize: 12,
-  },
-  editLabButton: {
-    borderColor: '#111014',
-    borderRadius: 999,
-    borderWidth: 1.5,
-    justifyContent: 'center',
-    minHeight: 40,
-    paddingHorizontal: 14,
-  },
-  editLabButtonText: {
-    fontFamily: FONT.bold,
-    color: '#111014',
-    fontSize: 12,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.16,
+    shadowRadius: 8,
+    width: 52,
   },
   inlineErrorBanner: {
     alignItems: 'center',
@@ -1431,8 +1494,8 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   labChipSelected: {
-    backgroundColor: '#000000',
-    borderColor: '#000000',
+    backgroundColor: '#F47321',
+    borderColor: '#F47321',
   },
   labChipText: {
     fontFamily: FONT.bold,

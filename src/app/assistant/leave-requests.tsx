@@ -30,6 +30,7 @@ import {
   type SessionRecord,
 } from '@/features/assistant/services/session-service';
 import { FONT } from '@/constants/fonts';
+import { useTabBottomSpace } from '@/components/common/tab-screen';
 
 // ==========================================
 // TIPE AKSI
@@ -196,7 +197,13 @@ function LeaveIcon({
 // HALAMAN PENGAJUAN IZIN
 // ==========================================
 
-export default function LeaveRequestsScreen() {
+/**
+ * `sessionId` diisi saat dipakai sebagai tab di halaman Cek Presensi: hanya pengajuan
+ * untuk sesi itu yang tampil, tanpa header halaman dan kartu ringkasan.
+ */
+export default function LeaveRequestsScreen({ sessionId }: { sessionId?: string } = {}) {
+  const bottomSpace = useTabBottomSpace(40);
+  const embedded = Boolean(sessionId);
   // ========================================
   // STATE DATA
   // ========================================
@@ -227,7 +234,7 @@ export default function LeaveRequestsScreen() {
   useEffect(() => {
     const unsubscribeRequests = subscribeLeaveRequests(
       (data) => {
-        setRequests(data);
+        setRequests(sessionId ? data.filter((item) => item.sessionId === sessionId) : data);
         setLoading(false);
         setError('');
       },
@@ -252,7 +259,7 @@ export default function LeaveRequestsScreen() {
       unsubscribeRequests();
       unsubscribeSessions();
     };
-  }, []);
+  }, [sessionId]);
 
   // ========================================
   // MENDAPATKAN NAMA SESI
@@ -449,13 +456,15 @@ export default function LeaveRequestsScreen() {
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <StatusBar barStyle="dark-content" />
 
-      <AssistantHeader />
+      {embedded ? null : <AssistantHeader />}
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: bottomSpace }]}
         showsVerticalScrollIndicator={false}
       >
+        {embedded ? null : (
+          <>
         {/* JUDUL HALAMAN */}
         <View style={styles.heading}>
           <Text style={styles.pageSubtitle}>
@@ -523,6 +532,8 @@ export default function LeaveRequestsScreen() {
             </View>
           </View>
         </View>
+          </>
+        )}
 
         {/* PESAN BERHASIL */}
         {pageMessage ? (
@@ -554,25 +565,6 @@ export default function LeaveRequestsScreen() {
           </View>
         ) : null}
 
-        {/* HEADER DAFTAR */}
-        <View style={styles.sectionHeader}>
-          <View style={styles.sectionInfo}>
-            <Text style={styles.sectionTitle}>
-              Daftar Pengajuan
-            </Text>
-
-            <Text style={styles.sectionCaption}>
-              Semua pengajuan izin dari Praktikan.
-            </Text>
-          </View>
-
-          <View style={styles.totalBadge}>
-            <Text style={styles.totalText}>
-              {requests.length}
-            </Text>
-          </View>
-        </View>
-
         {/* LOADING */}
         {loading ? (
           <View style={styles.stateCard}>
@@ -603,14 +595,6 @@ export default function LeaveRequestsScreen() {
           </View>
         ) : requests.length === 0 ? (
           <View style={styles.stateCard}>
-            <View style={styles.emptyIcon}>
-              <LeaveIcon
-                name="file"
-                size={27}
-                color="#5F5F66"
-              />
-            </View>
-
             <Text style={styles.emptyTitle}>
               Belum Ada Pengajuan
             </Text>
@@ -871,6 +855,7 @@ export default function LeaveRequestsScreen() {
               <Pressable
                 style={({ pressed }) => [
                   styles.confirmButton,
+                  reviewTarget?.status === 'ditolak' && styles.confirmDanger,
                   pressed && styles.pressed,
                   processingId !== null && styles.disabledButton,
                 ]}
@@ -903,8 +888,6 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
-    borderWidth: 1,
   },
 
   scroll: {
@@ -1044,48 +1027,11 @@ const styles = StyleSheet.create({
   },
 
   // HEADER DAFTAR
-  sectionHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 14,
-  },
 
-  sectionInfo: {
-    flex: 1,
-    gap: 4,
-  },
 
-  sectionTitle: {
-    fontFamily: FONT.extrabold,
-    color: '#111014',
-    fontSize: 18,
-  },
 
-  sectionCaption: {
-    fontFamily: FONT.regular,
-    color: '#5F5F66',
-    fontSize: 11,
-    lineHeight: 17,
-  },
 
-  totalBadge: {
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    justifyContent: 'center',
-    minWidth: 34,
-    paddingHorizontal: 11,
-    paddingVertical: 7,
-    borderColor: '#8E8E93',
-    borderWidth: 1,
-  },
 
-  totalText: {
-    fontFamily: FONT.extrabold,
-    color: '#5F5F66',
-    fontSize: 12,
-  },
 
   // KONDISI LOADING DAN KOSONG
   stateCard: {
@@ -1098,17 +1044,6 @@ const styles = StyleSheet.create({
     padding: 20,
   },
 
-  emptyIcon: {
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 23,
-    height: 55,
-    justifyContent: 'center',
-    marginBottom: 4,
-    width: 55,
-    borderColor: '#8E8E93',
-    borderWidth: 1,
-  },
 
   emptyTitle: {
     fontFamily: FONT.extrabold,
@@ -1312,6 +1247,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
 
+  confirmDanger: {
+    backgroundColor: '#E00000',
+  },
   pressed: {
     opacity: 0.65,
   },
@@ -1418,7 +1356,7 @@ const styles = StyleSheet.create({
 
   confirmButton: {
     alignItems: 'center',
-    backgroundColor: '#111014',
+    backgroundColor: '#F47321',
     borderRadius: 11,
     flex: 1,
     justifyContent: 'center',

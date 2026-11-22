@@ -1,4 +1,3 @@
-import { router, type Href } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -17,16 +16,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import AssistantHeader from '@/components/common/AssistantHeader';
+import { FONT } from '@/constants/fonts';
 import { useAuth } from '@/context/AuthContext';
 import {
-  DEFAULT_LABORATORIES,
   ensureDefaultLaboratories,
   subscribeLaboratories,
   updateLaboratory,
   validateLaboratoryInput,
   type LaboratoryLocation,
 } from '@/features/assistant/services/laboratory-service';
-import { FONT } from '@/constants/fonts';
 
 interface LaboratoryFormState {
   latitude: string;
@@ -68,30 +66,13 @@ function formatCoordinate(value: number): string {
   return value.toFixed(6);
 }
 
-function formatUpdatedAt(date: Date | null): string {
-  if (!date) {
-    return 'Baru diinisialisasi';
-  }
-
-  return (
-    date.toLocaleString('id-ID', {
-      timeZone: 'Asia/Jakarta',
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    }) + ' WIB'
-  );
-}
 
 function LocationIcon({
   name,
   size = 18,
   color = '#000000',
 }: {
-  name: 'pin' | 'check' | 'alert' | 'edit';
+  name: 'pin' | 'check' | 'alert';
   size?: number;
   color?: string;
 }) {
@@ -134,16 +115,6 @@ function LocationIcon({
           />
           <Circle cx={12} cy={16.5} r={1} fill={color} />
         </>
-      )}
-
-      {name === 'edit' && (
-        <Path
-          d="M4 20H8L18.5 9.5A2.121 2.121 0 0 0 15.5 6.5L5 17V20Z"
-          stroke={color}
-          strokeWidth={1.8}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
       )}
     </Svg>
   );
@@ -343,37 +314,12 @@ export default function AssistantLaboratoriesScreen() {
         <View style={styles.pageContent}>
           {/* JUDUL HALAMAN */}
           <View style={styles.header}>
-            <Text style={styles.pageSubtitle}>MANAJEMEN PRAKTIKUM</Text>
             <Text style={styles.title}>Pengaturan Lokasi Lab</Text>
             <Text style={styles.subtitle}>
               Atur titik koordinat dan radius presensi untuk ke-4 lokasi
               praktikum tetap. Perubahan langsung berlaku secara real-time.
             </Text>
           </View>
-
-          {/* INFO LOKASI TETAP */}
-          <View style={styles.infoBanner}>
-            <LocationIcon name="pin" size={18} color="#333333" />
-            <Text style={styles.infoBannerText}>
-              Terdapat {DEFAULT_LABORATORIES.length} titik lokasi tetap. Pilih
-              salah satu kartu di bawah untuk memperbarui koordinat dan radius.
-            </Text>
-          </View>
-
-          {/* TOMBOL LIHAT DI PETA */}
-          <Pressable
-            accessibilityRole="button"
-            style={({ pressed }) => [
-              styles.openMapButton,
-              pressed && styles.pressed,
-            ]}
-            onPress={() => router.navigate('/assistant/maps' as Href)}
-          >
-            <Text style={styles.openMapButtonText}>
-              Lihat 4 Lokasi di Peta
-            </Text>
-            <Text style={styles.openMapButtonArrow}>›</Text>
-          </Pressable>
 
           {/* PESAN SUKSES */}
           {pageMessage ? (
@@ -401,22 +347,6 @@ export default function AssistantLaboratoriesScreen() {
               </Pressable>
             </View>
           ) : null}
-
-          {/* HEADER DAFTAR */}
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionInfo}>
-              <Text style={styles.sectionTitle}>Daftar Lokasi Lab</Text>
-              <Text style={styles.sectionCaption}>
-                Pilih lokasi untuk mengubah latitude, longitude, dan radius.
-              </Text>
-            </View>
-
-            <View style={styles.totalBadge}>
-              <Text style={styles.totalText}>
-                {laboratories.length}/{DEFAULT_LABORATORIES.length} lokasi
-              </Text>
-            </View>
-          </View>
 
           {/* DAFTAR LOKASI */}
           {isWaitingForInitialData ? (
@@ -447,19 +377,10 @@ export default function AssistantLaboratoriesScreen() {
               >
                 <View style={styles.cardHeader}>
                   <View style={styles.labTitleRow}>
-                    <View style={styles.labIconBox}>
-                      <LocationIcon name="pin" size={19} color="#111014" />
-                    </View>
+                    <LocationIcon name="pin" size={20} color="#FFFFFF" />
                     <View style={styles.labTitleText}>
                       <Text style={styles.labName}>{item.name}</Text>
-                      <Text style={styles.labIdText}>ID: {item.id}</Text>
                     </View>
-                  </View>
-
-                  <View style={styles.radiusBadge}>
-                    <Text style={styles.radiusBadgeText}>
-                      {item.radius} m
-                    </Text>
                   </View>
                 </View>
 
@@ -485,17 +406,6 @@ export default function AssistantLaboratoriesScreen() {
                   <View style={styles.coordItem}>
                     <Text style={styles.coordLabel}>RADIUS</Text>
                     <Text style={styles.coordValue}>{item.radius} meter</Text>
-                  </View>
-                </View>
-
-                <View style={styles.cardFooter}>
-                  <Text style={styles.updatedText}>
-                    Diperbarui: {formatUpdatedAt(item.updatedAt)}
-                  </Text>
-
-                  <View style={styles.editPill}>
-                    <LocationIcon name="edit" size={14} color="#111014" />
-                    <Text style={styles.editPillText}>Ubah Lokasi</Text>
                   </View>
                 </View>
               </Pressable>
@@ -542,7 +452,7 @@ export default function AssistantLaboratoriesScreen() {
                   </Text>
                   <Text style={styles.modalSubtitle}>
                     {editingLab
-                      ? `${editingLab.name} (${editingLab.id})`
+                      ? `${editingLab.name}`
                       : 'Perbarui titik koordinat dan radius presensi.'}
                   </Text>
                 </View>
@@ -662,8 +572,6 @@ const styles = StyleSheet.create({
   safeArea: {
     backgroundColor: '#FFFFFF',
     flex: 1,
-    borderColor: '#8E8E93',
-    borderWidth: 1,
   },
   content: {
     paddingBottom: 40,
@@ -690,12 +598,6 @@ const styles = StyleSheet.create({
   header: {
     gap: 6,
   },
-  pageSubtitle: {
-    fontFamily: FONT.bold,
-    color: '#5F5F66',
-    fontSize: 11,
-    letterSpacing: 1.1,
-  },
   title: {
     fontFamily: FONT.extrabold,
     color: '#111014',
@@ -708,46 +610,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  infoBanner: {
-    alignItems: 'flex-start',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 13,
-    flexDirection: 'row',
-    gap: 10,
-    padding: 13,
-    borderColor: '#8E8E93',
-    borderWidth: 1,
-  },
-  infoBannerText: {
-    fontFamily: FONT.regular,
-    color: '#5F5F66',
-    flex: 1,
-    fontSize: 12,
-    lineHeight: 18,
-  },
 
-  openMapButton: {
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
-    borderRadius: 13,
-    borderWidth: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 15,
-    paddingVertical: 13,
-  },
-  openMapButtonText: {
-    fontFamily: FONT.bold,
-    color: '#111014',
-    fontSize: 13,
-  },
-  openMapButtonArrow: {
-    fontFamily: FONT.bold,
-    color: '#111014',
-    fontSize: 20,
-    lineHeight: 22,
-  },
 
   successBox: {
     alignItems: 'center',
@@ -796,46 +659,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 
-  sectionHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 4,
-  },
-  sectionInfo: {
-    flex: 1,
-    gap: 4,
-  },
-  sectionTitle: {
-    fontFamily: FONT.extrabold,
-    color: '#111014',
-    fontSize: 19,
-  },
-  sectionCaption: {
-    fontFamily: FONT.regular,
-    color: '#5F5F66',
-    fontSize: 11,
-    lineHeight: 17,
-  },
-  totalBadge: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderColor: '#8E8E93',
-    borderWidth: 1,
-  },
-  totalText: {
-    fontFamily: FONT.bold,
-    color: '#5F5F66',
-    fontSize: 12,
-  },
 
   labCard: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
+    backgroundColor: '#F47321',
     borderRadius: 26,
-    borderWidth: 1,
     gap: 14,
     padding: 18,
   },
@@ -849,17 +676,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
     flexDirection: 'row',
-    gap: 11,
-  },
-  labIconBox: {
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    height: 40,
-    justifyContent: 'center',
-    width: 40,
-    borderColor: '#8E8E93',
-    borderWidth: 1,
+    gap: 6,
   },
   labTitleText: {
     flex: 1,
@@ -867,24 +684,8 @@ const styles = StyleSheet.create({
   },
   labName: {
     fontFamily: FONT.extrabold,
-    color: '#111014',
-    fontSize: 16,
-  },
-  labIdText: {
-    fontFamily: FONT.regular,
-    color: '#5F5F66',
-    fontSize: 11,
-  },
-  radiusBadge: {
-    backgroundColor: '#111014',
-    borderRadius: 20,
-    paddingHorizontal: 11,
-    paddingVertical: 6,
-  },
-  radiusBadgeText: {
-    fontFamily: FONT.bold,
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 16,
   },
 
   coordBox: {
@@ -892,8 +693,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     flexDirection: 'row',
     padding: 12,
-    borderColor: '#8E8E93',
-    borderWidth: 1,
   },
   coordItem: {
     flex: 1,
@@ -906,7 +705,7 @@ const styles = StyleSheet.create({
   },
   coordLabel: {
     fontFamily: FONT.extrabold,
-    color: '#5F5F66',
+    color: '#111014',
     fontSize: 10,
     letterSpacing: 0.4,
   },
@@ -916,37 +715,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 
-  cardFooter: {
-    alignItems: 'center',
-    borderTopColor: '#E4E4E7',
-    borderTopWidth: 1,
-    flexDirection: 'row',
-    gap: 8,
-    justifyContent: 'space-between',
-    paddingTop: 12,
-  },
-  updatedText: {
-    fontFamily: FONT.regular,
-    color: '#5F5F66',
-    flex: 1,
-    fontSize: 11,
-  },
-  editPill: {
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
-    borderRadius: 9,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  editPillText: {
-    fontFamily: FONT.bold,
-    color: '#111014',
-    fontSize: 12,
-  },
 
   emptyCard: {
     alignItems: 'center',
@@ -1087,7 +855,7 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     alignItems: 'center',
-    backgroundColor: '#111014',
+    backgroundColor: '#F47321',
     borderRadius: 11,
     flex: 1,
     justifyContent: 'center',

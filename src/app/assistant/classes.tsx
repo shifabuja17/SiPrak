@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
 
 import {
   ActivityIndicator,
@@ -19,6 +19,10 @@ import AssistantHeader from '@/components/common/AssistantHeader';
 
 import { useAuth } from '@/context/AuthContext';
 
+import DateTimeField from '@/components/common/DateTimeField';
+import Dropdown from '@/components/common/Dropdown';
+import { useTabBottomSpace } from '@/components/common/tab-screen';
+import { FONT } from '@/constants/fonts';
 import {
   createClass,
   deleteClass,
@@ -27,8 +31,21 @@ import {
   type ClassInput,
   type PracticumClass,
 } from '@/features/assistant/services/class-service';
-import { FONT } from '@/constants/fonts';
+import {
+  subscribeLaboratories,
+  type LaboratoryLocation,
+} from '@/features/assistant/services/laboratory-service';
+import {
+  createSchedule,
+  subscribeSchedules,
+  updateSchedule,
+  type PracticumSchedule,
+} from '@/features/assistant/services/schedule-service';
 import { classLabel } from '@/features/assistant/utils/class-label';
+import { MetaLine } from '@/features/praktikan/ui/praktikan-ui';
+import { formatClock, parseScheduleTimeText } from '@/utils/session-time';
+import Svg, { Path } from 'react-native-svg';
+import { IconButton, IconButtonRow } from '@/components/common/IconButton';
 
 // Form kosong untuk tambah kelas.
 const EMPTY_FORM: ClassInput = {
@@ -37,7 +54,66 @@ const EMPTY_FORM: ClassInput = {
   deskripsi: '',
 };
 
+/** Hari praktikum (indeks mengikuti Date.getDay: 0 = Minggu). */
+const DAY_OPTIONS = [
+  { value: '1', label: 'Senin' },
+  { value: '2', label: 'Selasa' },
+  { value: '3', label: 'Rabu' },
+  { value: '4', label: 'Kamis' },
+  { value: '5', label: 'Jumat' },
+  { value: '6', label: 'Sabtu' },
+  { value: '0', label: 'Minggu' },
+];
+
+/** Jadwal tetap kelas: lab, hari, serta jam mulai & selesai. */
+interface ScheduleForm {
+  labId: string;
+  day: string;
+  jamMulai: Date;
+  jamSelesai: Date;
+}
+
+function clock(hours: number, minutes: number): Date {
+  const date = new Date();
+  date.setHours(hours, minutes, 0, 0);
+  return date;
+}
+
+function emptyScheduleForm(): ScheduleForm {
+  return { labId: '', day: '1', jamMulai: clock(7, 0), jamSelesai: clock(9, 0) };
+}
+
+/** "Senin, 07.00 - 09.00 WIB" (format yang juga dibaca form sesi). */
+function formatScheduleTime(form: ScheduleForm): string {
+  const day = DAY_OPTIONS.find((option) => option.value === form.day)?.label ?? '';
+  return `${day}, ${formatClock(form.jamMulai)} - ${formatClock(form.jamSelesai)} WIB`;
+}
+
+function minutesOf(date: Date): number {
+  return date.getHours() * 60 + date.getMinutes();
+}
+
+function TrashIcon() {
+  return (
+    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+      <Path d="M4 7H20M9 7V4.5H15V7M6.5 7L7.5 20H16.5L17.5 7M10 11V16M14 11V16" stroke="#E00000" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+/** Jeda agar modal edit selesai tertutup sebelum modal konfirmasi hapus dibuka (iOS). */
+const MODAL_SWAP_DELAY = 350;
+
+function PlusIcon() {
+  return (
+    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+      <Path d="M12 5V19M5 12H19" stroke="#FFFFFF" strokeWidth={2.2} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
 export default function AssistantClassesScreen() {
+  const bottomSpace = useTabBottomSpace(40);
   const { profile, loading: authLoading } = useAuth();
 
   const [classes, setClasses] = useState<PracticumClass[]>([]);
@@ -48,6 +124,9 @@ export default function AssistantClassesScreen() {
   const [saving, setSaving] = useState(false);
 
   const [form, setForm] = useState<ClassInput>(EMPTY_FORM);
+  const [scheduleForm, setScheduleForm] = useState<ScheduleForm>(emptyScheduleForm);
+  const [schedules, setSchedules] = useState<PracticumSchedule[]>([]);
+  const [laboratories, setLaboratories] = useState<LaboratoryLocation[]>([]);
   const [editingClass, setEditingClass] =
     useState<PracticumClass | null>(null);
 
@@ -86,8 +165,25 @@ export default function AssistantClassesScreen() {
       }
     );
 
-    return unsubscribe;
+    // Jadwal tetap tiap kelas & 4 titik lab untuk pilihan lokasi.
+    const unsubscribeSchedules = subscribeSchedules(setSchedules, (firebaseError) =>
+      setError(firebaseError.message),
+    );
+    const unsubscribeLabs = subscribeLaboratories(setLaboratories, (firebaseError) =>
+      setError(firebaseError.message),
+    );
+
+    return () => {
+      unsubscribe();
+      unsubscribeSchedules();
+      unsubscribeLabs();
+    };
   }, [profile, authLoading]);
+
+  /** Satu kelas praktikum hanya memakai satu jadwal tetap. */
+  function scheduleOf(classId: string): PracticumSchedule | undefined {
+    return schedules.find((item) => item.classId === classId);
+  }
 
   // ==========================================
   // FORM TAMBAH KELAS
@@ -96,6 +192,7 @@ export default function AssistantClassesScreen() {
   function openCreateForm() {
     setEditingClass(null);
     setForm(EMPTY_FORM);
+    setScheduleForm(emptyScheduleForm());
     setError('');
     setModalVisible(true);
   }
@@ -111,6 +208,18 @@ export default function AssistantClassesScreen() {
       nama: item.nama,
       kode: item.kode,
       deskripsi: item.deskripsi,
+    });
+
+    // Isi jadwal dari data yang ada (teks seperti "Senin, 07.00 - 09.00 WIB").
+    const schedule = scheduleOf(item.id);
+    const parsed = parseScheduleTimeText(schedule?.scheduleTime ?? '');
+    const room = schedule?.classRoom.trim().toLowerCase() ?? '';
+    const defaults = emptyScheduleForm();
+    setScheduleForm({
+      labId: laboratories.find((lab) => lab.name.toLowerCase() === room)?.id ?? '',
+      day: parsed.dayIndex !== null ? String(parsed.dayIndex) : defaults.day,
+      jamMulai: parsed.start ? clock(parsed.start.hours, parsed.start.minutes) : defaults.jamMulai,
+      jamSelesai: parsed.end ? clock(parsed.end.hours, parsed.end.minutes) : defaults.jamSelesai,
     });
 
     setError('');
@@ -135,14 +244,40 @@ export default function AssistantClassesScreen() {
   async function handleSave() {
     if (!profile) return;
 
+    const lab = laboratories.find((item) => item.id === scheduleForm.labId);
+    if (!lab) {
+      setError('Pilih lokasi lab praktikum.');
+      return;
+    }
+    if (minutesOf(scheduleForm.jamSelesai) <= minutesOf(scheduleForm.jamMulai)) {
+      setError('Jam selesai harus setelah jam mulai.');
+      return;
+    }
+
     try {
       setSaving(true);
       setError('');
 
+      let classId: string;
       if (editingClass) {
         await updateClass(editingClass.id, form);
+        classId = editingClass.id;
       } else {
-        await createClass(form, profile.uid);
+        classId = await createClass(form, profile.uid);
+      }
+
+      // Jadwal tetap kelas disimpan bersamaan dengan data kelas.
+      const scheduleInput = {
+        classId,
+        practicumName: classLabel(form),
+        classRoom: lab.name,
+        scheduleTime: formatScheduleTime(scheduleForm),
+      };
+      const existing = scheduleOf(classId);
+      if (existing) {
+        await updateSchedule(existing.id, scheduleInput);
+      } else {
+        await createSchedule(scheduleInput, profile.uid);
       }
 
       setModalVisible(false);
@@ -258,7 +393,7 @@ export default function AssistantClassesScreen() {
       />
 
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: bottomSpace }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -275,22 +410,9 @@ export default function AssistantClassesScreen() {
             </Text>
 
             <Text style={styles.subtitle}>
-              Kelola kelas praktikum, peserta, dan jadwalnya.
+              Kelola kelas praktikum, jadwal, dan pesertanya.
             </Text>
           </View>
-
-          {/* TOMBOL TAMBAH KELAS */}
-          <Pressable
-            style={({ pressed }) => [
-              styles.addButton,
-              pressed && styles.pressed,
-            ]}
-            onPress={openCreateForm}
-          >
-            <Text style={styles.addButtonText}>
-              + Tambah Kelas
-            </Text>
-          </Pressable>
 
           {/* PESAN ERROR */}
           {error ? (
@@ -301,23 +423,24 @@ export default function AssistantClassesScreen() {
             </View>
           ) : null}
 
-          {/* HEADER DAFTAR KELAS */}
+          {/* HEADER DAFTAR KELAS + TOMBOL TAMBAH (sama dengan Sesi & Presensi) */}
           <View style={styles.sectionHeader}>
-            <View style={styles.sectionInfo}>
-              <Text style={styles.sectionTitle}>
-                Daftar Kelas
-              </Text>
+            <Text style={styles.sectionTitle}>
+              Daftar Kelas
+            </Text>
 
-              <Text style={styles.sectionCaption}>
-                Pilih kelas untuk mengelola peserta dan jadwalnya.
-              </Text>
-            </View>
-
-            <View style={styles.totalBadge}>
-              <Text style={styles.totalText}>
-                {classes.length} kelas
-              </Text>
-            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Tambah kelas"
+              style={({ pressed }) => [
+                styles.addButton,
+                pressed && styles.pressed,
+              ]}
+              onPress={openCreateForm}
+            >
+              <PlusIcon />
+              <Text style={styles.addButtonText}>Tambah Kelas</Text>
+            </Pressable>
           </View>
 
           {/* KONDISI LOADING */}
@@ -351,70 +474,48 @@ export default function AssistantClassesScreen() {
 
             /* DAFTAR DATA KELAS */
             classes.map((item) => (
-              <View
-                key={item.id}
-                style={styles.classCard}
-              >
-
+              <View key={item.id} style={styles.classCard}>
                 <View style={styles.classInfo}>
                   <Text style={styles.className}>
                     {classLabel(item)}
                   </Text>
 
-                  <Text style={styles.classDescription}>
-                    {item.deskripsi || 'Tidak ada deskripsi.'}
-                  </Text>
+                  {item.deskripsi ? (
+                    <Text style={styles.classDescription}>{item.deskripsi}</Text>
+                  ) : null}
                 </View>
 
-                {/* TOMBOL KELOLA PESERTA */}
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.manageMembersButton,
-                    pressed && styles.pressed,
-                  ]}
-                  onPress={() =>
-                    router.push({
-                      pathname: '/assistant/class-members/[classId]',
-                      params: { classId: item.id },
-                    })
-                  }
-                >
-                  <Text style={styles.manageMembersText}>
-                    Kelola Peserta & Jadwal
+                {/* JADWAL TETAP KELAS */}
+                {scheduleOf(item.id) ? (
+                  <View style={styles.classMeta}>
+                    <MetaLine icon="time" textStyle={styles.classMetaText}>
+                      {scheduleOf(item.id)!.scheduleTime}
+                    </MetaLine>
+                    <MetaLine icon="place" textStyle={styles.classMetaText}>
+                      {scheduleOf(item.id)!.classRoom}
+                    </MetaLine>
+                  </View>
+                ) : (
+                  <Text style={styles.classMetaText}>
+                    Jadwal belum diatur. Tekan Edit untuk menentukan lab, hari, dan jam.
                   </Text>
+                )}
 
-                  <Text style={styles.manageMembersArrow}>
-                    ›
-                  </Text>
-                </Pressable>
-
-                {/* TOMBOL EDIT DAN HAPUS */}
-                <View style={styles.cardActions}>
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.editButton,
-                      pressed && styles.pressed,
-                    ]}
-                    onPress={() => openEditForm(item)}
-                  >
-                    <Text style={styles.editText}>
-                      Edit
-                    </Text>
-                  </Pressable>
-
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.deleteButton,
-                      pressed && styles.pressed,
-                    ]}
-                    onPress={() => handleDelete(item)}
-                  >
-                    <Text style={styles.deleteText}>
-                      Hapus
-                    </Text>
-                  </Pressable>
-                </View>
-
+                {/* TOMBOL AKSI: pojok kanan bawah kartu */}
+                <IconButtonRow>
+                  <IconButton icon="edit" label="Edit kelas" onPress={() => openEditForm(item)} />
+                  <IconButton
+                    icon="people"
+                    label="Kelola peserta"
+                    tone="accent"
+                    onPress={() =>
+                      router.push({
+                        pathname: '/assistant/class-members/[classId]',
+                        params: { classId: item.id },
+                      })
+                    }
+                  />
+                </IconButtonRow>
               </View>
             ))
           )}
@@ -447,14 +548,28 @@ export default function AssistantClassesScreen() {
               <View style={styles.modalCard}>
 
                 {/* JUDUL MODAL */}
-                <View style={styles.modalHeader}>
+                <View style={[styles.modalHeader, styles.modalHeaderRow]}>
                   <Text style={styles.modalTitle}>
                     {editingClass ? 'Edit Kelas' : 'Tambah Kelas'}
                   </Text>
 
-                  <Text style={styles.modalSubtitle}>
-                    Isi nama praktikum dan kelasnya, mis. Praktikum Sistem Operasi E1.
-                  </Text>
+                  {/* HAPUS KELAS (hanya saat edit) */}
+                  {editingClass ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Hapus kelas"
+                      hitSlop={6}
+                      disabled={saving}
+                      style={({ pressed }) => [styles.modalDeleteButton, pressed && styles.pressed]}
+                      onPress={() => {
+                        const target = editingClass;
+                        closeModal();
+                        setTimeout(() => handleDelete(target), MODAL_SWAP_DELAY);
+                      }}
+                    >
+                      <TrashIcon />
+                    </Pressable>
+                  ) : null}
                 </View>
 
                 {/* INPUT NAMA KELAS */}
@@ -526,6 +641,72 @@ export default function AssistantClassesScreen() {
                   editable={!saving}
                   maxLength={300}
                 />
+
+                {/* JADWAL TETAP: LAB, HARI, JAM */}
+                <Text style={styles.inputLabel}>
+                  Lokasi Lab
+                </Text>
+
+                <Dropdown
+                  value={scheduleForm.labId}
+                  options={laboratories.map((lab) => ({ value: lab.id, label: lab.name }))}
+                  placeholder="Pilih lokasi lab"
+                  accessibilityLabel="Pilih lokasi lab"
+                  disabled={saving}
+                  onChange={(labId) => {
+                    setScheduleForm((previous) => ({ ...previous, labId }));
+                    setError('');
+                  }}
+                />
+
+                <Text style={styles.inputLabel}>
+                  Hari
+                </Text>
+
+                <Dropdown
+                  value={scheduleForm.day}
+                  options={DAY_OPTIONS}
+                  accessibilityLabel="Pilih hari praktikum"
+                  disabled={saving}
+                  onChange={(day) => {
+                    setScheduleForm((previous) => ({ ...previous, day }));
+                    setError('');
+                  }}
+                />
+
+                <View style={styles.timeRow}>
+                  <View style={styles.timeColumn}>
+                    <Text style={styles.inputLabel}>
+                      Jam Mulai
+                    </Text>
+                    <DateTimeField
+                      mode="time"
+                      value={scheduleForm.jamMulai}
+                      disabled={saving}
+                      accessibilityLabel="Jam mulai"
+                      onChange={(jamMulai) => {
+                        setScheduleForm((previous) => ({ ...previous, jamMulai }));
+                        setError('');
+                      }}
+                    />
+                  </View>
+
+                  <View style={styles.timeColumn}>
+                    <Text style={styles.inputLabel}>
+                      Jam Selesai
+                    </Text>
+                    <DateTimeField
+                      mode="time"
+                      value={scheduleForm.jamSelesai}
+                      disabled={saving}
+                      accessibilityLabel="Jam selesai"
+                      onChange={(jamSelesai) => {
+                        setScheduleForm((previous) => ({ ...previous, jamSelesai }));
+                        setError('');
+                      }}
+                    />
+                  </View>
+                </View>
 
                 {/* PESAN ERROR MODAL */}
                 {error ? (
@@ -677,8 +858,6 @@ const styles = StyleSheet.create({
   safeArea: {
     backgroundColor: '#FFFFFF',
     flex: 1,
-    borderColor: '#8E8E93',
-    borderWidth: 1,
   },
 
   content: {
@@ -727,18 +906,36 @@ const styles = StyleSheet.create({
   // TOMBOL TAMBAH
   addButton: {
     alignItems: 'center',
-    backgroundColor: '#111014',
-    borderRadius: 14,
-    paddingVertical: 16,
-    marginTop: 2,
+    backgroundColor: '#F47321',
+    borderRadius: 999,
+    flexDirection: 'row',
+    gap: 6,
+    justifyContent: 'center',
+    minHeight: 40,
+    paddingHorizontal: 16,
   },
 
   addButtonText: {
     fontFamily: FONT.bold,
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 13,
   },
 
+  classMeta: {
+    gap: 2,
+  },
+  classMetaText: {
+    fontFamily: FONT.regular,
+    color: '#FFFFFF',
+    fontSize: 13,
+  },
+  timeRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  timeColumn: {
+    flex: 1,
+  },
   pressed: {
     opacity: 0.65,
   },
@@ -747,14 +944,11 @@ const styles = StyleSheet.create({
   sectionHeader: {
     alignItems: 'center',
     flexDirection: 'row',
+    gap: 12,
     justifyContent: 'space-between',
     marginTop: 8,
   },
 
-  sectionInfo: {
-    flex: 1,
-    gap: 4,
-  },
 
   sectionTitle: {
     fontFamily: FONT.extrabold,
@@ -762,132 +956,46 @@ const styles = StyleSheet.create({
     fontSize: 19,
   },
 
-  sectionCaption: {
-    fontFamily: FONT.regular,
-    color: '#5F5F66',
-    fontSize: 11,
-    lineHeight: 17,
-  },
 
-  totalBadge: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderColor: '#8E8E93',
-    borderWidth: 1,
-  },
 
-  totalText: {
-    fontFamily: FONT.bold,
-    color: '#5F5F66',
-    fontSize: 12,
-  },
 
   // KARTU KELAS
   classCard: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
+    backgroundColor: '#F47321',
     borderRadius: 26,
-    borderWidth: 1,
-    gap: 14,
-    marginBottom: 4,
-    padding: 18,
+    gap: 10,
+    padding: 16,
   },
 
   classInfo: {
-    gap: 8,
+    gap: 4,
   },
 
-  classCode: {
-    fontFamily: FONT.extrabold,
-    alignSelf: 'flex-start',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 7,
-    color: '#5F5F66',
-    fontSize: 11,
-    overflow: 'hidden',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderColor: '#8E8E93',
-    borderWidth: 1,
-  },
 
   className: {
     fontFamily: FONT.extrabold,
-    color: '#111014',
-    fontSize: 17,
-    lineHeight: 23,
+    color: '#FFFFFF',
+    fontSize: 18,
+    letterSpacing: -0.3,
+    lineHeight: 22,
   },
 
   classDescription: {
     fontFamily: FONT.regular,
-    color: '#5F5F66',
+    color: '#FFFFFF',
     fontSize: 13,
-    lineHeight: 19,
+    lineHeight: 18,
   },
 
   // KELOLA PESERTA
-  manageMembersButton: {
-    alignItems: 'center',
-    backgroundColor: '#111014',
-    borderRadius: 11,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-  },
 
-  manageMembersText: {
-    fontFamily: FONT.bold,
-    color: '#FFFFFF',
-    fontSize: 13,
-  },
 
-  manageMembersArrow: {
-    fontFamily: FONT.regular,
-    color: '#FFFFFF',
-    fontSize: 23,
-    lineHeight: 25,
-  },
 
   // EDIT DAN HAPUS
-  cardActions: {
-    flexDirection: 'row',
-    gap: 10,
-  },
 
-  editButton: {
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
-    borderRadius: 10,
-    borderWidth: 1,
-    flex: 1,
-    padding: 11,
-  },
 
-  editText: {
-    fontFamily: FONT.bold,
-    color: '#111014',
-    fontSize: 13,
-  },
 
-  deleteButton: {
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    flex: 1,
-    padding: 11,
-    borderColor: '#8E8E93',
-    borderWidth: 1,
-  },
 
-  deleteText: {
-    fontFamily: FONT.bold,
-    color: '#5F5F66',
-    fontSize: 13,
-  },
 
   // KELAS KOSONG
   emptyCard: {
@@ -958,17 +1066,27 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
 
+  modalHeaderRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+  },
+  modalDeleteButton: {
+    alignItems: 'center',
+    borderColor: '#E00000',
+    borderRadius: 10,
+    borderWidth: 1,
+    height: 40,
+    justifyContent: 'center',
+    width: 40,
+  },
   modalTitle: {
     fontFamily: FONT.extrabold,
     color: '#111014',
     fontSize: 21,
   },
 
-  modalSubtitle: {
-    fontFamily: FONT.regular,
-    color: '#5F5F66',
-    fontSize: 12,
-  },
 
   inputLabel: {
     fontFamily: FONT.bold,
@@ -1014,7 +1132,7 @@ const styles = StyleSheet.create({
 
   saveButton: {
     alignItems: 'center',
-    backgroundColor: '#111014',
+    backgroundColor: '#F47321',
     borderRadius: 11,
     flex: 1,
     justifyContent: 'center',
@@ -1127,7 +1245,7 @@ const styles = StyleSheet.create({
   deleteConfirmButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#111014',
+    backgroundColor: '#E00000',
     borderRadius: 12,
     flex: 1,
     paddingVertical: 14,

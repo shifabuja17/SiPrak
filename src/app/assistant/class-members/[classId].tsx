@@ -1,5 +1,5 @@
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { useLocalSearchParams, router } from 'expo-router';
 
 import {
   ActivityIndicator,
@@ -29,17 +29,26 @@ import {
   type PracticumMember,
 } from '@/features/assistant/services/member-service';
 
+import PersonIcon from '@/components/common/person-icon';
+import { FONT } from '@/constants/fonts';
 import {
   subscribeClasses,
   type PracticumClass,
 } from '@/features/assistant/services/class-service';
-import { FONT } from '@/constants/fonts';
 import {
   subscribeSchedules,
   type PracticumSchedule,
 } from '@/features/assistant/services/schedule-service';
 import { classLabel } from '@/features/assistant/utils/class-label';
-import PersonIcon from '@/components/common/person-icon';
+
+function InfoLine({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.infoLine}>
+      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={styles.infoValue}>{value}</Text>
+    </View>
+  );
+}
 
 export default function ClassMembersScreen() {
   const params = useLocalSearchParams<{
@@ -49,8 +58,6 @@ export default function ClassMembersScreen() {
   const classId =
     typeof params.classId === 'string' ? params.classId : '';
 
-  // Jadwal milik kelas ini (FR-07), dikelola dari halaman Praktikum & Peserta.
-  const [classSchedules, setClassSchedules] = useState<PracticumSchedule[]>([]);
 
   const { profile, loading: authLoading } = useAuth();
 
@@ -74,6 +81,8 @@ export default function ClassMembersScreen() {
 
   // ERROR
   const [pageError, setPageError] = useState('');
+  // Jadwal tetap kelas ini (diatur dari form Edit kelas).
+  const [classSchedule, setClassSchedule] = useState<PracticumSchedule | null>(null);
   const [modalError, setModalError] = useState('');
   const [removeError, setRemoveError] = useState('');
 
@@ -147,15 +156,6 @@ export default function ClassMembersScreen() {
       }
     );
 
-    const unsubscribeSchedules = subscribeSchedules(
-      (data) => {
-        setClassSchedules(data.filter((item) => item.classId === classId));
-      },
-      (err) => {
-        setPageError(err.message);
-      }
-    );
-
     const unsubscribeUsers = subscribeAvailablePraktikan(
       (data) => {
         setAvailableUsers(data);
@@ -167,10 +167,19 @@ export default function ClassMembersScreen() {
       }
     );
 
+    const unsubscribeSchedules = subscribeSchedules(
+      (data) => {
+        setClassSchedule(data.find((item) => item.classId === classId) ?? null);
+      },
+      (err) => {
+        setPageError(err.message);
+      }
+    );
+
     return () => {
+      unsubscribeSchedules();
       unsubscribeClasses();
       unsubscribeMembers();
-      unsubscribeSchedules();
       unsubscribeUsers();
     };
   }, [profile, authLoading, classId]);
@@ -440,36 +449,23 @@ export default function ClassMembersScreen() {
           {/* JUDUL HALAMAN */}
           <View style={styles.header}>
             <Text style={styles.title}>
-              Peserta & Jadwal
+              Kelola Peserta
             </Text>
 
             <Text style={styles.subtitle}>
-              Atur peserta dan jadwal praktikum kelas ini.
+              Atur peserta yang terdaftar di kelas praktikum ini.
             </Text>
           </View>
 
-          {/* INFORMASI KELAS */}
+          {/* INFORMASI KELAS: baris per baris */}
           {currentClass ? (
-            <View style={styles.classInfo}>
-              <View style={styles.classInfoHeader}>
-                <View style={styles.classCode}>
-                  <Text style={styles.classCodeText}>
-                    {currentClass.kode}
-                  </Text>
-                </View>
-
-                <Text style={styles.classInfoLabel}>
-                  KELAS PRAKTIKUM
-                </Text>
-              </View>
-
-              <Text style={styles.className}>
-                {classLabel(currentClass)}
-              </Text>
-
-              <Text style={styles.classDescription}>
-                {currentClass.deskripsi || 'Tidak ada deskripsi.'}
-              </Text>
+            <View style={styles.infoList}>
+              <InfoLine label="Praktikum" value={classLabel(currentClass)} />
+              <InfoLine
+                label="Hari dan Waktu"
+                value={classSchedule?.scheduleTime ?? 'Belum diatur'}
+              />
+              <InfoLine label="Lab" value={classSchedule?.classRoom ?? 'Belum diatur'} />
             </View>
           ) : null}
 
@@ -482,90 +478,25 @@ export default function ClassMembersScreen() {
             </View>
           ) : null}
 
-          {/* JADWAL KELAS (FR-07) */}
+          {/* DAFTAR ANGGOTA + TOMBOL TAMBAH */}
           <View style={styles.sectionHeader}>
-            <View>
-              <Text style={styles.sectionTitle}>
-                Jadwal
-              </Text>
-
-              <Text style={styles.sectionCaption}>
-                {classSchedules.length > 0
-                  ? `${classSchedules.length} jadwal praktikum`
-                  : 'Belum ada jadwal untuk kelas ini.'}
-              </Text>
-            </View>
-          </View>
-
-          {classSchedules.map((item) => (
-            <View key={item.id} style={styles.scheduleCard}>
-              <Text style={styles.scheduleTime}>{item.scheduleTime}</Text>
-              <Text style={styles.scheduleRoom}>{item.classRoom}</Text>
-            </View>
-          ))}
-
-          <Pressable
-            accessibilityRole="button"
-            style={({ pressed }) => [
-              styles.scheduleManageButton,
-              pressed && styles.pressed,
-            ]}
-            onPress={() =>
-              router.push({
-                pathname: '/assistant/schedules',
-                params: { classId },
-              })
-            }
-          >
-            <Text style={styles.scheduleManageText}>
-              Kelola Jadwal
+            <Text style={styles.sectionTitle}>
+              Daftar Anggota
             </Text>
-          </Pressable>
-
-          {/* RINGKASAN PESERTA */}
-          <View style={styles.summary}>
-            <View style={styles.summaryInfo}>
-              <Text style={styles.summaryNumber}>
-                {members.length}
-              </Text>
-
-              <Text style={styles.summaryLabel}>
-                Total Peserta
-              </Text>
-            </View>
 
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Tambah peserta"
               style={({ pressed }) => [
-                styles.primaryButton,
+                styles.addButton,
                 pressed && styles.pressed,
                 loading && styles.disabledButton,
               ]}
               onPress={openAddModal}
               disabled={loading}
             >
-              <Text style={styles.primaryButtonText}>
-                + Tambah Peserta
-              </Text>
+              <Text style={styles.addButtonText}>+ Tambah Peserta</Text>
             </Pressable>
-          </View>
-
-          {/* DAFTAR ANGGOTA */}
-          <View style={styles.sectionHeader}>
-            <View>
-              <Text style={styles.sectionTitle}>
-                Daftar Anggota
-              </Text>
-
-              <Text style={styles.sectionCaption}>
-                Praktikan yang terdaftar di kelas ini.
-              </Text>
-            </View>
-
-            <View style={styles.totalBadge}>
-              <Text style={styles.totalText}>
-                {members.length} orang
-              </Text>
-            </View>
           </View>
 
           {/* LOADING */}
@@ -636,10 +567,6 @@ export default function ClassMembersScreen() {
 
                       <Text style={styles.memberNim}>
                         {member.nim || 'NIM belum tersedia'}
-                      </Text>
-
-                      <Text style={styles.memberDate}>
-                        Bergabung {joinedDate}
                       </Text>
                     </View>
                   </View>
@@ -1084,8 +1011,6 @@ const styles = StyleSheet.create({
   safeArea: {
     backgroundColor: '#FFFFFF',
     flex: 1,
-    borderColor: '#8E8E93',
-    borderWidth: 1,
   },
 
   content: {
@@ -1132,87 +1057,21 @@ const styles = StyleSheet.create({
   },
 
   // INFORMASI KELAS
-  classInfo: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 17,
-    gap: 10,
-    borderColor: '#8E8E93',
-    borderWidth: 1,
-  },
 
-  classInfoHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
 
-  classInfoLabel: {
-    fontFamily: FONT.extrabold,
-    color: '#5F5F66',
-    fontSize: 10,
-    letterSpacing: 0.7,
-  },
 
-  classCode: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    paddingHorizontal: 11,
-    paddingVertical: 6,
-  },
 
-  classCodeText: {
-    fontFamily: FONT.extrabold,
-    color: '#111014',
-    fontSize: 11,
-  },
 
-  className: {
-    fontFamily: FONT.extrabold,
-    color: '#111014',
-    fontSize: 18,
-    lineHeight: 24,
-  },
 
-  classDescription: {
-    fontFamily: FONT.regular,
-    color: '#5F5F66',
-    fontSize: 12,
-    lineHeight: 19,
-  },
 
   // RINGKASAN PESERTA
-  summary: {
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 17,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 17,
-    borderColor: '#8E8E93',
-    borderWidth: 1,
-  },
 
-  summaryInfo: {
-    gap: 2,
-  },
 
-  summaryNumber: {
-    fontFamily: FONT.extrabold,
-    color: '#111014',
-    fontSize: 29,
-  },
 
-  summaryLabel: {
-    fontFamily: FONT.regular,
-    color: '#5F5F66',
-    fontSize: 12,
-  },
 
   primaryButton: {
     alignItems: 'center',
-    backgroundColor: '#111014',
+    backgroundColor: '#F47321',
     borderRadius: 11,
     justifyContent: 'center',
     paddingHorizontal: 15,
@@ -1226,48 +1085,16 @@ const styles = StyleSheet.create({
   },
 
   // DAFTAR ANGGOTA
-  scheduleCard: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
-    borderRadius: 26,
-    borderWidth: 1,
-    gap: 3,
-    marginBottom: 9,
-    padding: 18,
-  },
 
-  scheduleTime: {
-    fontFamily: FONT.bold,
-    color: '#111014',
-    fontSize: 15,
-  },
 
-  scheduleRoom: {
-    fontFamily: FONT.regular,
-    color: '#5F5F66',
-    fontSize: 13,
-  },
 
-  scheduleManageButton: {
-    alignItems: 'center',
-    borderColor: '#111014',
-    borderRadius: 999,
-    borderWidth: 1.5,
-    justifyContent: 'center',
-    marginBottom: 22,
-    minHeight: 46,
-  },
 
-  scheduleManageText: {
-    fontFamily: FONT.bold,
-    color: '#111014',
-    fontSize: 14,
-  },
 
   sectionHeader: {
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginBottom: 10,
     marginTop: 5,
   },
 
@@ -1277,27 +1104,8 @@ const styles = StyleSheet.create({
     fontSize: 19,
   },
 
-  sectionCaption: {
-    fontFamily: FONT.regular,
-    color: '#5F5F66',
-    fontSize: 11,
-    marginTop: 4,
-  },
 
-  totalBadge: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    paddingHorizontal: 11,
-    paddingVertical: 7,
-    borderColor: '#8E8E93',
-    borderWidth: 1,
-  },
 
-  totalText: {
-    fontFamily: FONT.bold,
-    color: '#5F5F66',
-    fontSize: 11,
-  },
 
   // KARTU PESERTA
   memberCard: {
@@ -1465,6 +1273,35 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
 
+  infoList: {
+    gap: 10,
+  },
+  infoLine: {
+    gap: 2,
+  },
+  infoLabel: {
+    fontFamily: FONT.semibold,
+    color: '#5F5F66',
+    fontSize: 12,
+  },
+  infoValue: {
+    fontFamily: FONT.bold,
+    color: '#111014',
+    fontSize: 15,
+  },
+  addButton: {
+    alignItems: 'center',
+    backgroundColor: '#F47321',
+    borderRadius: 999,
+    justifyContent: 'center',
+    minHeight: 40,
+    paddingHorizontal: 16,
+  },
+  addButtonText: {
+    fontFamily: FONT.bold,
+    color: '#FFFFFF',
+    fontSize: 13,
+  },
   pressed: {
     opacity: 0.65,
   },
@@ -1712,7 +1549,7 @@ const styles = StyleSheet.create({
 
   deleteConfirmButton: {
     alignItems: 'center',
-    backgroundColor: '#111014',
+    backgroundColor: '#E00000',
     borderRadius: 11,
     flex: 1,
     justifyContent: 'center',

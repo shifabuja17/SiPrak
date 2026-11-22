@@ -16,7 +16,6 @@ export default function AssistantLayout() {
         <Stack.Screen name="(tabs)" />
 
         <Stack.Screen name="classes" />
-        <Stack.Screen name="schedules" />
         <Stack.Screen name="sessions" />
         <Stack.Screen name="leave-requests" />
         <Stack.Screen name="laboratories" />

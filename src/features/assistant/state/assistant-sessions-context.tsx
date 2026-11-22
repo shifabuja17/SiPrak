@@ -32,6 +32,8 @@ import {
   subscribeLaboratories,
   type LaboratoryLocation,
 } from '../services/laboratory-service';
+import { useClassCodes } from '@/features/assistant/hooks/use-class-codes';
+import { withClassCode } from '@/features/assistant/utils/class-label';
 
 // ==========================================
 // TIPE CONTEXT
@@ -69,6 +71,7 @@ export function AssistantSessionsProvider({
 
   const userId = user?.uid ?? null;
   const isAssistant = profile?.role === 'asisten';
+  const classCodes = useClassCodes(isAssistant && !authLoading);
 
   // DATA SESI DARI FIRESTORE
   const [sessionRecords, setSessionRecords] = useState<SessionRecord[]>([]);
@@ -275,7 +278,8 @@ export function AssistantSessionsProvider({
 
       return {
         id: session.id,
-        practicumName: session.practicumName,
+        classId: session.classId,
+        practicumName: withClassCode(session.practicumName, classCodes.get(session.classId)),
         moduleTitle: session.moduleTitle,
         classRoom: displayLocation,
         labId: session.labId ?? null,
@@ -291,7 +295,7 @@ export function AssistantSessionsProvider({
         attendances,
       };
     });
-  }, [sessionRecords, attendanceBySession, laboratoriesById]);
+  }, [sessionRecords, attendanceBySession, laboratoriesById, classCodes]);
 
   // ========================================
   // MEMBUKA SESI

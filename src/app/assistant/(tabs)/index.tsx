@@ -27,7 +27,8 @@ function statusChip(session: PracticumSession): { label: string; live: boolean }
   return { label: 'Belum dibuka', live: false };
 }
 
-function openSession(sessionId: string) {
+/** Halaman rekap kehadiran sesi. */
+function openRecap(sessionId: string) {
   router.push({ pathname: '/assistant/session/[sessionId]', params: { sessionId } });
 }
 
@@ -74,9 +75,11 @@ export default function AssistantScheduleScreen() {
           emptyEyebrow="Sesi terdekat"
           emptyTitle="Tidak ada sesi mendatang"
           upcomingEyebrow="Sesi terdekat"
-          buttonLabel={featured?.status === 'dibuka' ? 'Pantau presensi' : 'Lihat detail'}
+          buttonLabel={featured?.status === 'dibuka' ? 'Cek presensi' : 'Kelola sesi'}
           onPress={() => {
-            if (featured) openSession(featured.id);
+            if (!featured) return;
+            if (featured.status === 'dibuka') openRecap(featured.id);
+            else router.navigate('/assistant/sesi');
           }}
         />
 
@@ -106,7 +109,7 @@ export default function AssistantScheduleScreen() {
                   chipLabel={chip.label}
                   live={chip.live}
                   footer={`${session.attendances.length} praktikan hadir`}
-                  onPress={() => openSession(session.id)}
+                  onPress={() => openRecap(session.id)}
                 />
               );
             }}
