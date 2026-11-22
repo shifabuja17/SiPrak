@@ -46,6 +46,7 @@ import { MetaLine } from '@/features/praktikan/ui/praktikan-ui';
 import { formatClock, parseScheduleTimeText } from '@/utils/session-time';
 import Svg, { Path } from 'react-native-svg';
 import { IconButton, IconButtonRow } from '@/components/common/IconButton';
+import { withNotificationNote } from '@/features/notifications/utils/dispatch-message';
 
 // Form kosong untuk tambah kelas.
 const EMPTY_FORM: ClassInput = {
@@ -119,6 +120,7 @@ export default function AssistantClassesScreen() {
   const [classes, setClasses] = useState<PracticumClass[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [pageMessage, setPageMessage] = useState('');
 
   const [modalVisible, setModalVisible] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -194,6 +196,7 @@ export default function AssistantClassesScreen() {
     setForm(EMPTY_FORM);
     setScheduleForm(emptyScheduleForm());
     setError('');
+    setPageMessage('');
     setModalVisible(true);
   }
 
@@ -275,9 +278,12 @@ export default function AssistantClassesScreen() {
       };
       const existing = scheduleOf(classId);
       if (existing) {
-        await updateSchedule(existing.id, scheduleInput);
+        // FR-20: praktikan kelas ini diberi tahu bila jadwal berubah.
+        const notifyResult = await updateSchedule(existing.id, scheduleInput);
+        setPageMessage(withNotificationNote('Kelas dan jadwal berhasil diperbarui.', notifyResult));
       } else {
         await createSchedule(scheduleInput, profile.uid);
+        setPageMessage('Kelas berhasil ditambahkan.');
       }
 
       setModalVisible(false);
@@ -413,6 +419,13 @@ export default function AssistantClassesScreen() {
               Kelola kelas praktikum, jadwal, dan pesertanya.
             </Text>
           </View>
+
+          {/* PESAN BERHASIL (+ status notifikasi perubahan jadwal) */}
+          {pageMessage ? (
+            <View style={styles.successBox}>
+              <Text style={styles.successText}>{pageMessage}</Text>
+            </View>
+          ) : null}
 
           {/* PESAN ERROR */}
           {error ? (
@@ -1023,6 +1036,19 @@ const styles = StyleSheet.create({
   },
 
   // ERROR
+  successBox: {
+    backgroundColor: '#F47321',
+    borderRadius: 10,
+    padding: 12,
+  },
+
+  successText: {
+    fontFamily: FONT.regular,
+    color: '#FFFFFF',
+    fontSize: 12,
+    lineHeight: 18,
+  },
+
   errorBox: {
     backgroundColor: '#E00000',
     borderRadius: 10,

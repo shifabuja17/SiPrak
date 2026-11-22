@@ -31,6 +31,9 @@ import {
 } from '@/features/assistant/services/session-service';
 import { FONT } from '@/constants/fonts';
 import { useTabBottomSpace } from '@/components/common/tab-screen';
+import { withNotificationNote } from '@/features/notifications/utils/dispatch-message';
+import PersonIcon from '@/components/common/person-icon';
+import { Chip } from '@/features/praktikan/ui/praktikan-ui';
 
 // ==========================================
 // TIPE AKSI
@@ -279,18 +282,28 @@ export default function LeaveRequestsScreen({ sessionId }: { sessionId?: string 
   // FORMAT TANGGAL
   // ========================================
 
-  function formatDate(date: Date | null) {
+  /** "21 November 2026, 14:13 WIB" */
+  function formatSubmittedAt(date: Date | null) {
     if (!date) {
-      return 'Tanggal tidak tersedia';
+      return 'Waktu tidak tersedia';
     }
 
-    return date.toLocaleString('id-ID', {
-      day: '2-digit',
+    const day = date.toLocaleDateString('id-ID', {
+      timeZone: 'Asia/Jakarta',
+      day: 'numeric',
       month: 'long',
       year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
     });
+    const time = date
+      .toLocaleTimeString('id-ID', {
+        timeZone: 'Asia/Jakarta',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      })
+      .replace('.', ':');
+
+    return `${day}, ${time} WIB`;
   }
 
   // ========================================
@@ -299,27 +312,16 @@ export default function LeaveRequestsScreen({ sessionId }: { sessionId?: string 
 
   function getStatusLabel(status: LeaveRequestStatus) {
     if (status === 'menunggu') {
-      return 'MENUNGGU';
+      return 'Menunggu';
     }
 
     if (status === 'diterima') {
-      return 'DITERIMA';
+      return 'Diterima';
     }
 
-    return 'DITOLAK';
+    return 'Ditolak';
   }
 
-  function getStatusIcon(status: LeaveRequestStatus): IconName {
-    if (status === 'menunggu') {
-      return 'clock';
-    }
-
-    if (status === 'diterima') {
-      return 'check';
-    }
-
-    return 'close';
-  }
 
   // ========================================
   // MEMBUKA MODAL KONFIRMASI
@@ -371,16 +373,19 @@ export default function LeaveRequestsScreen({ sessionId }: { sessionId?: string 
       setActionError('');
       setPageMessage('');
 
-      await reviewLeaveRequest(
+      const notifyResult = await reviewLeaveRequest(
         requestId,
         status,
         currentUid,
       );
 
       setPageMessage(
-        status === 'diterima'
-          ? 'Pengajuan izin berhasil diterima.'
-          : 'Pengajuan izin berhasil ditolak.',
+        withNotificationNote(
+          status === 'diterima'
+            ? 'Pengajuan izin berhasil diterima.'
+            : 'Pengajuan izin berhasil ditolak.',
+          notifyResult,
+        ),
       );
 
       setReviewTarget(null);
@@ -615,68 +620,44 @@ export default function LeaveRequestsScreen({ sessionId }: { sessionId?: string 
                   <View style={styles.userInfo}>
                     <View style={styles.nameRow}>
                       <View style={styles.userIcon}>
-                        <LeaveIcon
-                          name="user"
-                          size={18}
-                          color="#5F5F66"
-                        />
+                        <PersonIcon size={18} color="#111014" />
                       </View>
 
                       <Text style={styles.name}>
                         {item.nama}
                       </Text>
                     </View>
-
-                    <Text style={styles.date}>
-                      {formatDate(item.createdAt)}
-                    </Text>
                   </View>
 
-                  <View
-                    style={[
-                      styles.statusBadge,
-                      item.status === 'menunggu' && styles.pendingBadge,
-                      item.status === 'diterima' && styles.acceptedBadge,
-                      item.status === 'ditolak' && styles.rejectedBadge,
-                    ]}
-                  >
-                    <LeaveIcon
-                      name={getStatusIcon(item.status)}
-                      size={13}
-                      color={item.status === 'menunggu' ? '#111014' : '#FFFFFF'}
-                    />
-
-                    <Text
-                      style={[
-                        styles.statusText,
-                        item.status === 'menunggu' && styles.pendingText,
-                        item.status === 'diterima' && styles.acceptedText,
-                        item.status === 'ditolak' && styles.rejectedText,
-                      ]}
-                    >
-                      {getStatusLabel(item.status)}
-                    </Text>
-                  </View>
+                  {/* STATUS (gaya chip kartu beranda) */}
+                  <Chip
+                    label={getStatusLabel(item.status)}
+                    tone={
+                      item.status === 'diterima'
+                        ? 'solid'
+                        : item.status === 'ditolak'
+                          ? 'dark'
+                          : 'neutral'
+                    }
+                  />
                 </View>
 
-                <View style={styles.divider} />
-
-                {/* SESI PRAKTIKUM */}
+                {/* WAKTU PENGAJUAN */}
                 <View style={styles.fieldContainer}>
                   <View style={styles.fieldHeading}>
                     <LeaveIcon
                       name="calendar"
                       size={16}
-                      color="#5F5F66"
+                      color="#FFFFFF"
                     />
 
                     <Text style={styles.fieldLabel}>
-                      Sesi Praktikum
+                      Waktu Pengajuan
                     </Text>
                   </View>
 
                   <Text style={styles.fieldValue}>
-                    {getSessionName(item.sessionId)}
+                    {formatSubmittedAt(item.createdAt)}
                   </Text>
                 </View>
 
@@ -686,7 +667,7 @@ export default function LeaveRequestsScreen({ sessionId }: { sessionId?: string 
                     <LeaveIcon
                       name="file"
                       size={16}
-                      color="#5F5F66"
+                      color="#FFFFFF"
                     />
 
                     <Text style={styles.fieldLabel}>
@@ -726,13 +707,13 @@ export default function LeaveRequestsScreen({ sessionId }: { sessionId?: string 
                       onPress={() => openReviewModal(item, 'ditolak')}
                     >
                       {isProcessing ? (
-                        <ActivityIndicator color="#333333" />
+                        <ActivityIndicator color="#FFFFFF" />
                       ) : (
                         <>
                           <LeaveIcon
                             name="close"
                             size={17}
-                            color="#333333"
+                            color="#FFFFFF"
                           />
 
                           <Text style={styles.rejectButtonText}>
@@ -753,13 +734,13 @@ export default function LeaveRequestsScreen({ sessionId }: { sessionId?: string 
                       onPress={() => openReviewModal(item, 'diterima')}
                     >
                       {isProcessing ? (
-                        <ActivityIndicator color="#FFFFFF" />
+                        <ActivityIndicator color="#F47321" />
                       ) : (
                         <>
                           <LeaveIcon
                             name="check"
                             size={17}
-                            color="#FFFFFF"
+                            color="#F47321"
                           />
 
                           <Text style={styles.acceptButtonText}>
@@ -1062,17 +1043,15 @@ const styles = StyleSheet.create({
 
   // KARTU PENGAJUAN
   requestCard: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
+    backgroundColor: '#F47321',
     borderRadius: 26,
-    borderWidth: 1,
     gap: 14,
     marginBottom: 14,
     padding: 18,
   },
 
   cardHeader: {
-    alignItems: 'flex-start',
+    alignItems: 'center',
     flexDirection: 'row',
     gap: 10,
     justifyContent: 'space-between',
@@ -1092,74 +1071,29 @@ const styles = StyleSheet.create({
   userIcon: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    height: 34,
+    borderRadius: 18,
+    height: 36,
     justifyContent: 'center',
-    width: 34,
-    borderColor: '#8E8E93',
-    borderWidth: 1,
+    width: 36,
   },
 
   name: {
     fontFamily: FONT.extrabold,
-    color: '#111014',
+    color: '#FFFFFF',
     flex: 1,
     fontSize: 15,
   },
 
-  date: {
-    fontFamily: FONT.regular,
-    color: '#5F5F66',
-    fontSize: 11,
-    lineHeight: 17,
-  },
 
   // STATUS
-  statusBadge: {
-    alignItems: 'center',
-    borderRadius: 20,
-    flexDirection: 'row',
-    gap: 5,
-    paddingHorizontal: 9,
-    paddingVertical: 7,
-  },
 
-  pendingBadge: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
-    borderWidth: 1,
-  },
 
-  acceptedBadge: {
-    backgroundColor: '#F47321',
-  },
 
-  rejectedBadge: {
-    backgroundColor: '#E00000',
-  },
 
-  statusText: {
-    fontFamily: FONT.extrabold,
-    fontSize: 9,
-    letterSpacing: 0.3,
-  },
 
-  pendingText: {
-    color: '#5F5F66',
-  },
 
-  acceptedText: {
-    color: '#FFFFFF',
-  },
 
-  rejectedText: {
-    color: '#FFFFFF',
-  },
 
-  divider: {
-    backgroundColor: '#E4E4E7',
-    height: 1,
-  },
 
   // INFORMASI PENGAJUAN
   fieldContainer: {
@@ -1174,37 +1108,37 @@ const styles = StyleSheet.create({
 
   fieldLabel: {
     fontFamily: FONT.semibold,
-    color: '#5F5F66',
+    color: '#FFFFFF',
     fontSize: 11,
+    opacity: 0.9,
   },
 
   fieldValue: {
     fontFamily: FONT.semibold,
-    color: '#5F5F66',
-    fontSize: 13,
+    color: '#FFFFFF',
+    fontSize: 14,
     lineHeight: 20,
   },
 
   reason: {
     fontFamily: FONT.regular,
-    color: '#5F5F66',
+    color: '#FFFFFF',
     fontSize: 13,
     lineHeight: 21,
   },
 
   categoryBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderColor: '#8E8E93',
+    borderColor: '#FFFFFF',
+    borderRadius: 999,
     borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
   },
 
   categoryText: {
     fontFamily: FONT.bold,
-    color: '#5F5F66',
+    color: '#FFFFFF',
     fontSize: 11,
   },
 
@@ -1217,33 +1151,33 @@ const styles = StyleSheet.create({
 
   actionButton: {
     alignItems: 'center',
-    borderRadius: 11,
+    borderRadius: 10,
     flex: 1,
     flexDirection: 'row',
     gap: 7,
     justifyContent: 'center',
-    paddingVertical: 13,
+    minHeight: 44,
   },
 
   rejectButton: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
-    borderWidth: 1,
+    backgroundColor: '#F47321',
+    borderColor: '#FFFFFF',
+    borderWidth: 1.5,
   },
 
   rejectButtonText: {
     fontFamily: FONT.bold,
-    color: '#111014',
+    color: '#FFFFFF',
     fontSize: 13,
   },
 
   acceptButton: {
-    backgroundColor: '#111014',
+    backgroundColor: '#FFFFFF',
   },
 
   acceptButtonText: {
     fontFamily: FONT.bold,
-    color: '#FFFFFF',
+    color: '#F47321',
     fontSize: 13,
   },
 

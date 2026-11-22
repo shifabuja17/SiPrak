@@ -44,10 +44,13 @@ import type {
   LabActivitySessionStatus,
 } from '@/services/lab-activities-service';
 import { openAppLocationSettings } from '@/services/location-service';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
+
+import MapsUnavailable from '@/features/maps/maps-unavailable';
 
 const INITIAL_REGION: Region = {
-  latitude: -7.04825,
-  longitude: 110.4414,
+  latitude: -7.0486375,
+  longitude: 110.441125,
   latitudeDelta: 0.004,
   longitudeDelta: 0.004,
 };
@@ -416,7 +419,32 @@ function LabDetailCard({
   );
 }
 
+/**
+ * Google Maps di Android butuh API key yang ditanam saat build. Tanpa key, MapView
+ * langsung crash di sisi native (tidak bisa ditangkap error boundary JS), jadi key
+ * dicek dulu sebelum peta dirender. Expo Go sudah membawa key sendiri, dan iOS
+ * memakai Apple Maps, jadi keduanya tidak perlu dicek.
+ */
+function isGoogleMapsUnavailable(): boolean {
+  if (Platform.OS !== 'android') return false;
+  if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient) return false;
+  return Constants.expoConfig?.extra?.googleMapsConfigured !== true;
+}
+
 export default function MapsScreen() {
+  if (isGoogleMapsUnavailable()) {
+    return (
+      <MapsUnavailable
+        title="Peta Belum Dapat Dimuat"
+        message="Aplikasi ini belum dikonfigurasi dengan API key Google Maps, jadi peta laboratorium belum bisa ditampilkan."
+      />
+    );
+  }
+
+  return <LabMap />;
+}
+
+function LabMap() {
   const {
     user,
     role,

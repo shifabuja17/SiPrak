@@ -3,6 +3,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   onSnapshot,
   orderBy,
   query,
@@ -11,6 +12,9 @@ import {
 } from 'firebase/firestore';
 
 import { db } from '@/lib/firebase';
+import { notifyScheduleChanged } from '@/features/notifications/services/notification-triggers';
+import type { NotificationDispatchResult } from '@/features/notifications/types';
+import { diffScheduleChanges } from '@/features/notifications/utils/schedule-diff';
 
 export interface PracticumSchedule {
   id: string;
@@ -74,10 +78,30 @@ export async function createSchedule(
 export async function updateSchedule(
   scheduleId: string,
   input: ScheduleInput,
-) {
-  await updateDoc(doc(db, 'schedules', scheduleId), {
+): Promise<NotificationDispatchResult | null> {
+  const scheduleRef = doc(db, 'schedules', scheduleId);
+  const beforeSnapshot = await getDoc(scheduleRef);
+  const before = beforeSnapshot.exists() ? beforeSnapshot.data() : null;
+
+  await updateDoc(scheduleRef, {
     ...input,
     updatedAt: serverTimestamp(),
+  });
+
+  // FR-20: beri tahu praktikan hanya jika ada perubahan yang berarti.
+  if (!before) return null;
+
+  const changes = diffScheduleChanges(before, input);
+  if (changes.length === 0) return null;
+
+  return notifyScheduleChanged({
+    classIds: [
+      typeof before.classId === 'string' ? before.classId : '',
+      input.classId,
+    ],
+    practicumName: input.practicumName,
+    changes,
+    scheduleId,
   });
 }
 

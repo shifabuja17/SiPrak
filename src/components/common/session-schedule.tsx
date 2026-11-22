@@ -141,11 +141,23 @@ export function DateStrip({
     [sessions],
   );
 
-  function centerToday(event: LayoutChangeEvent) {
+  // Lebar strip yang terlihat, dipakai untuk menaruh tanggal tepat di tengah.
+  const viewportWidth = useRef(0);
+
+  /** Menggeser strip supaya tanggal ke-`index` berada tepat di tengah. */
+  function centerDay(index: number, animated: boolean) {
+    const dayCenter = PAGE_PADDING + index * (DAY_WIDTH + DAY_GAP) + DAY_WIDTH / 2;
+    scrollRef.current?.scrollTo({
+      x: Math.max(0, dayCenter - viewportWidth.current / 2),
+      animated,
+    });
+  }
+
+  function handleLayout(event: LayoutChangeEvent) {
+    viewportWidth.current = event.nativeEvent.layout.width;
     if (centeredOnce.current) return;
-    const width = event.nativeEvent.layout.width;
-    const todayCenter = PAGE_PADDING + DAY_RANGE * (DAY_WIDTH + DAY_GAP) + DAY_WIDTH / 2;
-    scrollRef.current?.scrollTo({ x: Math.max(0, todayCenter - width / 2), animated: false });
+    // Awalnya hari ini (indeks DAY_RANGE) di tengah.
+    centerDay(DAY_RANGE, false);
     centeredOnce.current = true;
   }
 
@@ -154,12 +166,12 @@ export function DateStrip({
       ref={scrollRef}
       horizontal
       showsHorizontalScrollIndicator={false}
-      onLayout={centerToday}
+      onLayout={handleLayout}
       style={styles.daysScroll}
       contentContainerStyle={styles.days}
       accessibilityRole="tablist"
     >
-      {days.map((day) => {
+      {days.map((day, index) => {
         const isToday = day.key === todayKey;
         const active = day.key === selectedDay;
         const hasSession = daysWithSessions.has(day.key);
@@ -169,7 +181,10 @@ export function DateStrip({
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
             accessibilityLabel={`${day.label} ${day.dayOfMonth}${isToday ? ', hari ini' : ''}${hasSession ? ', ada sesi' : ''}`}
-            onPress={() => onSelect(day.key)}
+            onPress={() => {
+              onSelect(day.key);
+              centerDay(index, true);
+            }}
             style={({ pressed }) => [
               styles.day,
               isToday && !active && styles.dayToday,

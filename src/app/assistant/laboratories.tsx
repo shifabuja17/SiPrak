@@ -462,7 +462,7 @@ export default function AssistantLaboratoriesScreen() {
                 <TextInput
                   value={form.latitude}
                   onChangeText={(value) => updateField('latitude', value)}
-                  placeholder="Contoh: -7.04817"
+                  placeholder="Contoh: -7.0482375"
                   placeholderTextColor="#8E8E93"
                   keyboardType={
                     Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'numeric'
@@ -482,7 +482,7 @@ export default function AssistantLaboratoriesScreen() {
                 <TextInput
                   value={form.longitude}
                   onChangeText={(value) => updateField('longitude', value)}
-                  placeholder="Contoh: 110.44140"
+                  placeholder="Contoh: 110.440765625"
                   placeholderTextColor="#8E8E93"
                   keyboardType={
                     Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'numeric'

@@ -22,6 +22,7 @@ import type {
   SessionAttendanceDoc,
 } from '@/features/praktikan/types';
 import { classColor, TAB_BAR_SPACE } from '@/features/praktikan/ui/praktikan-ui';
+import { NotificationStatusBanner } from '@/features/notifications/components/notification-status-banner';
 
 // ==========================================
 // STATUS
@@ -113,6 +114,9 @@ export default function PraktikanHome({
 
         {/* STRIP TANGGAL (bisa digeser, hari ini di tengah) */}
         <DateStrip sessions={sessions} selectedDay={selectedDay} onSelect={setSelectedDay} />
+
+        {/* STATUS IZIN NOTIFIKASI (hanya tampil jika notifikasi tidak aktif) */}
+        <NotificationStatusBanner />
 
         {/* DAFTAR SESI */}
         <Text style={scheduleStyles.sectionTitle}>Jadwal Kamu</Text>

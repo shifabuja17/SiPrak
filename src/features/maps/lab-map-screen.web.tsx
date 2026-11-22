@@ -1,8 +1,4 @@
-import { router, type Href } from 'expo-router';
-
-import { useAuth } from '@/context/AuthContext';
-import { PraktikanEmptyState } from '@/features/praktikan/components/praktikan-state-view';
-import { PillButton, Screen, ScreenTitle } from '@/features/praktikan/ui/praktikan-ui';
+import MapsUnavailable from '@/features/maps/maps-unavailable';
 
 /**
  * Versi web tab Peta. `react-native-maps` hanya tersedia di Android/iOS dan membuat
@@ -10,22 +6,10 @@ import { PillButton, Screen, ScreenTitle } from '@/features/praktikan/ui/praktik
  * tetap bisa mengatur koordinat & radius lokasi lab dari sini.
  */
 export default function MapsWebScreen() {
-  const { role } = useAuth();
-
   return (
-    <Screen>
-      <ScreenTitle title="Peta Laboratorium" subtitle="4 titik lokasi praktikum" />
-      <PraktikanEmptyState
-        title="Peta Tersedia di Aplikasi"
-        message="Peta laboratorium hanya dapat dibuka melalui aplikasi SiPrak di Android atau iOS."
-      />
-      {role === 'asisten' ? (
-        <PillButton
-          label="Atur Lokasi Laboratorium"
-          variant="outline"
-          onPress={() => router.push('/assistant/laboratories' as Href)}
-        />
-      ) : null}
-    </Screen>
+    <MapsUnavailable
+      title="Peta Tersedia di Aplikasi"
+      message="Peta laboratorium hanya dapat dibuka melalui aplikasi SiPrak di Android atau iOS."
+    />
   );
 }

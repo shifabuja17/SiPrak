@@ -61,6 +61,7 @@ import {
 } from '@/features/assistant/services/laboratory-service';
 import { withClassCode } from '@/features/assistant/utils/class-label';
 import { IconButton, IconButtonRow } from '@/components/common/IconButton';
+import { withNotificationNote } from '@/features/notifications/utils/dispatch-message';
 
 
 // ==========================================
@@ -518,8 +519,8 @@ export default function AssistantSessionsScreen() {
       setPageMessage('');
 
       if (editingId) {
-        await updateSession(editingId, input);
-        setPageMessage('Sesi berhasil diperbarui.');
+        const notifyResult = await updateSession(editingId, input);
+        setPageMessage(withNotificationNote('Sesi berhasil diperbarui.', notifyResult));
       } else {
         await createSession(input, profile.uid);
         setPageMessage('Sesi berhasil ditambahkan.');
@@ -583,8 +584,8 @@ export default function AssistantSessionsScreen() {
       }
 
       if (type === 'open') {
-        await openSession(item.id);
-        setPageMessage('Sesi praktikum berhasil dibuka.');
+        const notifyResult = await openSession(item.id);
+        setPageMessage(withNotificationNote('Sesi praktikum berhasil dibuka.', notifyResult));
       }
 
       if (type === 'close') {

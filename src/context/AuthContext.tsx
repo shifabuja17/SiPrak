@@ -23,6 +23,7 @@ import {
   setDoc,
 } from 'firebase/firestore';
 
+import { unregisterDeviceForUser } from '../features/notifications/services/push-token-service';
 import { auth, db } from '../lib/firebase';
 import type { Role, UserProfile } from '../types/user';
 
@@ -355,11 +356,16 @@ export function AuthProvider({
 
   const logout = useCallback(async () => {
     try {
+      // Lepas token notifikasi perangkat ini dari akun sebelum sesi login berakhir.
+      if (user) {
+        await unregisterDeviceForUser(user.uid);
+      }
+
       await signOut(auth);
     } catch (error) {
       throw new Error(authErrorMessage(error));
     }
-  }, []);
+  }, [user]);
 
   // ========================================
   // 6. STATUS AUTENTIKASI

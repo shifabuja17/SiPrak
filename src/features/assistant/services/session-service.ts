@@ -20,6 +20,12 @@ import {
   type LaboratoryId,
 } from '@/features/assistant/services/laboratory-service';
 import { db } from '@/lib/firebase';
+import {
+  notifyScheduleChanged,
+  notifySessionOpened,
+} from '@/features/notifications/services/notification-triggers';
+import type { NotificationDispatchResult } from '@/features/notifications/types';
+import { diffSessionChanges } from '@/features/notifications/utils/schedule-diff';
 import { toDateValue } from '@/utils/session-time';
 
 // ==========================================
@@ -182,7 +188,7 @@ export async function createSession(
 export async function updateSession(
   sessionId: string,
   input: SessionInput,
-) {
+): Promise<NotificationDispatchResult | null> {
   validateSessionTimes(input);
   const validInput = validateSessionLabInput(input);
 
@@ -200,9 +206,25 @@ export async function updateSession(
     );
   }
 
+  const before = sessionSnapshot.data();
+
   await updateDoc(sessionRef, {
     ...validInput,
     updatedAt: serverTimestamp(),
+  });
+
+  // FR-20: beri tahu praktikan hanya jika waktu/lokasi/materi benar-benar berubah.
+  const changes = diffSessionChanges(before, validInput);
+  if (changes.length === 0) return null;
+
+  return notifyScheduleChanged({
+    classIds: [
+      typeof before.classId === 'string' ? before.classId : '',
+      validInput.classId,
+    ],
+    practicumName: validInput.practicumName,
+    changes,
+    sessionId,
   });
 }
 
@@ -213,7 +235,7 @@ export async function updateSession(
 export async function openSession(
   sessionId: string,
   note?: string,
-) {
+): Promise<NotificationDispatchResult> {
   const sessionRef = doc(db, 'sessions', sessionId);
 
   await runTransaction(db, async (transaction) => {
@@ -242,6 +264,9 @@ export async function openSession(
       updatedAt: serverTimestamp(),
     });
   });
+
+  // FR-19: sesi sudah tersimpan sebagai 'dibuka'; kegagalan notifikasi tidak membatalkannya.
+  return notifySessionOpened(sessionId);
 }
 
 // ==========================================

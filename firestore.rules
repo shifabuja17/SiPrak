@@ -141,6 +141,34 @@ service cloud.firestore {
       }
     }
 
+    // ---------- Token push notification (Sprint 3 — P3) ----------
+    // Satu dokumen per pengguna: pushTokens/{uid} = { uid, role, tokens[], platform, updatedAt }.
+    // Pemilik mendaftarkan/menghapus token perangkatnya. Asisten membaca token penerima
+    // saat mengirim notifikasi dan hanya boleh MENGURANGI token (membuang token tidak valid).
+    match /pushTokens/{uid} {
+      allow read: if isOwner(uid) || isAsisten();
+
+      allow create: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(['uid', 'role', 'tokens', 'platform', 'updatedAt'])
+        && request.resource.data.keys().hasAll(['uid', 'role', 'tokens'])
+        && request.resource.data.uid == uid
+        && request.resource.data.role == get(userDoc(uid)).data.role
+        && request.resource.data.tokens is list
+        && request.resource.data.tokens.size() <= 20;
+
+      allow update: if (isOwner(uid)
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['role', 'tokens', 'platform', 'updatedAt'])
+          && request.resource.data.role == get(userDoc(uid)).data.role
+          && request.resource.data.tokens is list
+          && request.resource.data.tokens.size() <= 20)
+        || (isAsisten()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['tokens'])
+          && request.resource.data.tokens.size() <= resource.data.tokens.size());
+
+      allow delete: if false;
+    }
+
     // ---------- Pengajuan izin ----------
     // ID dokumen WAJIB '{sessionId}_{uid}' -> satu pengajuan per sesi per praktikan.
     // kategoriAI hanya informasi pendukung; status awal selalu 'menunggu'.

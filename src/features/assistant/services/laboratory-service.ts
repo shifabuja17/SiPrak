@@ -71,8 +71,9 @@ export const DEFAULT_LABORATORIES: readonly LaboratoryPreset[] = [
   {
     id: 'lab-gedung-ap',
     name: 'Lab Gedung AP',
-    latitude: -7.04835,
-    longitude: 110.44125,
+    // Dekanat FSM UNDIP (Plus Code 6P4GXC2R+9HQ), dari pembaruan koordinat P2.
+    latitude: -7.0490375,
+    longitude: 110.441484375,
     radius: DEFAULT_LABORATORY_RADIUS_METERS,
   },
 ] as const;
