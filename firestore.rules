@@ -3,7 +3,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ---------- Helper ----------
+    // ---------- Helper Autentikasi & Role ----------
     function signedIn() {
       return request.auth != null;
     }
@@ -14,6 +14,10 @@ service cloud.firestore {
 
     function userDoc(uid) {
       return /databases/$(database)/documents/users/$(uid);
+    }
+
+    function hasUserDoc() {
+      return signedIn() && exists(userDoc(request.auth.uid));
     }
 
     function userRole() {
@@ -39,17 +43,36 @@ service cloud.firestore {
     }
 
     function isAslab() {
-      return signedIn()
-        && exists(userDoc(request.auth.uid))
-        && isAslabRole(userRole());
+      return hasUserDoc() && isAslabRole(userRole());
+    }
+
+    function isAsprak() {
+      return hasUserDoc() && isAsprakRole(userRole());
+    }
+
+    function isPraktikan() {
+      return hasUserDoc() && isPraktikanRole(userRole());
     }
 
     function isAsisten() {
-      return signedIn()
-        && exists(userDoc(request.auth.uid))
-        && (isAslabRole(userRole()) || isAsprakRole(userRole()));
+      return isAslab() || isAsprak();
     }
 
+    // ---------- Helper Keanggotaan Lab ----------
+    function labMemberPath(labId, uid) {
+      return /databases/$(database)/documents/labMembers/$(labId + '_' + uid);
+    }
+
+    function isAsprakOfLab(labId) {
+      return isAsprak()
+        && labId is string
+        && labId.size() > 0
+        && exists(labMemberPath(labId, request.auth.uid))
+        && get(labMemberPath(labId, request.auth.uid)).data.aktif == true
+        && get(labMemberPath(labId, request.auth.uid)).data.peran == 'asprak';
+    }
+
+    // ---------- Helper Dokumen & Lokasi ----------
     function validStatusSesi() {
       return request.resource.data.status in ['dijadwalkan', 'dibuka', 'ditutup'];
     }
@@ -60,6 +83,17 @@ service cloud.firestore {
 
     function labDoc(labId) {
       return get(/databases/$(database)/documents/laboratories/$(labId)).data;
+    }
+
+    function leaveRequestLabId(data) {
+      return data.get('labId', sessionDoc(data.sessionId).get('labId', ''));
+    }
+
+    function isRecordOwner(data) {
+      return signedIn()
+        && (data.get('userId', '') == request.auth.uid
+            || data.get('uid', '') == request.auth.uid
+            || data.get('praktikanId', '') == request.auth.uid);
     }
 
     // Pemeriksaan radius di server (Sprint 3 NFR-01). Rules tidak punya trigonometri,
@@ -106,8 +140,7 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // ---------- classes, members, schedules, sessions ----------
-    // Semua pengguna login boleh membaca; hanya asisten yang boleh menulis (CRUD).
+    // ---------- classes, members, schedules (Sprint 1–3) ----------
     match /classes/{classId} {
       allow read: if signedIn();
       allow write: if isAsisten();
@@ -118,18 +151,23 @@ service cloud.firestore {
       }
     }
 
-    // ---------- Titik lokasi praktikum (Sprint 3 & 4) ----------
-    // Dikelola khusus Aslab (FR-02 s.d. FR-12), dibaca seluruh pengguna login untuk presensi & Maps.
-    match /laboratories/{labId} {
+    match /schedules/{scheduleId} {
       allow read: if signedIn();
-      allow write: if isAslab();
+      allow write: if isAsisten();
     }
 
-    // ---------- Keanggotaan laboratorium (Sprint 4) ----------
-    // ID dokumen deterministik '{labId}_{userId}' -> mencegah duplikasi dan memudahkan Rules.
+    // ---------- laboratories (Sprint 3 & 4 — NFR-01) ----------
+    // Semua user login boleh membaca; hanya Aslab yang boleh create/update/delete.
+    match /laboratories/{labId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAslab();
+    }
+
+    // ---------- labMembers (Sprint 4 — NFR-01) ----------
+    // ID dokumen deterministik '{labId}_{userId}'. Semua user login boleh read;
+    // hanya Aslab yang boleh create/update/delete.
     match /labMembers/{memberId} {
-      allow read: if isAsisten()
-        || (signedIn() && resource.data.userId == request.auth.uid);
+      allow read: if signedIn();
 
       allow create, update: if isAslab()
         && request.resource.data.keys().hasOnly(
@@ -144,33 +182,29 @@ service cloud.firestore {
         && request.resource.data.peran in ['praktikan', 'asprak']
         && request.resource.data.aktif is bool;
 
-      allow delete: if false;
+      allow delete: if isAslab();
     }
 
-    match /schedules/{scheduleId} {
-      allow read: if signedIn();
-      allow write: if isAsisten();
-    }
-
+    // ---------- sessions & attendance (Sprint 3 & 4 — NFR-01) ----------
+    // Asprak hanya boleh mengelola sesi pada labId tempat ia terdaftar aktif di labMembers.
+    // Aslab & Praktikan tetap dapat membaca sesuai kebutuhan dashboard dan jadwal.
     match /sessions/{sessionId} {
       allow read: if signedIn();
-      allow create: if isAsisten() && validStatusSesi();
-      allow update: if isAsisten() && validStatusSesi();
-      allow delete: if isAsisten();
+      allow create: if isAsprakOfLab(request.resource.data.get('labId', '')) && validStatusSesi();
+      allow update: if isAsprakOfLab(resource.data.get('labId', ''))
+        && isAsprakOfLab(request.resource.data.get('labId', ''))
+        && validStatusSesi();
+      allow delete: if isAsprakOfLab(resource.data.get('labId', ''));
 
-      // ---------- Presensi ----------
-      // ID dokumen = uid praktikan -> 1 presensi per sesi per praktikan.
-      // 'create' pada dokumen yang sudah ada dianggap 'update' dan ditolak,
-      // jadi presensi ganda tidak mungkin terjadi.
+      // Subkoleksi presensi Sprint 3: ID dokumen = uid praktikan.
       match /attendance/{uid} {
-        allow read: if isAsisten() || isOwner(uid);
+        allow read: if isAslab()
+          || isAsprakOfLab(sessionDoc(sessionId).get('labId', ''))
+          || isOwner(uid);
 
-        // Presensi berbasis lokasi: sesi dibuka, labId sesuai sesi, dan koordinat
-        // praktikan berada di sekitar titik lab dalam radius (FR-04, FR-05, FR-08).
-        allow create: if isOwner(uid)
+        allow create: if isPraktikan()
+          && isOwner(uid)
           && sessionDoc(sessionId).status == 'dibuka'
-          // OPSIONAL (aktifkan jika peserta kelas sudah diisi di classes/{id}/members):
-          // && exists(/databases/$(database)/documents/classes/$(sessionDoc(sessionId).classId)/members/$(uid))
           && request.resource.data.keys().hasOnly(
                ['uid', 'nama', 'waktu', 'labId', 'latitude', 'longitude', 'jarak'])
           && request.resource.data.keys().hasAll(
@@ -192,15 +226,28 @@ service cloud.firestore {
                labDoc(request.resource.data.labId),
                labDoc(request.resource.data.labId).get('radius', 50));
 
-        allow update: if false;
-        allow delete: if isAsisten(); // koreksi oleh asisten
+        allow update, delete: if isAsprakOfLab(sessionDoc(sessionId).get('labId', ''));
       }
     }
 
+    // ---------- attendances (koleksi top-level Sprint 4 — NFR-01) ----------
+    match /attendances/{attendanceId} {
+      allow read: if isAslab()
+        || isAsprakOfLab(resource.data.get('labId', ''))
+        || (isPraktikan() && isRecordOwner(resource.data));
+
+      allow create: if isPraktikan()
+        && isRecordOwner(request.resource.data)
+        && request.resource.data.get('labId', '') is string
+        && exists(/databases/$(database)/documents/laboratories/$(request.resource.data.get('labId', '')));
+
+      allow update: if isAsprakOfLab(resource.data.get('labId', ''))
+        && isAsprakOfLab(request.resource.data.get('labId', ''));
+
+      allow delete: if isAsprakOfLab(resource.data.get('labId', ''));
+    }
+
     // ---------- Token push notification (Sprint 3 — P3) ----------
-    // Satu dokumen per pengguna: pushTokens/{uid} = { uid, role, tokens[], platform, updatedAt }.
-    // Pemilik mendaftarkan/menghapus token perangkatnya. Asisten membaca token penerima
-    // saat mengirim notifikasi dan hanya boleh MENGURANGI token (membuang token tidak valid).
     match /pushTokens/{uid} {
       allow read: if isOwner(uid) || isAsisten();
 
@@ -225,18 +272,20 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // ---------- Pengajuan izin ----------
-    // ID dokumen WAJIB '{sessionId}_{uid}' -> satu pengajuan per sesi per praktikan.
-    // kategoriAI hanya informasi pendukung; status awal selalu 'menunggu'.
+    // ---------- Pengajuan izin (Sprint 3 & 4 — NFR-01) ----------
+    // ID dokumen WAJIB '{sessionId}_{uid}'.
+    // Asprak hanya dapat membaca/memutuskan izin untuk sesi pada lab tempat ia aktif.
     match /leaveRequests/{requestId} {
-      allow read: if isAsisten()
-        || (signedIn() && resource.data.uid == request.auth.uid);
+      allow read: if isAslab()
+        || isAsprakOfLab(leaveRequestLabId(resource.data))
+        || isRecordOwner(resource.data);
 
-      allow create: if signedIn()
+      allow create: if isPraktikan()
         && request.resource.data.uid == request.auth.uid
+        && (!('userId' in request.resource.data) || request.resource.data.userId == request.auth.uid)
         && requestId == request.resource.data.sessionId + '_' + request.auth.uid
         && request.resource.data.keys().hasOnly(
-             ['uid', 'nama', 'sessionId', 'alasan', 'kategoriAI', 'status', 'createdAt'])
+             ['uid', 'userId', 'nama', 'sessionId', 'labId', 'alasan', 'kategoriAI', 'status', 'createdAt'])
         && request.resource.data.keys().hasAll(
              ['uid', 'sessionId', 'alasan', 'status', 'createdAt'])
         && request.resource.data.sessionId is string
@@ -249,14 +298,26 @@ service cloud.firestore {
         && request.resource.data.status == 'menunggu'
         && request.resource.data.createdAt == request.time;
 
-      // Hanya asisten yang memutuskan; hanya field keputusan yang boleh berubah.
-      allow update: if isAsisten()
+      allow update: if isAsprakOfLab(leaveRequestLabId(resource.data))
         && request.resource.data.diff(resource.data).affectedKeys()
              .hasOnly(['status', 'reviewedBy', 'reviewedAt', 'catatanAsisten'])
         && request.resource.data.status in ['diterima', 'ditolak']
         && request.resource.data.reviewedBy == request.auth.uid;
 
       allow delete: if false;
+    }
+
+    // ---------- Denda & Pembayaran (Sprint 4 — NFR-01) ----------
+    // Praktikan hanya membaca milik sendiri, Aslab membaca untuk dashboard keuangan.
+    // Mutasi data denda & status pembayaran hanya melalui Backend / Firebase Admin SDK.
+    match /fines/{fineId} {
+      allow read: if isAslab() || (isPraktikan() && isRecordOwner(resource.data));
+      allow create, update, delete: if false;
+    }
+
+    match /payments/{paymentId} {
+      allow read: if isAslab() || (isPraktikan() && isRecordOwner(resource.data));
+      allow create, update, delete: if false;
     }
   }
 }
