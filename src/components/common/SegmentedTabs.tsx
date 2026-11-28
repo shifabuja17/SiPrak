@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { FONT } from '@/constants/fonts';
+import { BORDER_COLOR } from '@/constants/colors';
 
 /** Pilihan tab berbentuk pil (dipakai di tab Sesi dan halaman Cek Presensi). */
 export default function SegmentedTabs<T extends string>({
@@ -40,7 +41,8 @@ export default function SegmentedTabs<T extends string>({
 
 const styles = StyleSheet.create({
   switch: {
-    borderColor: '#8E8E93',
+    backgroundColor: '#FFFFFF',
+    borderColor: BORDER_COLOR,
     borderRadius: 999,
     borderWidth: 1,
     flexDirection: 'row',

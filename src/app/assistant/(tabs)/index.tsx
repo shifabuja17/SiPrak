@@ -20,6 +20,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useAssistantSessions } from '@/features/assistant/state/assistant-sessions-context';
 import type { PracticumSession } from '@/features/assistant/types';
 import { TAB_BAR_SPACE } from '@/features/praktikan/ui/praktikan-ui';
+import { BORDER_COLOR, PAGE_BG } from '@/constants/colors';
 
 function statusChip(session: PracticumSession): { label: string; live: boolean } {
   if (session.status === 'dibuka') return { label: 'Berlangsung', live: true };
@@ -67,6 +68,9 @@ export default function AssistantScheduleScreen() {
             </Text>
             <Text style={styles.greetingDate}>{todayLabel()}</Text>
           </View>
+
+          {/* Penyeimbang selebar avatar supaya teks tepat di tengah layar. */}
+          <View style={styles.avatarSpacer} />
         </View>
 
         {/* SOROTAN: sesi berlangsung, atau sesi terdekat */}
@@ -122,7 +126,7 @@ export default function AssistantScheduleScreen() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: PAGE_BG,
     flex: 1,
   },
   content: {
@@ -146,22 +150,35 @@ const styles = StyleSheet.create({
     width: 48,
   },
   greeting: {
+    alignItems: 'center',
     flex: 1,
     gap: 2,
+    justifyContent: 'center',
+  },
+  avatarSpacer: {
+    width: 48,
   },
   greetingTitle: {
+    textAlign: 'center',
     fontFamily: FONT.extrabold,
     color: '#111014',
     fontSize: 19,
+    lineHeight: 24,
+    // Android menambah ruang di atas huruf; dimatikan supaya teks pas di tengah avatar.
+    includeFontPadding: false,
   },
   greetingDate: {
+    textAlign: 'center',
     fontFamily: FONT.regular,
     color: '#5F5F66',
     fontSize: 13,
+    lineHeight: 18,
+    includeFontPadding: false,
   },
   emptyCard: {
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderRadius: 20,
     borderWidth: 1,
     gap: 8,

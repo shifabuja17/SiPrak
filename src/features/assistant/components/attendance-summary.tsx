@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import type { AttendanceRecord } from '../types';
 import { FONT } from '@/constants/fonts';
 import PersonIcon from '@/components/common/person-icon';
+import { BORDER_COLOR } from '@/constants/colors';
 
 interface AttendanceSummaryProps {
   records: AttendanceRecord[];
@@ -77,7 +78,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     gap: 5,
     padding: 24,
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderWidth: 1,
   },
   emptyTitle: {
@@ -95,7 +96,7 @@ const styles = StyleSheet.create({
   record: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderRadius: 26,
     borderWidth: 1,
     flexDirection: 'row',
@@ -109,7 +110,7 @@ const styles = StyleSheet.create({
     height: 40,
     justifyContent: 'center',
     width: 40,
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderWidth: 1,
   },
   identity: {

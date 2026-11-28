@@ -4,6 +4,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 
 import { FONT } from '@/constants/fonts';
 import { useAuth } from '@/context/AuthContext';
+import { BORDER_COLOR } from '@/constants/colors';
 
 const DANGER = '#E00000';
 
@@ -175,7 +176,7 @@ const styles = StyleSheet.create({
   cancelButton: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderRadius: 11,
     borderWidth: 1,
     flex: 1,

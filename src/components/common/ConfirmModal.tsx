@@ -6,6 +6,7 @@ import {
   View,
 } from 'react-native';
 import { FONT } from '@/constants/fonts';
+import { BORDER_COLOR } from '@/constants/colors';
 
 interface ConfirmModalProps {
   visible: boolean;
@@ -124,7 +125,7 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderWidth: 1,
   },
   confirmButton: {

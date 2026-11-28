@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { FONT } from '@/constants/fonts';
 import { useAuth } from '@/context/AuthContext';
 import {
   PraktikanEmptyState,
@@ -17,7 +18,6 @@ import type {
   LeaveRequestStatus,
   PraktikanSession,
 } from '@/features/praktikan/types';
-import { formatDateTimeWIB, formatMeetingTitle } from '@/features/praktikan/utils/format';
 import {
   Chip,
   type ChipTone,
@@ -28,13 +28,13 @@ import {
   Tile,
   UI,
 } from '@/features/praktikan/ui/praktikan-ui';
+import { formatMeetingTitle } from '@/features/praktikan/utils/format';
 import { formatClock, formatSessionDate } from '@/utils/session-time';
-import { FONT } from '@/constants/fonts';
 
 const STATUS_CHIP: Record<LeaveRequestStatus, { label: string; tone: ChipTone }> = {
   menunggu: { label: 'Menunggu keputusan', tone: 'neutral' },
   diterima: { label: 'Izin diterima', tone: 'solid' },
-  ditolak: { label: 'Izin ditolak', tone: 'solid' },
+  ditolak: { label: 'Ditolak', tone: 'solid' },
 };
 
 /**
@@ -156,7 +156,6 @@ function LeaveTile({
     session?.waktuMulai && session.waktuSelesai
       ? `${formatClock(session.waktuMulai)} - ${formatClock(session.waktuSelesai)} WIB`
       : null;
-  const submittedAt = formatDateTimeWIB(leave.createdAt);
   const note = leave.catatanAsisten?.trim();
 
   return (
@@ -169,8 +168,11 @@ function LeaveTile({
       }
       accessibilityLabel={`${session?.practicumName ?? 'Sesi praktikum'}, ${chip.label}`}
     >
-      <Chip label={chip.label} tone={chip.tone} />
-      <Text style={styles.title}>{session?.practicumName ?? 'Sesi Praktikum'}</Text>
+      {/* Judul kiri, status di pojok kanan atas */}
+      <View style={styles.header}>
+        <Text style={styles.title}>{session?.practicumName ?? 'Sesi Praktikum'}</Text>
+        <Chip label={chip.label} tone={chip.tone} />
+      </View>
       {session ? (
         <Text style={styles.module}>{formatMeetingTitle(session.moduleTitle)}</Text>
       ) : null}
@@ -194,7 +196,6 @@ function LeaveTile({
         <Text style={styles.reasonText}>{leave.alasan}</Text>
         <Text style={styles.reasonFoot}>
           Kategori AI: {leave.kategoriAI ?? 'tidak tersedia'}
-          {submittedAt ? ` · Diajukan ${submittedAt}` : ''}
         </Text>
       </View>
 
@@ -215,11 +216,18 @@ const styles = StyleSheet.create({
   list: {
     gap: 12,
   },
+  header: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 10,
+  },
   title: {
+    flex: 1,
     fontFamily: FONT.extrabold,
     color: UI.onColor,
-    fontSize: 19,
+    fontSize: 17,
     letterSpacing: -0.3,
+      lineHeight: 21,
   },
   module: {
     fontFamily: FONT.semibold,

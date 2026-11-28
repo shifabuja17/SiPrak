@@ -21,9 +21,13 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import BackButton from '@/components/common/BackButton';
 import { FONT } from '@/constants/fonts';
+import { BORDER_COLOR, CARD_BG, PAGE_BG } from '@/constants/colors';
 
 export const UI = {
-  page: '#FFFFFF',
+  /** Latar halaman. */
+  page: PAGE_BG,
+  /** Latar kartu & wadah di atas halaman. */
+  card: CARD_BG,
   ink: '#111014',
   /** Teks di atas oranye atau hitam. */
   onColor: '#FFFFFF',
@@ -33,7 +37,7 @@ export const UI = {
   line: '#E4E4E7',
   soft: '#F4F4F5',
   /** Garis kartu netral (kartu berlatar putih). */
-  border: '#8E8E93',
+  border: BORDER_COLOR,
   danger: '#E00000',
   accent: '#F47321',
   radiusCard: 26,
@@ -356,8 +360,8 @@ const styles = StyleSheet.create({
     padding: 18,
   },
   softCard: {
-    backgroundColor: UI.page,
-    borderColor: UI.border,
+    backgroundColor: UI.card,
+    borderColor: BORDER_COLOR,
     borderWidth: 1,
     borderRadius: UI.radiusCard,
     gap: 6,

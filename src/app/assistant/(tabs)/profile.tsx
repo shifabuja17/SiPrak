@@ -7,6 +7,7 @@ import PersonIcon from '@/components/common/person-icon';
 import { FONT } from '@/constants/fonts';
 import { useAuth } from '@/context/AuthContext';
 import { ScreenTitle, TAB_BAR_SPACE } from '@/features/praktikan/ui/praktikan-ui';
+import { PAGE_BG } from '@/constants/colors';
 
 // ==========================================
 // HALAMAN PROFIL ASISTEN
@@ -69,7 +70,7 @@ export default function AssistantProfileScreen() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: PAGE_BG,
     flex: 1,
   },
 
@@ -86,8 +87,6 @@ const styles = StyleSheet.create({
 
   profileCard: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
     gap: 12,
     paddingVertical: 8,
   },

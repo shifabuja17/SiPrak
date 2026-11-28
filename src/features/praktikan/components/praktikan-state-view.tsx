@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import HeaderProfileBar from '@/components/common/HeaderProfileBar';
 import { useAuth } from '@/context/AuthContext';
 import { FONT } from '@/constants/fonts';
+import { BORDER_COLOR, PAGE_BG } from '@/constants/colors';
 
 export interface PraktikanLoadingStateProps {
   title?: string;
@@ -358,7 +359,7 @@ export function PraktikanProfileErrorScreen({
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: PAGE_BG,
     flex: 1,
   },
   centerContainer: {
@@ -405,7 +406,7 @@ const styles = StyleSheet.create({
   emptyCard: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderWidth: 1,
     borderRadius: 26,
     gap: 8,
@@ -546,7 +547,7 @@ const styles = StyleSheet.create({
   guidanceBox: {
     alignSelf: 'stretch',
     backgroundColor: '#FFFFFF',
-    borderColor: '#E4E4E7',
+    borderColor: BORDER_COLOR,
     borderRadius: 12,
     borderWidth: 1,
     gap: 4,

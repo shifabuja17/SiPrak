@@ -18,6 +18,7 @@ import {
 } from '@/features/praktikan/services/firestore-helpers';
 import { formatMeetingTitle } from '@/features/praktikan/utils/format';
 import { db } from '@/lib/firebase';
+import { shortPracticumName } from '@/features/assistant/utils/class-label';
 
 export type LabActivitySessionStatus = SessionStatus | 'jadwal_rutin';
 
@@ -399,7 +400,7 @@ function mapClassRecord(id: string, data: DocumentData): RawLabClassRecord {
     id,
     nama: readString(data.nama) ?? readString(data.name),
     kode: readString(data.kode) ?? readString(data.code),
-    practicumName: readString(data.practicumName),
+    practicumName: shortPracticumName(readString(data.practicumName)),
     className: readString(data.className),
   };
 }
@@ -411,7 +412,7 @@ function mapScheduleRecord(
   return {
     id,
     classId: readString(data.classId),
-    practicumName: readString(data.practicumName),
+    practicumName: shortPracticumName(readString(data.practicumName)),
     className: readString(data.className),
     moduleTitle: readString(data.moduleTitle) ?? readString(data.topic),
     classRoom: readString(data.classRoom) ?? readString(data.room),
@@ -440,7 +441,7 @@ function mapSessionRecord(
     classId: readString(data.classId),
     labId: readString(data.labId),
     labName: readString(data.labName),
-    practicumName: readString(data.practicumName),
+    practicumName: shortPracticumName(readString(data.practicumName)),
     className: readString(data.className),
     moduleTitle:
       readString(data.moduleTitle) ??

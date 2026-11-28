@@ -24,7 +24,7 @@ import MapView, {
   type LatLng,
   type Region,
 } from 'react-native-maps';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle as SvgCircle } from 'react-native-svg';
 
 import StatusBadge from '@/components/common/StatusBadge';
@@ -47,6 +47,7 @@ import { openAppLocationSettings } from '@/services/location-service';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 
 import MapsUnavailable from '@/features/maps/maps-unavailable';
+import { BORDER_COLOR, PAGE_BG } from '@/constants/colors';
 
 const INITIAL_REGION: Region = {
   latitude: -7.0486375,
@@ -61,10 +62,12 @@ const USER_FOCUS_DELTA = 0.0025;
 const FAB_BOTTOM = TAB_BAR_SPACE - 12;
 
 const FIT_EDGE_PADDING = {
-  top: 96,
+  // Ruang judul dan status GPS yang melayang di atas peta.
+  top: 130,
   right: 56,
   // Ruang navbar melayang di bawah peta.
-  bottom: 96 + TAB_BAR_SPACE,
+  // + strip pilihan lab di atas navbar.
+  bottom: 150 + TAB_BAR_SPACE,
   left: 56,
 };
 
@@ -186,9 +189,9 @@ function PinIcon() {
   );
 }
 
-function MyLocationIcon({ color = '#0284C7' }: { color?: string }) {
+function MyLocationIcon({ color = '#0284C7', size = 16 }: { color?: string; size?: number }) {
   return (
-    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <SvgCircle
         cx={12}
         cy={12}
@@ -453,8 +456,12 @@ function LabMap() {
   } = useAuth();
 
   const mapRef = useRef<MapView | null>(null);
+  const insets = useSafeAreaInsets();
   // Tinggi kartu detail lab, supaya tombol bulat di kanan bawah tetap di atasnya.
   const [detailHeight, setDetailHeight] = useState(0);
+  // Tinggi strip pilihan lab di bawah; kartu detail & tombol bulat ditaruh di atasnya.
+  const [chipStripHeight, setChipStripHeight] = useState(0);
+  const aboveChipsBottom = FAB_BOTTOM + (chipStripHeight > 0 ? chipStripHeight + 10 : 0);
   const [mapSize, setMapSize] = useState({ width: 0, height: 0 });
   const hasAutoFittedRef = useRef(false);
 
@@ -649,8 +656,9 @@ function LabMap() {
     const visibleLatSpan = delta * Math.max(1, height / width);
     // Kartu belum terukur saat pertama dipilih: pakai perkiraan tingginya.
     const cardHeight = detailHeight > 0 ? detailHeight : 280;
-    const topCovered = 60; // baris chip lab
-    const bottomCovered = FAB_BOTTOM + cardHeight;
+    // Judul + chip lab + status GPS yang melayang di bagian atas peta.
+    const topCovered = insets.top + 70;
+    const bottomCovered = aboveChipsBottom + cardHeight;
     const targetY = (topCovered + Math.max(topCovered, height - bottomCovered)) / 2;
     const shiftPx = height / 2 - targetY;
     return (shiftPx / height) * visibleLatSpan;
@@ -770,7 +778,7 @@ function LabMap() {
 
   const selectedLabDetailCard = selectedLab ? (
     <View
-      style={styles.floatingDetailContainer}
+      style={[styles.floatingDetailContainer, { bottom: aboveChipsBottom }]}
       pointerEvents="box-none"
       onLayout={(event) => setDetailHeight(event.nativeEvent.layout.height)}
     >
@@ -794,7 +802,7 @@ function LabMap() {
       pointerEvents="box-none"
       style={[
         styles.fabColumn,
-        { bottom: FAB_BOTTOM + (selectedLab ? detailHeight + 10 : 0) },
+        { bottom: aboveChipsBottom + (selectedLab ? detailHeight + 10 : 0) },
       ]}
     >
       {/* Asisten mengatur koordinat & radius 4 titik lokasi (FR-10, FR-11) dari peta. */}
@@ -811,6 +819,22 @@ function LabMap() {
 
       <Pressable
         accessibilityRole="button"
+        accessibilityLabel="Arahkan peta ke lokasi saya"
+        onPress={handleFocusUserLocation}
+        style={({ pressed }) => [
+          styles.fab,
+          (!userLocation || !isLocationServiceEnabled) && styles.fabMuted,
+          pressed && styles.pressed,
+        ]}
+      >
+        <MyLocationIcon
+          size={22}
+          color={userLocation && isLocationServiceEnabled ? '#0284C7' : '#8E8E93'}
+        />
+      </Pressable>
+
+      <Pressable
+        accessibilityRole="button"
         accessibilityLabel="Pusatkan peta ke semua laboratorium"
         onPress={handleResetMap}
         disabled={validLaboratories.length === 0 && !mapReady}
@@ -822,112 +846,8 @@ function LabMap() {
   );
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.root}>
       <StatusBar barStyle="dark-content" />
-
-      {/* HEADER (sama dengan tab lain: judul besar, tanpa tombol kembali) */}
-      <View style={styles.header}>
-        <View style={styles.headerTitleGroup}>
-          <Text style={styles.title}>Peta Laboratorium</Text>
-        </View>
-      </View>
-
-      {/* BANNER ERROR PARSIAL */}
-      {error && validLaboratories.length > 0 ? (
-        <View style={styles.inlineErrorBanner}>
-          <Text style={styles.inlineErrorText}>{error}</Text>
-          <Pressable
-            accessibilityRole="button"
-            onPress={handleRetry}
-            style={({ pressed }) => [
-              styles.inlineRetryButton,
-              pressed && styles.pressed,
-            ]}
-          >
-            <Text style={styles.inlineRetryText}>Coba Lagi</Text>
-          </Pressable>
-        </View>
-      ) : null}
-
-      {/* BANNER STATUS IZIN & GPS PENGGUNA (NON-BLOCKING) */}
-      {locationPermissionStatus === 'denied' ? (
-        <View style={styles.locationWarningBannerStacked}>
-          <Text style={styles.locationWarningText}>
-            {locationError ??
-              (canAskPermissionAgain
-                ? 'Izin akses lokasi ditolak. Izinkan akses lokasi agar posisi Anda dapat ditampilkan di peta.'
-                : 'Izin akses lokasi ditolak permanen. Buka Pengaturan perangkat untuk mengaktifkan izin lokasi.')}
-            {!isLocationServiceEnabled
-              ? ' Pastikan juga layanan GPS perangkat aktif.'
-              : ''}
-          </Text>
-          <View style={styles.locationBannerActions}>
-            <Pressable
-              accessibilityRole="button"
-              onPress={retryLocation}
-              style={({ pressed }) => [
-                styles.locationWarningButton,
-                pressed && styles.pressed,
-              ]}
-            >
-              <Text style={styles.locationWarningButtonText}>
-                Izinkan / Coba Lagi
-              </Text>
-            </Pressable>
-
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => void handleOpenLocationSettings()}
-              style={({ pressed }) => [
-                styles.locationSecondaryButton,
-                pressed && styles.pressed,
-              ]}
-            >
-              <Text style={styles.locationSecondaryButtonText}>
-                Buka Pengaturan
-              </Text>
-            </Pressable>
-          </View>
-        </View>
-      ) : locationPermissionStatus === 'granted' &&
-        !isLocationServiceEnabled ? (
-        <View style={styles.locationWarningBanner}>
-          <Text
-            style={[styles.locationWarningText, styles.locationWarningTextInline]}
-          >
-            {locationError ??
-              'Layanan lokasi (GPS) perangkat tidak aktif. Aktifkan GPS di perangkat Anda lalu tekan Muat Ulang.'}
-          </Text>
-          <Pressable
-            accessibilityRole="button"
-            onPress={retryLocation}
-            style={({ pressed }) => [
-              styles.locationWarningButton,
-              pressed && styles.pressed,
-            ]}
-          >
-            <Text style={styles.locationWarningButtonText}>Muat Ulang</Text>
-          </Pressable>
-        </View>
-      ) : locationError ? (
-        <View style={styles.locationWarningBanner}>
-          <Text
-            style={[styles.locationWarningText, styles.locationWarningTextInline]}
-          >
-            {locationError}
-          </Text>
-          <Pressable
-            accessibilityRole="button"
-            onPress={retryLocation}
-            style={({ pressed }) => [
-              styles.locationWarningButton,
-              pressed && styles.pressed,
-            ]}
-          >
-            <Text style={styles.locationWarningButtonText}>Muat Ulang</Text>
-          </Pressable>
-        </View>
-      ) : null}
 
       {/* AREA PETA */}
       <View style={styles.mapContainer}>
@@ -1048,7 +968,7 @@ function LabMap() {
           <>
             <MapView
               ref={mapRef}
-              style={styles.map}
+              style={StyleSheet.absoluteFill}
               initialRegion={INITIAL_REGION}
               showsUserLocation={false}
               showsMyLocationButton={false}
@@ -1167,123 +1087,6 @@ function LabMap() {
               ) : null}
             </MapView>
 
-            {/* BARISAN CHIP CEPAT DI BAGIAN ATAS PETA */}
-            {validLaboratories.length > 0 ? (
-              <View style={styles.topChipsOverlay} pointerEvents="box-none">
-                <LabChipStrip
-                  laboratories={validLaboratories}
-                  selectedLabId={selectedLabId}
-                  onSelect={handleSelectLab}
-                  elevated
-                />
-              </View>
-            ) : null}
-
-            {/* STATUS GPS & TOMBOL AKSI "LOKASI SAYA" (FR-14) */}
-            <View
-              style={[
-                styles.mapActionsOverlay,
-                validLaboratories.length === 0 &&
-                  styles.mapActionsOverlayNoChips,
-              ]}
-              pointerEvents="box-none"
-            >
-              {locationPermissionStatus === 'denied' ? (
-                <View
-                  style={[
-                    styles.gpsStatusPill,
-                    styles.gpsWarningPill,
-                    styles.floatingChipShadow,
-                  ]}
-                >
-                  <View style={styles.gpsOffDot} />
-                  <Text numberOfLines={1} style={styles.gpsStatusText}>
-                    Izin lokasi ditolak
-                  </Text>
-                </View>
-              ) : !isLocationServiceEnabled ? (
-                <View
-                  style={[
-                    styles.gpsStatusPill,
-                    styles.gpsWarningPill,
-                    styles.floatingChipShadow,
-                  ]}
-                >
-                  <View style={styles.gpsOffDot} />
-                  <Text numberOfLines={1} style={styles.gpsStatusText}>
-                    GPS nonaktif
-                  </Text>
-                </View>
-              ) : locationPermissionStatus === 'granted' &&
-                isSearchingLocation &&
-                !userLocation ? (
-                <View style={[styles.gpsStatusPill, styles.floatingChipShadow]}>
-                  <ActivityIndicator size="small" color="#0284C7" />
-                  <Text numberOfLines={1} style={styles.gpsStatusText}>
-                    Mencari lokasi Anda...
-                  </Text>
-                </View>
-              ) : userLocation ? (
-                <View style={[styles.gpsStatusPill, styles.floatingChipShadow]}>
-                  <View style={styles.gpsLiveDot} />
-                  <Text numberOfLines={1} style={styles.gpsStatusText}>
-                    {userLocation.accuracy !== null
-                      ? `GPS ±${Math.round(userLocation.accuracy)} m`
-                      : 'GPS aktif'}
-                  </Text>
-                </View>
-              ) : (
-                <View />
-              )}
-
-              <Pressable
-                accessibilityLabel="Arahkan peta ke lokasi saya"
-                accessibilityRole="button"
-                onPress={handleFocusUserLocation}
-                style={({ pressed }) => [
-                  styles.myLocationButton,
-                  styles.floatingChipShadow,
-                  (!userLocation || !isLocationServiceEnabled) &&
-                    styles.myLocationButtonMuted,
-                  pressed && styles.pressed,
-                ]}
-              >
-                <MyLocationIcon
-                  color={
-                    userLocation && isLocationServiceEnabled
-                      ? '#0284C7'
-                      : '#555555'
-                  }
-                />
-                <Text
-                  style={[
-                    styles.myLocationButtonText,
-                    (!userLocation || !isLocationServiceEnabled) &&
-                      styles.myLocationButtonTextMuted,
-                  ]}
-                >
-                  Lokasi Saya
-                </Text>
-              </Pressable>
-            </View>
-
-            {/* FEEDBACK RINGAN SAAT TOMBOL LOKASI SAYA DITEKAN */}
-            {locationFeedback ? (
-              <View
-                pointerEvents="none"
-                style={[
-                  styles.locationFeedbackToast,
-                  validLaboratories.length === 0 &&
-                    styles.locationFeedbackToastNoChips,
-                  styles.floatingChipShadow,
-                ]}
-              >
-                <Text style={styles.locationFeedbackToastText}>
-                  {locationFeedback}
-                </Text>
-              </View>
-            ) : null}
-
             {/* OVERLAY LOADING */}
             {showInitialLoading ? (
               <View style={styles.overlayCenter}>
@@ -1341,45 +1144,208 @@ function LabMap() {
             ) : null}
 
             {/* FLOATING DETAIL CARD / BOTTOM SHEET DI BAGIAN BAWAH PETA */}
+            {/* STRIP PILIHAN LAB: tepat di atas navbar melayang */}
+            {validLaboratories.length > 0 ? (
+              <View
+                pointerEvents="box-none"
+                style={styles.bottomChipsOverlay}
+                onLayout={(event) => setChipStripHeight(event.nativeEvent.layout.height)}
+              >
+                <LabChipStrip
+                  laboratories={validLaboratories}
+                  selectedLabId={selectedLabId}
+                  onSelect={handleSelectLab}
+                  elevated
+                />
+              </View>
+            ) : null}
+
             {mapFabs}
             {selectedLabDetailCard}
           </>
         )}
       </View>
-    </SafeAreaView>
+
+      {/* OVERLAY ATAS YANG MELAYANG DI ATAS PETA (judul, peringatan, chip lab, status GPS) */}
+      {Platform.OS !== 'web' ? (
+        <View
+          pointerEvents="box-none"
+          style={[styles.topOverlay, { paddingTop: insets.top + 10 }]}
+        >
+          {/* JUDUL + STATUS GPS DALAM SATU BARIS */}
+          <View style={styles.headerRow} pointerEvents="box-none">
+            <Text style={styles.floatingTitle} accessibilityRole="header" numberOfLines={1}>
+              Peta Laboratorium
+            </Text>
+
+              {locationPermissionStatus === 'denied' ? (
+                <View
+                  style={[
+                    styles.gpsStatusPill,
+                    styles.gpsWarningPill,
+                    styles.floatingChipShadow,
+                  ]}
+                >
+                  <View style={styles.gpsOffDot} />
+                  <Text numberOfLines={1} style={styles.gpsStatusText}>
+                    Izin lokasi ditolak
+                  </Text>
+                </View>
+              ) : !isLocationServiceEnabled ? (
+                <View
+                  style={[
+                    styles.gpsStatusPill,
+                    styles.gpsWarningPill,
+                    styles.floatingChipShadow,
+                  ]}
+                >
+                  <View style={styles.gpsOffDot} />
+                  <Text numberOfLines={1} style={styles.gpsStatusText}>
+                    GPS nonaktif
+                  </Text>
+                </View>
+              ) : locationPermissionStatus === 'granted' &&
+                isSearchingLocation &&
+                !userLocation ? (
+                <View style={[styles.gpsStatusPill, styles.floatingChipShadow]}>
+                  <ActivityIndicator size="small" color="#0284C7" />
+                  <Text numberOfLines={1} style={styles.gpsStatusText}>
+                    Mencari lokasi Anda...
+                  </Text>
+                </View>
+              ) : userLocation ? (
+                <View style={[styles.gpsStatusPill, styles.floatingChipShadow]}>
+                  <View style={styles.gpsLiveDot} />
+                  <Text numberOfLines={1} style={styles.gpsStatusText}>
+                    {userLocation.accuracy !== null
+                      ? `GPS ±${Math.round(userLocation.accuracy)} m`
+                      : 'GPS aktif'}
+                  </Text>
+                </View>
+              ) : null}
+          </View>
+
+          {/* BANNER ERROR PARSIAL */}
+          {error && validLaboratories.length > 0 ? (
+            <View style={styles.inlineErrorBanner}>
+              <Text style={styles.inlineErrorText}>{error}</Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={handleRetry}
+                style={({ pressed }) => [
+                  styles.inlineRetryButton,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.inlineRetryText}>Coba Lagi</Text>
+              </Pressable>
+            </View>
+          ) : null}
+
+          {/* BANNER STATUS IZIN & GPS PENGGUNA (NON-BLOCKING) */}
+          {locationPermissionStatus === 'denied' ? (
+            <View style={styles.locationWarningBannerStacked}>
+              <Text style={styles.locationWarningText}>
+                {locationError ??
+                  (canAskPermissionAgain
+                    ? 'Izin akses lokasi ditolak. Izinkan akses lokasi agar posisi Anda dapat ditampilkan di peta.'
+                    : 'Izin akses lokasi ditolak permanen. Buka Pengaturan perangkat untuk mengaktifkan izin lokasi.')}
+                {!isLocationServiceEnabled
+                  ? ' Pastikan juga layanan GPS perangkat aktif.'
+                  : ''}
+              </Text>
+              <View style={styles.locationBannerActions}>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={retryLocation}
+                  style={({ pressed }) => [
+                    styles.locationWarningButton,
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <Text style={styles.locationWarningButtonText}>
+                    Izinkan / Coba Lagi
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => void handleOpenLocationSettings()}
+                  style={({ pressed }) => [
+                    styles.locationSecondaryButton,
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <Text style={styles.locationSecondaryButtonText}>
+                    Buka Pengaturan
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : locationPermissionStatus === 'granted' &&
+            !isLocationServiceEnabled ? (
+            <View style={styles.locationWarningBanner}>
+              <Text
+                style={[styles.locationWarningText, styles.locationWarningTextInline]}
+              >
+                {locationError ??
+                  'Layanan lokasi (GPS) perangkat tidak aktif. Aktifkan GPS di perangkat Anda lalu tekan Muat Ulang.'}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={retryLocation}
+                style={({ pressed }) => [
+                  styles.locationWarningButton,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.locationWarningButtonText}>Muat Ulang</Text>
+              </Pressable>
+            </View>
+          ) : locationError ? (
+            <View style={styles.locationWarningBanner}>
+              <Text
+                style={[styles.locationWarningText, styles.locationWarningTextInline]}
+              >
+                {locationError}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={retryLocation}
+                style={({ pressed }) => [
+                  styles.locationWarningButton,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.locationWarningButtonText}>Muat Ulang</Text>
+              </Pressable>
+            </View>
+          ) : null}
+
+
+          {/* FEEDBACK RINGAN SAAT TOMBOL LOKASI SAYA DITEKAN */}
+        {locationFeedback ? (
+          <View
+            pointerEvents="none"
+            style={[
+              styles.locationFeedbackToast,
+              validLaboratories.length === 0 &&
+                styles.locationFeedbackToastNoChips,
+              styles.floatingChipShadow,
+            ]}
+          >
+            <Text style={styles.locationFeedbackToastText}>
+              {locationFeedback}
+            </Text>
+          </View>
+        ) : null}
+        </View>
+      ) : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    backgroundColor: '#FFFFFF',
-    flex: 1,
-  },
-  header: {
-    alignItems: 'flex-end',
-    backgroundColor: '#FFFFFF',
-    flexDirection: 'row',
-    gap: 12,
-    paddingBottom: 14,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-  },
-  headerTitleGroup: {
-    flex: 1,
-    gap: 4,
-  },
-  title: {
-    fontFamily: FONT.extrabold,
-    color: '#111014',
-    fontSize: 28,
-    letterSpacing: -0.5,
-  },
-  subtitle: {
-    fontFamily: FONT.regular,
-    color: '#5F5F66',
-    fontSize: 14,
-    lineHeight: 20,
-  },
   fabColumn: {
     gap: 10,
     position: 'absolute',
@@ -1389,7 +1355,7 @@ const styles = StyleSheet.create({
   fab: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderRadius: 26,
     borderWidth: 1,
     elevation: 6,
@@ -1404,8 +1370,8 @@ const styles = StyleSheet.create({
   inlineErrorBanner: {
     alignItems: 'center',
     backgroundColor: '#FEE2E2',
-    borderBottomColor: '#FCA5A5',
-    borderBottomWidth: 1,
+    borderRadius: 14,
+    marginHorizontal: 16,
     flexDirection: 'row',
     gap: 10,
     paddingHorizontal: 16,
@@ -1432,8 +1398,8 @@ const styles = StyleSheet.create({
   locationWarningBanner: {
     alignItems: 'center',
     backgroundColor: '#FEF3C7',
-    borderBottomColor: '#FCD34D',
-    borderBottomWidth: 1,
+    borderRadius: 14,
+    marginHorizontal: 16,
     flexDirection: 'row',
     gap: 10,
     paddingHorizontal: 16,
@@ -1441,8 +1407,8 @@ const styles = StyleSheet.create({
   },
   locationWarningBannerStacked: {
     backgroundColor: '#FEF3C7',
-    borderBottomColor: '#FCD34D',
-    borderBottomWidth: 1,
+    borderRadius: 14,
+    marginHorizontal: 16,
     gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -1486,8 +1452,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   mapContainer: {
-    flex: 1,
-    position: 'relative',
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
   },
   map: {
     height: '100%',
@@ -1495,20 +1464,13 @@ const styles = StyleSheet.create({
   },
 
   // CHIP CEPAT DI ATAS PETA
-  topChipsOverlay: {
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 12,
-    zIndex: 3,
-  },
   topChipList: {
     gap: 8,
     paddingHorizontal: 16,
   },
   labChip: {
     backgroundColor: '#FFFFFF',
-    borderColor: '#DCDCE0',
+    borderColor: BORDER_COLOR,
     borderRadius: 999,
     borderWidth: 1,
     paddingHorizontal: 14,
@@ -1535,6 +1497,13 @@ const styles = StyleSheet.create({
   },
 
   // FLOATING BOTTOM DETAIL CARD
+  bottomChipsOverlay: {
+    bottom: FAB_BOTTOM,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    zIndex: 4,
+  },
   floatingDetailContainer: {
     // Di atas navbar melayang (TAB_BAR_SPACE dikurangi sedikit napas).
     bottom: TAB_BAR_SPACE - 12,
@@ -1545,7 +1514,7 @@ const styles = StyleSheet.create({
   },
   detailCard: {
     backgroundColor: '#FFFFFF',
-    borderColor: '#E5E5E5',
+    borderColor: BORDER_COLOR,
     borderRadius: 22,
     borderWidth: 1,
     elevation: 8,
@@ -1641,7 +1610,7 @@ const styles = StyleSheet.create({
   },
   activitiesLoadingBox: {
     backgroundColor: '#F8F8FA',
-    borderColor: '#E5E5EA',
+    borderColor: BORDER_COLOR,
     borderRadius: 12,
     borderWidth: 1,
     gap: 10,
@@ -1731,7 +1700,7 @@ const styles = StyleSheet.create({
   },
   activityItemCard: {
     backgroundColor: '#F8F8FA',
-    borderColor: '#E5E5EA',
+    borderColor: BORDER_COLOR,
     borderRadius: 12,
     borderWidth: 1,
     gap: 8,
@@ -1777,7 +1746,7 @@ const styles = StyleSheet.create({
   },
   activityEmptyCard: {
     backgroundColor: '#F8F8FA',
-    borderColor: '#E5E5EA',
+    borderColor: BORDER_COLOR,
     borderRadius: 12,
     borderWidth: 1,
     paddingHorizontal: 12,
@@ -1819,7 +1788,7 @@ const styles = StyleSheet.create({
   overlayCard: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderColor: '#E5E5E5',
+    borderColor: BORDER_COLOR,
     borderRadius: 18,
     borderWidth: 1,
     elevation: 4,
@@ -1911,7 +1880,7 @@ const styles = StyleSheet.create({
   },
   webLabCard: {
     backgroundColor: '#FFFFFF',
-    borderColor: '#E5E5E5',
+    borderColor: BORDER_COLOR,
     borderRadius: 14,
     borderWidth: 1,
     gap: 6,
@@ -1986,24 +1955,10 @@ const styles = StyleSheet.create({
     height: 16,
     width: 16,
   },
-  mapActionsOverlay: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 8,
-    justifyContent: 'space-between',
-    left: 16,
-    position: 'absolute',
-    right: 14,
-    top: 58,
-    zIndex: 3,
-  },
-  mapActionsOverlayNoChips: {
-    top: 12,
-  },
   gpsStatusPill: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderColor: '#DCDCE0',
+    borderColor: BORDER_COLOR,
     borderRadius: 999,
     borderWidth: 1,
     flexDirection: 'row',
@@ -2033,39 +1988,13 @@ const styles = StyleSheet.create({
     color: '#111111',
     fontSize: 11,
   },
-  myLocationButton: {
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#0284C7',
-    borderRadius: 999,
-    borderWidth: 1.2,
-    flexDirection: 'row',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-  },
-  myLocationButtonMuted: {
-    borderColor: '#DCDCE0',
-  },
-  myLocationButtonText: {
-    fontFamily: FONT.extrabold,
-    color: '#0369A1',
-    fontSize: 12,
-  },
-  myLocationButtonTextMuted: {
-    color: '#555555',
-  },
   locationFeedbackToast: {
     alignSelf: 'center',
     backgroundColor: 'rgba(15, 23, 42, 0.9)',
     borderRadius: 12,
-    left: 16,
+    marginHorizontal: 16,
     paddingHorizontal: 14,
     paddingVertical: 9,
-    position: 'absolute',
-    right: 16,
-    top: 102,
-    zIndex: 3,
   },
   locationFeedbackToastNoChips: {
     top: 56,
@@ -2099,6 +2028,36 @@ const styles = StyleSheet.create({
     fontFamily: FONT.semibold,
     color: '#0C4A6E',
     fontSize: 12,
+  },
+  root: {
+    backgroundColor: PAGE_BG,
+    flex: 1,
+  },
+  topOverlay: {
+    gap: 10,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    zIndex: 6,
+  },
+  floatingTitle: {
+    fontFamily: FONT.extrabold,
+    color: '#FFFFFF',
+    fontSize: 28,
+    letterSpacing: -0.5,
+    flexShrink: 1,
+  },
+  headerRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'space-between',
+    paddingLeft: 20,
+    paddingRight: 14,
+  },
+  fabMuted: {
+    borderColor: BORDER_COLOR,
   },
   pressed: {
     opacity: 0.68,

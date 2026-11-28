@@ -2,6 +2,7 @@ import { createContext, useContext, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { TAB_BAR_SPACE } from '@/features/praktikan/ui/praktikan-ui';
+import { PAGE_BG } from '@/constants/colors';
 
 /** true bila halaman sedang tampil sebagai tab (di atas navbar melayang). */
 const InTabContext = createContext(false);
@@ -33,7 +34,7 @@ export default function TabScreen({ children }: { children: ReactNode }) {
 
 const styles = StyleSheet.create({
   root: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: PAGE_BG,
     flex: 1,
   },
 });

@@ -25,6 +25,7 @@ import {
   validateLaboratoryInput,
   type LaboratoryLocation,
 } from '@/features/assistant/services/laboratory-service';
+import { BORDER_COLOR, PAGE_BG } from '@/constants/colors';
 
 interface LaboratoryFormState {
   latitude: string;
@@ -570,7 +571,7 @@ export default function AssistantLaboratoriesScreen() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: PAGE_BG,
     flex: 1,
   },
   content: {
@@ -583,7 +584,7 @@ const styles = StyleSheet.create({
   },
   centered: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: PAGE_BG,
     flex: 1,
     gap: 10,
     justifyContent: 'center',
@@ -722,7 +723,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     gap: 8,
     padding: 20,
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderWidth: 1,
   },
   emptyTitle: {
@@ -799,9 +800,12 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   input: {
+    // Android mengukur lebar input dari placeholder; dikunci ke lebar wadah
+    // supaya placeholder panjang tidak membuat garis kanan terpotong.
+    width: '100%',
     fontFamily: FONT.regular,
     backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderRadius: 11,
     borderWidth: 1,
     color: '#111014',
@@ -839,8 +843,9 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   cancelButton: {
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderRadius: 11,
     borderWidth: 1,
     flex: 1,

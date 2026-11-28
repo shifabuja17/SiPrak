@@ -6,6 +6,7 @@ import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { formatClock, formatSessionDate } from '@/utils/session-time';
 import { FONT } from '@/constants/fonts';
+import { BORDER_COLOR } from '@/constants/colors';
 
 export interface DateTimeFieldProps {
   mode: 'date' | 'time';
@@ -80,7 +81,7 @@ export default function DateTimeField({
 const styles = StyleSheet.create({
   field: {
     backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderRadius: 12,
     borderWidth: 1,
     justifyContent: 'center',

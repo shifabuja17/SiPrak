@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FONT } from '@/constants/fonts';
+import { BORDER_COLOR, PAGE_BG } from '@/constants/colors';
 
 /** Kerangka layar login/registrasi: logo SiPrak, judul, dan konten form. */
 export function AuthShell({
@@ -152,7 +153,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: PAGE_BG,
   },
   content: {
     flexGrow: 1,
@@ -198,7 +199,7 @@ const styles = StyleSheet.create({
   input: {
     fontFamily: FONT.regular,
     backgroundColor: '#FFFFFF',
-    borderColor: '#D9D9D9',
+    borderColor: BORDER_COLOR,
     borderRadius: 14,
     borderWidth: 1,
     color: '#000000',

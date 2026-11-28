@@ -13,7 +13,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import AssistantHeader from '@/components/common/AssistantHeader';
 
@@ -40,15 +40,9 @@ import {
   type PracticumSchedule,
 } from '@/features/assistant/services/schedule-service';
 import { classLabel } from '@/features/assistant/utils/class-label';
+import { MetaLine } from '@/features/praktikan/ui/praktikan-ui';
+import { BORDER_COLOR, PAGE_BG } from '@/constants/colors';
 
-function InfoLine({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.infoLine}>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value}</Text>
-    </View>
-  );
-}
 
 export default function ClassMembersScreen() {
   const params = useLocalSearchParams<{
@@ -64,6 +58,7 @@ export default function ClassMembersScreen() {
   // DATA
   const [currentClass, setCurrentClass] =
     useState<PracticumClass | null>(null);
+  const insets = useSafeAreaInsets();
 
   const [classes, setClasses] =
     useState<PracticumClass[]>([]);
@@ -205,9 +200,12 @@ export default function ClassMembersScreen() {
     });
   }, [availableUsers, memberIds, search]);
 
-  // KELAS TUJUAN PINDAH PESERTA
+  // KELAS TUJUAN PINDAH PESERTA: hanya kelas lain dari praktikum yang sama
+  // (mis. Sistem Operasi E1 -> Sistem Operasi E2), bukan praktikum lain.
+  const samePracticum = (nama: string) =>
+    nama.trim().toLowerCase() === (currentClass?.nama ?? '').trim().toLowerCase();
   const targetClasses = classes.filter(
-    (item) => item.id !== classId
+    (item) => item.id !== classId && samePracticum(item.nama)
   );
 
   const loading =
@@ -460,12 +458,13 @@ export default function ClassMembersScreen() {
           {/* INFORMASI KELAS: baris per baris */}
           {currentClass ? (
             <View style={styles.infoList}>
-              <InfoLine label="Praktikum" value={classLabel(currentClass)} />
-              <InfoLine
-                label="Hari dan Waktu"
-                value={classSchedule?.scheduleTime ?? 'Belum diatur'}
-              />
-              <InfoLine label="Lab" value={classSchedule?.classRoom ?? 'Belum diatur'} />
+              <Text style={styles.practicumTitle}>{classLabel(currentClass)}</Text>
+              <MetaLine icon="time" color="#111014" textStyle={styles.infoMetaText}>
+                {classSchedule?.scheduleTime ?? 'Jadwal belum diatur'}
+              </MetaLine>
+              <MetaLine icon="place" color="#111014" textStyle={styles.infoMetaText}>
+                {classSchedule?.classRoom ?? 'Lab belum diatur'}
+              </MetaLine>
             </View>
           ) : null}
 
@@ -620,7 +619,7 @@ export default function ClassMembersScreen() {
           style={styles.modalKeyboard}
           behavior="padding"
         >
-          <View style={styles.modalBackdrop}>
+          <View style={styles.sheetBackdrop}>
 
             <Pressable
               style={StyleSheet.absoluteFill}
@@ -628,7 +627,7 @@ export default function ClassMembersScreen() {
               disabled={saving}
             />
 
-            <View style={styles.modalCard}>
+            <View style={[styles.sheetCard, { paddingBottom: Math.max(insets.bottom, 12) + 12 }]}>
 
               <View style={styles.modalHandle} />
 
@@ -745,7 +744,7 @@ export default function ClassMembersScreen() {
               {/* TOMBOL TAMBAH */}
               <View style={styles.modalActions}>
                 <Pressable
-                  style={styles.cancelButton}
+                  style={[styles.cancelButton, styles.equalButton]}
                   onPress={closeAddModal}
                   disabled={saving}
                 >
@@ -757,6 +756,7 @@ export default function ClassMembersScreen() {
                 <Pressable
                   style={[
                     styles.primaryButton,
+                    styles.equalButton,
                     (!selectedUid || saving) && styles.disabledButton,
                   ]}
                   onPress={handleAddMember}
@@ -788,7 +788,7 @@ export default function ClassMembersScreen() {
         onRequestClose={closeMoveModal}
         statusBarTranslucent
       >
-        <View style={styles.modalBackdrop}>
+        <View style={styles.sheetBackdrop}>
 
           <Pressable
             style={StyleSheet.absoluteFill}
@@ -796,7 +796,7 @@ export default function ClassMembersScreen() {
             disabled={saving}
           />
 
-          <View style={styles.modalCard}>
+          <View style={[styles.sheetCard, { paddingBottom: Math.max(insets.bottom, 12) + 12 }]}>
 
             <View style={styles.modalHandle} />
 
@@ -821,8 +821,8 @@ export default function ClassMembersScreen() {
                   </Text>
 
                   <Text style={styles.mutedText}>
-                    Buat kelas lain terlebih dahulu untuk
-                    memindahkan peserta.
+                    Peserta hanya bisa dipindahkan ke kelas lain dari{' '}
+                    {currentClass?.nama ?? 'praktikum yang sama'}.
                   </Text>
                 </View>
 
@@ -885,7 +885,7 @@ export default function ClassMembersScreen() {
             {/* TOMBOL PINDAH */}
             <View style={styles.modalActions}>
               <Pressable
-                style={styles.cancelButton}
+                style={[styles.cancelButton, styles.equalButton]}
                 onPress={closeMoveModal}
                 disabled={saving}
               >
@@ -897,6 +897,7 @@ export default function ClassMembersScreen() {
               <Pressable
                 style={[
                   styles.primaryButton,
+                  styles.equalButton,
                   (!selectedTargetClass || saving) && styles.disabledButton,
                 ]}
                 onPress={handleMoveMember}
@@ -923,11 +924,11 @@ export default function ClassMembersScreen() {
       <Modal
         visible={removeTarget !== null}
         transparent
-        animationType="fade"
+        animationType="slide"
         onRequestClose={closeRemoveModal}
         statusBarTranslucent
       >
-        <View style={styles.confirmBackdrop}>
+        <View style={styles.sheetBackdrop}>
 
           <Pressable
             style={StyleSheet.absoluteFill}
@@ -935,7 +936,9 @@ export default function ClassMembersScreen() {
             disabled={removing}
           />
 
-          <View style={styles.confirmCard}>
+          <View style={[styles.sheetCard, { paddingBottom: Math.max(insets.bottom, 12) + 12 }]}>
+            <View style={styles.modalHandle} />
+
 
             <Text style={styles.confirmTitle}>
               Keluarkan Peserta?
@@ -1009,7 +1012,7 @@ const styles = StyleSheet.create({
 
   // HALAMAN UTAMA
   safeArea: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: PAGE_BG,
     flex: 1,
   },
 
@@ -1025,7 +1028,7 @@ const styles = StyleSheet.create({
 
   centered: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: PAGE_BG,
     flex: 1,
     justifyContent: 'center',
     padding: 25,
@@ -1110,7 +1113,7 @@ const styles = StyleSheet.create({
   // KARTU PESERTA
   memberCard: {
     backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderRadius: 26,
     borderWidth: 1,
     gap: 15,
@@ -1130,7 +1133,7 @@ const styles = StyleSheet.create({
     height: 48,
     justifyContent: 'center',
     width: 48,
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderWidth: 1,
   },
 
@@ -1152,11 +1155,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 
-  memberDate: {
-    fontFamily: FONT.regular,
-    color: '#5F5F66',
-    fontSize: 11,
-  },
 
   // TOMBOL AKSI PESERTA
   memberActions: {
@@ -1167,7 +1165,7 @@ const styles = StyleSheet.create({
   moveButton: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderRadius: 10,
     borderWidth: 1,
     flex: 1,
@@ -1186,7 +1184,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     flex: 1,
     padding: 11,
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderWidth: 1,
   },
 
@@ -1204,7 +1202,7 @@ const styles = StyleSheet.create({
     height: 44,
     justifyContent: 'center',
     width: 44,
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderWidth: 1,
   },
 
@@ -1221,7 +1219,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     gap: 9,
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderWidth: 1,
   },
 
@@ -1273,21 +1271,22 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
 
-  infoList: {
-    gap: 10,
-  },
-  infoLine: {
-    gap: 2,
-  },
-  infoLabel: {
-    fontFamily: FONT.semibold,
-    color: '#5F5F66',
-    fontSize: 12,
-  },
-  infoValue: {
-    fontFamily: FONT.bold,
+  practicumTitle: {
+    fontFamily: FONT.extrabold,
     color: '#111014',
-    fontSize: 15,
+    fontSize: 20,
+    letterSpacing: -0.3,
+    lineHeight: 26,
+    marginBottom: 2,
+  },
+  infoMetaText: {
+    fontFamily: FONT.regular,
+    color: '#111014',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  infoList: {
+    gap: 6,
   },
   addButton: {
     alignItems: 'center',
@@ -1314,22 +1313,27 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  modalBackdrop: {
-    alignItems: 'center',
+  sheetBackdrop: {
     backgroundColor: 'rgba(0,0,0,0.55)',
     flex: 1,
-    justifyContent: 'center',
-    padding: 20,
+    justifyContent: 'flex-end',
+  },
+  sheetCard: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    gap: 13,
+    maxHeight: '85%',
+    paddingHorizontal: 21,
+    paddingTop: 12,
+    width: '100%',
+  },
+  equalButton: {
+    // Batal & Pindahkan selalu sama lebar.
+    flex: 1,
+    minHeight: 48,
   },
 
-  modalCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 23,
-    maxHeight: '85%',
-    padding: 21,
-    width: '100%',
-    gap: 13,
-  },
 
   modalHandle: {
     alignSelf: 'center',
@@ -1361,7 +1365,7 @@ const styles = StyleSheet.create({
   input: {
     fontFamily: FONT.regular,
     backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderRadius: 12,
     borderWidth: 1,
     color: '#111014',
@@ -1385,7 +1389,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 20,
     gap: 8,
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderWidth: 1,
   },
 
@@ -1393,7 +1397,7 @@ const styles = StyleSheet.create({
   userOption: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderRadius: 20,
     borderWidth: 1,
     flexDirection: 'row',
@@ -1411,7 +1415,7 @@ const styles = StyleSheet.create({
   // RADIO BUTTON
   radio: {
     alignItems: 'center',
-    borderColor: '#999999',
+    borderColor: BORDER_COLOR,
     borderRadius: 11,
     borderWidth: 1.5,
     height: 22,
@@ -1444,7 +1448,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     padding: 13,
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderWidth: 1,
   },
 
@@ -1465,23 +1469,7 @@ const styles = StyleSheet.create({
   // MODAL KONFIRMASI KELUARKAN PESERTA
   // ==========================================
 
-  confirmBackdrop: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 28,
-  },
 
-  confirmCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 23,
-    elevation: 10,
-    gap: 13,
-    maxWidth: 400,
-    padding: 23,
-    width: '100%',
-  },
 
   confirmTitle: {
     fontFamily: FONT.extrabold,
@@ -1501,7 +1489,7 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     gap: 5,
     padding: 13,
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderWidth: 1,
   },
 
@@ -1537,7 +1525,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     paddingVertical: 14,
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderWidth: 1,
   },
 

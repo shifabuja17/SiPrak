@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -11,34 +11,38 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { FONT } from '@/constants/fonts';
 import { useAuth } from '@/context/AuthContext';
-import { useDeviceLocation } from '@/features/location/hooks/use-device-location';
 import {
   subscribeLaboratoryById,
   type LaboratoryLocation,
 } from '@/features/assistant/services/laboratory-service';
+import { useDeviceLocation } from '@/features/location/hooks/use-device-location';
 import type { DeviceCoordinates } from '@/features/location/types';
 import {
   checkWithinRadius,
   formatDistance,
   type RadiusCheckResult,
 } from '@/features/location/utils/geo';
+import { LeaveRequestSheet } from '@/features/praktikan/components/leave-request-sheet';
 import {
   PraktikanEmptyState,
   PraktikanErrorState,
   PraktikanInlineErrorBanner,
   PraktikanLoadingState,
 } from '@/features/praktikan/components/praktikan-state-view';
+import { usePraktikanLeaveRequests } from '@/features/praktikan/hooks/use-praktikan-leave-requests';
 import { useSessionAttendance } from '@/features/praktikan/hooks/use-session-attendance';
-import { BackLink, Chip, classColor, MetaLine, Tile, UI } from '@/features/praktikan/ui/praktikan-ui';
 import { subscribeSessionById } from '@/features/praktikan/services/praktikan-sessions';
 import type { PraktikanSession } from '@/features/praktikan/types';
+import { BackLink, Chip, classColor, MetaLine, Tile, UI } from '@/features/praktikan/ui/praktikan-ui';
 import {
   formatAttendanceTimeWIB,
   formatMeetingTitle,
 } from '@/features/praktikan/utils/format';
+import { showLeaveSubmitSuccessAlert } from '@/features/praktikan/utils/leave-feedback';
 import { formatClock, formatSessionDate } from '@/utils/session-time';
-import { FONT } from '@/constants/fonts';
+import { BORDER_COLOR, PAGE_BG } from '@/constants/colors';
 
 /** Lokasi yang lebih tua dari ini diambil ulang sebelum presensi dikirim. */
 const LOCATION_MAX_AGE_MS = 60_000;
@@ -46,6 +50,12 @@ const LOCATION_MAX_AGE_MS = 60_000;
 /**
  * Halaman presensi berbasis lokasi, terpisah dari Detail Sesi (FR-01 s.d. FR-08).
  */
+const LEAVE_STATUS_TEXT: Record<'menunggu' | 'diterima' | 'ditolak', string> = {
+  menunggu: 'menunggu keputusan',
+  diterima: 'diterima',
+  ditolak: 'ditolak',
+};
+
 export default function AttendanceScreen() {
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
   const trimmedId = (Array.isArray(sessionId) ? sessionId[0] : sessionId)?.trim() ?? '';
@@ -81,8 +91,6 @@ function AttendanceContent({ sessionId }: { sessionId: string }) {
   const [labLoading, setLabLoading] = useState(false);
   const [labError, setLabError] = useState<string | null>(null);
 
-  const [successInfo, setSuccessInfo] = useState<RadiusCheckResult | null>(null);
-
   const {
     attendance,
     loading: attendanceLoading,
@@ -99,6 +107,20 @@ function AttendanceContent({ sessionId }: { sessionId: string }) {
     error: locationError,
     refresh: refreshLocation,
   } = useDeviceLocation();
+
+  // Pengajuan izin langsung dari halaman presensi.
+  const [leaveSheetVisible, setLeaveSheetVisible] = useState(false);
+  const {
+    leaveBySessionId,
+    submitting: leaveSubmitting,
+    submittingStep: leaveSubmittingStep,
+    submitError: leaveSubmitError,
+    submitLeaveRequest,
+    clearSubmitError: clearLeaveSubmitError,
+  } = usePraktikanLeaveRequests();
+
+  // Pemeriksaan lokasi berjalan otomatis sekali setiap halaman dibuka.
+  const autoLocated = useRef(false);
 
   useEffect(() => {
     if (!sessionId) {
@@ -161,6 +183,16 @@ function AttendanceContent({ sessionId }: { sessionId: string }) {
     return () => unsubscribe();
   }, [labId, retryNonce]);
 
+  const sessionOpen = session?.status === 'dibuka';
+  const attended = attendance !== null;
+
+  useEffect(() => {
+    if (autoLocated.current) return;
+    if (!sessionOpen || attended || attendanceLoading || !lab) return;
+    autoLocated.current = true;
+    void refreshLocation();
+  }, [sessionOpen, attended, attendanceLoading, lab, refreshLocation]);
+
   if (sessionLoading && !session) {
     return <PraktikanLoadingState fullScreen message="Memuat informasi sesi..." />;
   }
@@ -203,6 +235,38 @@ function AttendanceContent({ sessionId }: { sessionId: string }) {
     !submitting &&
     !locating;
 
+  // Izin yang sudah diajukan untuk sesi ini (satu pengajuan per sesi).
+  const sessionLeave = leaveBySessionId[session.id] ?? null;
+  const leaveInfo = sessionLeave ? (
+    <Pressable
+      accessibilityRole="button"
+      onPress={() => router.push({ pathname: '/session/[id]', params: { id: session.id } })}
+      style={({ pressed }) => [styles.leaveInfo, pressed && styles.pressed]}
+    >
+      <Text style={styles.leaveInfoText}>
+        Izin sudah diajukan ({LEAVE_STATUS_TEXT[sessionLeave.status]}). Lihat detail
+      </Text>
+    </Pressable>
+  ) : null;
+
+  const leaveButton = sessionLeave ? null : (
+    <Pressable
+      accessibilityRole="button"
+      disabled={submitting || leaveSubmitting}
+      onPress={() => {
+        clearLeaveSubmitError();
+        setLeaveSheetVisible(true);
+      }}
+      style={({ pressed }) => [
+        styles.secondaryButton,
+        styles.flexButton,
+        pressed && styles.pressed,
+      ]}
+    >
+      <Text style={styles.secondaryButtonText}>Ajukan Izin</Text>
+    </Pressable>
+  );
+
   async function handleSubmit() {
     if (!canSubmit || !coords) return;
     clearError();
@@ -213,10 +277,7 @@ function AttendanceContent({ sessionId }: { sessionId: string }) {
       if (!location) return;
     }
 
-    const result = await submitAttendance(location);
-    if (result) {
-      setSuccessInfo(result.check);
-    }
+    await submitAttendance(location);
   }
 
   return (
@@ -224,11 +285,13 @@ function AttendanceContent({ sessionId }: { sessionId: string }) {
       <BackLink label="Kembali" onPress={() => router.back()} />
 
       <Tile color={classColor(session.classId ?? session.practicumName)}>
-        <Chip
-          label={isOpen ? 'Presensi dibuka' : session.status === 'ditutup' ? 'Sesi selesai' : 'Belum dibuka'}
-          tone={isOpen ? 'solid' : 'neutral'}
-        />
-        <Text style={styles.title}>{session.practicumName}</Text>
+        <View style={styles.cardHeader}>
+          <Text style={styles.title}>{session.practicumName}</Text>
+          <Chip
+            label={isOpen ? 'Berlangsung' : session.status === 'ditutup' ? 'Sesi Selesai' : 'Belum Dibuka'}
+            tone={isOpen ? 'solid' : 'neutral'}
+          />
+        </View>
         <Text style={styles.heroModule}>{formatMeetingTitle(session.moduleTitle)}</Text>
         <View style={styles.heroMeta}>
           {session.waktuMulai ? (
@@ -255,28 +318,11 @@ function AttendanceContent({ sessionId }: { sessionId: string }) {
         />
       ) : null}
 
-      <View style={styles.card}>
-        <Info
-          label="Titik Lokasi Presensi"
-          value={
-            !labId
-              ? 'Belum diatur Asisten'
-              : labLoading
-                ? 'Memuat...'
-                : lab
-                  ? `${lab.name} · radius ${formatDistance(lab.radius)}`
-                  : 'Koordinat belum diatur Asisten'
-          }
-          last
-        />
-      </View>
-
       <StatusNotice
         isOpen={isOpen}
         status={session.status}
         alreadyAttended={alreadyAttended}
         attendanceTime={formatAttendanceTimeWIB(attendance?.waktu ?? null)}
-        attendanceDistance={successInfo?.distance ?? attendance?.jarak ?? null}
         labMissing={!labId || (!labLoading && !lab)}
         labError={labError}
       />
@@ -308,6 +354,9 @@ function AttendanceContent({ sessionId }: { sessionId: string }) {
             </Text>
           </Pressable>
 
+          <View style={styles.actionRow}>
+            {leaveButton}
+
           <Pressable
             accessibilityRole="button"
             accessibilityState={{ disabled: !canSubmit }}
@@ -315,6 +364,7 @@ function AttendanceContent({ sessionId }: { sessionId: string }) {
             onPress={() => void handleSubmit()}
             style={({ pressed }) => [
               styles.primaryButton,
+              styles.flexButton,
               !canSubmit && styles.primaryButtonDisabled,
               pressed && canSubmit && styles.pressed,
             ]}
@@ -332,6 +382,7 @@ function AttendanceContent({ sessionId }: { sessionId: string }) {
               </Text>
             )}
           </Pressable>
+          </View>
 
           {submitError ? (
             <PraktikanInlineErrorBanner
@@ -343,7 +394,39 @@ function AttendanceContent({ sessionId }: { sessionId: string }) {
             />
           ) : null}
         </View>
+      ) : !alreadyAttended ? (
+        leaveInfo ?? <View style={styles.actionRow}>{leaveButton}</View>
       ) : null}
+
+      {isOpen && !alreadyAttended && labReady && leaveInfo ? leaveInfo : null}
+
+      <LeaveRequestSheet
+        visible={leaveSheetVisible}
+        sessions={[session]}
+        preselectedSession={session}
+        attendanceBySessionId={attendance ? { [session.id]: attendance } : {}}
+        leaveBySessionId={leaveBySessionId}
+        submitting={leaveSubmitting}
+        submittingStep={leaveSubmittingStep}
+        error={leaveSubmitError}
+        attendanceError={null}
+        onRetryData={retryAttendance}
+        onClearError={clearLeaveSubmitError}
+        onCancel={() => {
+          if (!leaveSubmitting) {
+            clearLeaveSubmitError();
+            setLeaveSheetVisible(false);
+          }
+        }}
+        onSubmit={async (targetSessionId, alasan) => {
+          const outcome = await submitLeaveRequest({ sessionId: targetSessionId, alasan });
+          if (outcome.ok) {
+            setLeaveSheetVisible(false);
+            showLeaveSubmitSuccessAlert(outcome);
+          }
+          return outcome;
+        }}
+      />
     </ScreenShell>
   );
 }
@@ -372,7 +455,6 @@ function StatusNotice({
   status,
   alreadyAttended,
   attendanceTime,
-  attendanceDistance,
   labMissing,
   labError,
 }: {
@@ -380,7 +462,6 @@ function StatusNotice({
   status: PraktikanSession['status'];
   alreadyAttended: boolean;
   attendanceTime: string | null;
-  attendanceDistance: number | null;
   labMissing: boolean;
   labError: string | null;
 }) {
@@ -388,9 +469,6 @@ function StatusNotice({
     return (
       <Notice tone="success" title="Presensi Tercatat">
         {attendanceTime ? `Kamu sudah presensi pada ${attendanceTime}.` : 'Kamu sudah presensi pada sesi ini.'}
-        {attendanceDistance !== null
-          ? ` Jarak saat presensi: ${formatDistance(attendanceDistance)}.`
-          : ''}
       </Notice>
     );
   }
@@ -527,18 +605,35 @@ function Notice({
   );
 }
 
-function Info({ label, value, last = false }: { label: string; value: string; last?: boolean }) {
-  return (
-    <View style={[styles.infoRow, last && styles.infoRowLast]}>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value}</Text>
-    </View>
-  );
-}
 
 const styles = StyleSheet.create({
-  safeArea: {
+  cardHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  flexButton: {
+    flex: 1,
+  },
+  leaveInfo: {
     backgroundColor: '#FFFFFF',
+    borderColor: BORDER_COLOR,
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 14,
+  },
+  leaveInfoText: {
+    fontFamily: FONT.semibold,
+    color: '#111014',
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  safeArea: {
+    backgroundColor: PAGE_BG,
     flex: 1,
   },
   content: {
@@ -567,38 +662,12 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   title: {
+    flex: 1,
     fontFamily: FONT.extrabold,
     color: UI.onColor,
-    fontSize: 26,
+    fontSize: 22,
     letterSpacing: -0.5,
-    lineHeight: 30,
-  },
-  card: {
-    backgroundColor: UI.page,
-    borderColor: UI.border,
-    borderWidth: 1,
-    borderRadius: UI.radiusCard,
-    paddingHorizontal: 18,
-  },
-  infoRow: {
-    borderBottomColor: '#E5E5E5',
-    borderBottomWidth: 1,
-    gap: 5,
-    paddingVertical: 14,
-  },
-  infoRowLast: {
-    borderBottomWidth: 0,
-  },
-  infoLabel: {
-    fontFamily: FONT.semibold,
-    color: '#666666',
-    fontSize: 12,
-  },
-  infoValue: {
-    fontFamily: FONT.semibold,
-    color: '#000000',
-    fontSize: 14,
-    lineHeight: 20,
+      lineHeight: 27,
   },
   section: {
     gap: 12,
@@ -633,8 +702,8 @@ const styles = StyleSheet.create({
     borderColor: UI.danger,
   },
   noticeNeutral: {
-    backgroundColor: UI.page,
-    borderColor: UI.border,
+    backgroundColor: UI.card,
+    borderColor: BORDER_COLOR,
   },
   noticeTitle: {
     fontFamily: FONT.extrabold,

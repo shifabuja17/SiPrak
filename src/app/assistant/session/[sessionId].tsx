@@ -16,7 +16,10 @@ import {
   type AttendanceStatus,
 } from '@/features/assistant/hooks/use-session-attendance';
 import { useAssistantSessions } from '@/features/assistant/state/assistant-sessions-context';
+import { MetaLine } from '@/features/praktikan/ui/praktikan-ui';
 import { formatMeetingTitle } from '@/features/praktikan/utils/format';
+import { formatClock, formatSessionDate } from '@/utils/session-time';
+import { BORDER_COLOR, PAGE_BG } from '@/constants/colors';
 
 const STATUS_LABEL: Record<AttendanceStatus, string> = {
   hadir: 'Hadir',
@@ -60,6 +63,31 @@ export default function AssistantCheckAttendanceScreen() {
             <Text style={styles.subtitle}>{formatMeetingTitle(session.moduleTitle)}</Text>
           ) : null}
         </View>
+
+        {/* HARI & TANGGAL, WAKTU, LOKASI */}
+        {session ? (
+          <View style={styles.metaList}>
+            {session.waktuMulai ? (
+              <>
+                <MetaLine icon="date" color="#111014" textStyle={styles.metaText}>
+                  {formatSessionDate(session.waktuMulai)}
+                </MetaLine>
+                <MetaLine icon="time" color="#111014" textStyle={styles.metaText}>
+                  {session.waktuSelesai
+                    ? `${formatClock(session.waktuMulai)} - ${formatClock(session.waktuSelesai)} WIB`
+                    : `${formatClock(session.waktuMulai)} WIB`}
+                </MetaLine>
+              </>
+            ) : (
+              <MetaLine icon="time" color="#111014" textStyle={styles.metaText}>
+                {session.scheduleTime}
+              </MetaLine>
+            )}
+            <MetaLine icon="place" color="#111014" textStyle={styles.metaText}>
+              {session.classRoom}
+            </MetaLine>
+          </View>
+        ) : null}
 
         <SegmentedTabs options={SECTIONS} value={section} onChange={setSection} />
       </View>
@@ -167,8 +195,17 @@ const badgeTextStyle = StyleSheet.create({
 });
 
 const styles = StyleSheet.create({
+  metaList: {
+    gap: 4,
+  },
+  metaText: {
+    fontFamily: FONT.regular,
+    color: '#111014',
+    fontSize: 14,
+    lineHeight: 20,
+  },
   safeArea: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: PAGE_BG,
     flex: 1,
   },
   top: {
@@ -203,8 +240,9 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   row: {
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderRadius: 26,
     borderWidth: 1,
     flexDirection: 'row',
@@ -212,8 +250,9 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   avatar: {
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderRadius: 20,
     borderWidth: 1,
     height: 40,
@@ -244,8 +283,9 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   stateCard: {
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderRadius: 20,
     borderWidth: 1,
     gap: 6,

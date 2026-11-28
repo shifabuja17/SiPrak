@@ -12,6 +12,7 @@ import { useAuth } from '@/context/AuthContext';
 import { usePracticum } from '@/context/PracticumContext';
 import { FONT } from '@/constants/fonts';
 import PersonIcon from '@/components/common/person-icon';
+import { BORDER_COLOR } from '@/constants/colors';
 
 export default function HeaderProfileBar() {
   const { user, profile, logout } = useAuth();
@@ -113,7 +114,7 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderColor: '#D9D9D9',
+    borderColor: BORDER_COLOR,
     borderRadius: 16,
     borderWidth: 1,
     flexDirection: 'row',

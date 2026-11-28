@@ -47,6 +47,7 @@ import { formatClock, parseScheduleTimeText } from '@/utils/session-time';
 import Svg, { Path } from 'react-native-svg';
 import { IconButton, IconButtonRow } from '@/components/common/IconButton';
 import { withNotificationNote } from '@/features/notifications/utils/dispatch-message';
+import { BORDER_COLOR, PAGE_BG } from '@/constants/colors';
 
 // Form kosong untuk tambah kelas.
 const EMPTY_FORM: ClassInput = {
@@ -869,7 +870,7 @@ const styles = StyleSheet.create({
 
   // HALAMAN UTAMA
   safeArea: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: PAGE_BG,
     flex: 1,
   },
 
@@ -885,7 +886,7 @@ const styles = StyleSheet.create({
 
   centered: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: PAGE_BG,
     flex: 1,
     justifyContent: 'center',
     padding: 25,
@@ -1017,7 +1018,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     gap: 8,
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderWidth: 1,
   },
 
@@ -1099,6 +1100,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   modalDeleteButton: {
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     borderColor: '#E00000',
     borderRadius: 10,
@@ -1121,9 +1123,12 @@ const styles = StyleSheet.create({
   },
 
   input: {
+    // Android mengukur lebar input dari placeholder; dikunci ke lebar wadah
+    // supaya placeholder panjang tidak membuat garis kanan terpotong.
+    width: '100%',
     fontFamily: FONT.regular,
     backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderRadius: 11,
     borderWidth: 1,
     color: '#111014',
@@ -1142,8 +1147,9 @@ const styles = StyleSheet.create({
   },
 
   cancelButton: {
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderRadius: 11,
     borderWidth: 1,
     flex: 1,
@@ -1222,7 +1228,7 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     padding: 13,
     gap: 5,
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderWidth: 1,
   },
 
@@ -1258,7 +1264,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     flex: 1,
     paddingVertical: 14,
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderWidth: 1,
   },
 

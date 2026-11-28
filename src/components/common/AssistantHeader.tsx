@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import BackButton from '@/components/common/BackButton';
 import { useInTab } from '@/components/common/tab-screen';
+import { PAGE_BG } from '@/constants/colors';
 
 /**
  * Bar atas halaman Asisten: hanya panah kembali (tanpa header hitam "SiPrak"),
@@ -21,7 +22,7 @@ export default function AssistantHeader() {
 
 const styles = StyleSheet.create({
   bar: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: PAGE_BG,
     paddingHorizontal: 20,
     paddingTop: 8,
   },

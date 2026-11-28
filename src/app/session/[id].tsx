@@ -21,9 +21,7 @@ import StatusBadge, {
 import { useAuth } from '@/context/AuthContext';
 import { usePracticum } from '@/context/PracticumContext';
 import { AttendanceSummary } from '@/features/assistant/components/attendance-summary';
-import { LeaveAiInfoBox } from '@/features/praktikan/components/leave-ai-info-box';
 import { LeaveRequestSheet } from '@/features/praktikan/components/leave-request-sheet';
-import { LeaveStatusBadge } from '@/features/praktikan/components/leave-status-badge';
 import PraktikanAttendanceSection from '@/features/praktikan/components/praktikan-attendance-section';
 import {
   PraktikanEmptyState,
@@ -36,14 +34,13 @@ import { usePraktikanLeaveRequests } from '@/features/praktikan/hooks/use-prakti
 import { useSessionAttendance } from '@/features/praktikan/hooks/use-session-attendance';
 import { subscribeSessionById } from '@/features/praktikan/services/praktikan-sessions';
 import type { PraktikanSession } from '@/features/praktikan/types';
-import {
-  formatDateTimeWIB,
-  formatMeetingTitle,
-} from '@/features/praktikan/utils/format';
+import { formatMeetingTitle } from '@/features/praktikan/utils/format';
 import { showLeaveSubmitSuccessAlert } from '@/features/praktikan/utils/leave-feedback';
 import { BackLink, Chip, classColor, MetaLine, Tile, UI } from '@/features/praktikan/ui/praktikan-ui';
 import { formatClock, formatSessionDate } from '@/utils/session-time';
 import { FONT } from '@/constants/fonts';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
+import { BORDER_COLOR, PAGE_BG } from '@/constants/colors';
 
 export default function SessionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -199,9 +196,6 @@ function PraktikanSessionDetail({
   const sessionLeave = leaveBySessionId[session.id] ?? null;
   const isLeaveCheckLoading = attendanceLoading || leaveLoading;
   const leaveSectionError = leaveListError;
-  const sessionLeaveDateLabel = sessionLeave
-    ? (formatDateTimeWIB(sessionLeave.createdAt) ?? 'Menunggu sinkronisasi waktu...')
-    : null;
   const assistantNote =
     sessionLeave &&
     (sessionLeave.status === 'diterima' || sessionLeave.status === 'ditolak') &&
@@ -225,7 +219,8 @@ function PraktikanSessionDetail({
 
         <SessionHero session={session} />
 
-        <PraktikanAttendanceSection session={session} />
+        {/* Sesi dengan pengajuan izin tidak perlu tombol presensi. */}
+        {sessionLeave ? null : <PraktikanAttendanceSection session={session} />}
 
         {sessionLeave ? (
           <View style={styles.leaveSectionStack}>
@@ -237,53 +232,30 @@ function PraktikanSessionDetail({
               />
             ) : null}
 
-            <View style={styles.leaveSummaryCard}>
-              <View style={styles.leaveSummaryHeader}>
-                <Text style={styles.leaveSummaryTitle}>Status Pengajuan Izin</Text>
-                <LeaveStatusBadge status={sessionLeave.status} />
-              </View>
+            <View style={styles.divider} />
 
-              {sessionLeaveDateLabel ? (
-                <Text style={styles.leaveMetaText}>Diajukan: {sessionLeaveDateLabel}</Text>
-              ) : null}
+            <View style={styles.leaveDetail}>
+              <Text style={styles.leaveDetailTitle}>Detail Pengajuan Izin</Text>
 
-              <View style={styles.leaveReasonBox}>
-                <Text style={styles.leaveReasonLabel}>Alasan Izin</Text>
-                <Text style={styles.leaveReasonText}>{sessionLeave.alasan}</Text>
-              </View>
-
-              <LeaveAiInfoBox kategoriAI={sessionLeave.kategoriAI} />
-
+              <LeaveDetailRow icon="reason" label="Alasan Izin" value={sessionLeave.alasan} />
+              <LeaveDetailRow
+                icon="date"
+                label="Diajukan"
+                value={formatSubmittedFull(sessionLeave.createdAt)}
+              />
+              <LeaveDetailRow
+                icon="ai"
+                label="Kategori AI"
+                value={sessionLeave.kategoriAI ?? 'Tidak tersedia'}
+              />
+              <LeaveDetailRow
+                icon="status"
+                label="Status"
+                value={LEAVE_STATUS_LABEL[sessionLeave.status]}
+                valueColor={LEAVE_STATUS_COLOR[sessionLeave.status]}
+              />
               {assistantNote ? (
-                <View
-                  style={[
-                    styles.leaveNoteBox,
-                    sessionLeave.status === 'diterima'
-                      ? styles.leaveNoteAccepted
-                      : styles.leaveNoteRejected,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.leaveNoteLabel,
-                      sessionLeave.status === 'diterima'
-                        ? styles.leaveNoteTextAccepted
-                        : styles.leaveNoteTextRejected,
-                    ]}
-                  >
-                    Catatan Asisten
-                  </Text>
-                  <Text
-                    style={[
-                      styles.leaveNoteText,
-                      sessionLeave.status === 'diterima'
-                        ? styles.leaveNoteTextAccepted
-                        : styles.leaveNoteTextRejected,
-                    ]}
-                  >
-                    {assistantNote}
-                  </Text>
-                </View>
+                <LeaveDetailRow icon="note" label="Catatan Asisten" value={assistantNote} />
               ) : null}
             </View>
           </View>
@@ -552,8 +524,10 @@ function SessionHero({ session }: { session: PraktikanSession }) {
     <>
       <BackLink label="Kembali" onPress={() => router.back()} />
       <Tile color={classColor(session.classId ?? session.practicumName)}>
-        <Chip label={statusLabel} tone={session.status === 'dibuka' ? 'solid' : 'neutral'} />
-        <Text style={styles.heroTitle}>{session.practicumName}</Text>
+        <View style={styles.cardHeader}>
+          <Text style={styles.heroTitle}>{session.practicumName}</Text>
+          <Chip label={statusLabel} tone={session.status === 'dibuka' ? 'solid' : 'neutral'} />
+        </View>
         <Text style={styles.heroModule}>{formatMeetingTitle(session.moduleTitle)}</Text>
         <View style={styles.heroMeta}>
           {session.waktuMulai ? (
@@ -636,9 +610,152 @@ function Info({
   );
 }
 
+// ==========================================
+// DETAIL PENGAJUAN IZIN
+// ==========================================
+
+type LeaveDetailIconName = 'reason' | 'date' | 'ai' | 'status' | 'note';
+
+const LEAVE_STATUS_LABEL: Record<'menunggu' | 'diterima' | 'ditolak', string> = {
+  menunggu: 'Menunggu',
+  diterima: 'Diterima',
+  ditolak: 'Ditolak',
+};
+
+const LEAVE_STATUS_COLOR: Record<'menunggu' | 'diterima' | 'ditolak', string> = {
+  menunggu: '#8E8E93',
+  diterima: '#16A34A',
+  ditolak: '#E00000',
+};
+
+/** "Minggu, 23 November 2026, 14.13 WIB" */
+function formatSubmittedFull(date: Date | null | undefined): string {
+  if (!date) return 'Menunggu sinkronisasi waktu...';
+  const day = date.toLocaleDateString('id-ID', {
+    timeZone: 'Asia/Jakarta',
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+  return `${day}, ${formatClock(date)} WIB`;
+}
+
+function LeaveDetailIcon({ name }: { name: LeaveDetailIconName }) {
+  const stroke = {
+    stroke: UI.ink,
+    strokeWidth: 1.8,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+  };
+  return (
+    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+      {name === 'reason' && (
+        <>
+          <Path d="M7 3.5H14L18.5 8V20.5H7Z" {...stroke} />
+          <Path d="M14 3.5V8H18.5M9.5 12H16M9.5 15.5H14" {...stroke} />
+        </>
+      )}
+      {name === 'date' && (
+        <>
+          <Rect x={4} y={5.5} width={16} height={14.5} rx={2} {...stroke} />
+          <Path d="M8 3.5V7M16 3.5V7M4 10H20" {...stroke} />
+        </>
+      )}
+      {name === 'ai' && (
+        <Path
+          d="M12 3.5L13.8 9.2L19.5 11L13.8 12.8L12 18.5L10.2 12.8L4.5 11L10.2 9.2Z"
+          {...stroke}
+        />
+      )}
+      {name === 'status' && (
+        <>
+          <Circle cx={12} cy={12} r={8.5} {...stroke} />
+          <Path d="M8.5 12.2L11 14.7L15.5 9.8" {...stroke} />
+        </>
+      )}
+      {name === 'note' && (
+        <Path
+          d="M5 6.5C5 5.4 5.9 4.5 7 4.5H17C18.1 4.5 19 5.4 19 6.5V14C19 15.1 18.1 16 17 16H11L7 19.5V16C5.9 16 5 15.1 5 14Z"
+          {...stroke}
+        />
+      )}
+    </Svg>
+  );
+}
+
+function LeaveDetailRow({
+  icon,
+  label,
+  value,
+  valueColor,
+}: {
+  icon: LeaveDetailIconName;
+  label: string;
+  value: string;
+  valueColor?: string;
+}) {
+  return (
+    <View style={styles.leaveRow}>
+      <View style={styles.leaveRowIcon}>
+        <LeaveDetailIcon name={icon} />
+      </View>
+      <View style={styles.leaveRowText}>
+        <Text style={styles.leaveRowLabel}>{label}</Text>
+        <Text style={[styles.leaveRowValue, valueColor ? { color: valueColor, fontFamily: FONT.bold } : null]}>
+          {value}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  cardHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  divider: {
+    backgroundColor: '#E4E4E7',
+    height: 1,
+  },
+  leaveDetail: {
+    gap: 14,
+  },
+  leaveDetailTitle: {
+    fontFamily: FONT.extrabold,
+    color: UI.ink,
+    fontSize: 18,
+  },
+  leaveRow: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 12,
+  },
+  leaveRowIcon: {
+    alignItems: 'center',
+    height: 22,
+    justifyContent: 'center',
+    width: 22,
+  },
+  leaveRowText: {
+    flex: 1,
+    gap: 2,
+  },
+  leaveRowLabel: {
+    fontFamily: FONT.semibold,
+    color: UI.muted,
+    fontSize: 12,
+  },
+  leaveRowValue: {
+    fontFamily: FONT.regular,
+    color: UI.ink,
+    fontSize: 14,
+    lineHeight: 20,
+  },
   safeArea: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: PAGE_BG,
     flex: 1,
   },
   content: {
@@ -648,11 +765,12 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   heroTitle: {
+    flex: 1,
     fontFamily: FONT.extrabold,
     color: UI.onColor,
-    fontSize: 26,
+    fontSize: 22,
     letterSpacing: -0.5,
-    lineHeight: 30,
+      lineHeight: 27,
   },
   heroModule: {
     fontFamily: FONT.regular,
@@ -708,13 +826,13 @@ const styles = StyleSheet.create({
   },
   infoCard: {
     backgroundColor: '#FFFFFF',
-    borderColor: '#D9D9D9',
+    borderColor: BORDER_COLOR,
     borderRadius: 18,
     borderWidth: 1,
     paddingHorizontal: 16,
   },
   infoRow: {
-    borderBottomColor: '#E5E5E5',
+    borderBottomColor: BORDER_COLOR,
     borderBottomWidth: 1,
     gap: 5,
     paddingVertical: 14,
@@ -764,7 +882,7 @@ const styles = StyleSheet.create({
   notice: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderWidth: 1,
     borderRadius: 14,
     padding: 15,
@@ -806,7 +924,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   noteInput: {
-    borderColor: '#BFBFBF',
+    backgroundColor: '#FFFFFF',
+    borderColor: BORDER_COLOR,
     borderRadius: 12,
     borderWidth: 1,
     color: '#000000',
@@ -819,8 +938,9 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   cancelButton: {
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
-    borderColor: '#BFBFBF',
+    borderColor: BORDER_COLOR,
     borderRadius: 12,
     borderWidth: 1,
     flex: 1,
@@ -845,77 +965,6 @@ const styles = StyleSheet.create({
   },
   leaveSectionStack: {
     gap: 10,
-  },
-  leaveSummaryCard: {
-    backgroundColor: UI.page,
-    borderColor: UI.border,
-    borderWidth: 1,
-    borderRadius: UI.radiusCard,
-    gap: 10,
-    padding: 18,
-  },
-  leaveSummaryHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'space-between',
-  },
-  leaveSummaryTitle: {
-    fontFamily: FONT.bold,
-    color: '#000000',
-    flex: 1,
-    fontSize: 15,
-  },
-  leaveMetaText: {
-    fontFamily: FONT.semibold,
-    color: '#666666',
-    fontSize: 12,
-  },
-  leaveReasonBox: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    gap: 4,
-    padding: 12,
-  },
-  leaveReasonLabel: {
-    fontFamily: FONT.bold,
-    color: '#525252',
-    fontSize: 12,
-  },
-  leaveReasonText: {
-    fontFamily: FONT.regular,
-    color: '#171717',
-    fontSize: 13,
-    lineHeight: 19,
-  },
-  leaveNoteBox: {
-    borderRadius: 18,
-    borderWidth: 1,
-    gap: 4,
-    padding: 12,
-  },
-  leaveNoteAccepted: {
-    backgroundColor: '#F47321',
-    borderColor: '#F47321',
-  },
-  leaveNoteRejected: {
-    backgroundColor: '#E00000',
-    borderColor: '#E00000',
-  },
-  leaveNoteLabel: {
-    fontFamily: FONT.bold,
-    fontSize: 12,
-  },
-  leaveNoteText: {
-    fontFamily: FONT.regular,
-    fontSize: 13,
-    lineHeight: 19,
-  },
-  leaveNoteTextAccepted: {
-    color: '#FFFFFF',
-  },
-  leaveNoteTextRejected: {
-    color: '#FFFFFF',
   },
   pressed: {
     opacity: 0.65,

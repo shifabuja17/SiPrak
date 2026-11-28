@@ -34,6 +34,7 @@ import { useTabBottomSpace } from '@/components/common/tab-screen';
 import { withNotificationNote } from '@/features/notifications/utils/dispatch-message';
 import PersonIcon from '@/components/common/person-icon';
 import { Chip } from '@/features/praktikan/ui/praktikan-ui';
+import { BORDER_COLOR, PAGE_BG } from '@/constants/colors';
 
 // ==========================================
 // TIPE AKSI
@@ -868,7 +869,7 @@ const styles = StyleSheet.create({
   // HALAMAN UTAMA
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: PAGE_BG,
   },
 
   scroll: {
@@ -1018,7 +1019,7 @@ const styles = StyleSheet.create({
   stateCard: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderRadius: 20,
     borderWidth: 1,
     gap: 10,
@@ -1231,7 +1232,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 7,
     padding: 13,
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderWidth: 1,
   },
 
@@ -1278,7 +1279,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     paddingVertical: 14,
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderWidth: 1,
   },
 

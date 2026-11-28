@@ -3,6 +3,7 @@ import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import type { DateTimeFieldProps } from './DateTimeField';
 import { FONT } from '@/constants/fonts';
+import { BORDER_COLOR } from '@/constants/colors';
 
 function pad(value: number): string {
   return String(value).padStart(2, '0');
@@ -101,7 +102,7 @@ const styles = StyleSheet.create({
   input: {
     fontFamily: FONT.regular,
     backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderRadius: 12,
     borderWidth: 1,
     color: '#111014',

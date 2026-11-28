@@ -4,9 +4,38 @@ import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
+import { FigmaIcon, type FigmaIconName } from '@/components/common/FigmaIcon';
+import { PAGE_BG } from '@/constants/colors';
 
-const INK = '#111014';
+// Warna navbar sesuai desain Figma: pil hitam, tab aktif lingkaran putih + ikon oranye.
+const INK = '#000000';
 const ON_INK = '#FFFFFF';
+const ACTIVE_ICON = '#F47321';
+
+/** Tinggi pil navbar (desain 350 x 75). */
+export const TAB_BAR_HEIGHT = 75;
+
+/** Jarak bawah navbar melayang dari tepi layar (safe area, minimal 12). */
+function useTabBarBottom(): number {
+  return Math.max(useSafeAreaInsets().bottom, 12);
+}
+
+/**
+ * Tinggi total area yang ditutupi navbar melayang, diukur dari tepi bawah layar.
+ * Dipakai halaman yang tidak digulir agar kontennya berhenti di atas navbar.
+ */
+export function useTabBarOverlap(): number {
+  return TAB_BAR_HEIGHT + useTabBarBottom();
+}
+
+/** Ikon Iconly dari Figma: versi Bold saat tab aktif, versi garis saat tidak aktif. */
+const FIGMA_TAB_ICON: Partial<Record<IconName, { line: FigmaIconName; bold: FigmaIconName }>> = {
+  home: { line: 'home', bold: 'homeBold' },
+  history: { line: 'time', bold: 'timeBold' },
+  leave: { line: 'permit', bold: 'permitBold' },
+  map: { line: 'location', bold: 'locationBold' },
+  profile: { line: 'profile', bold: 'profileBold' },
+};
 
 type IconName = 'home' | 'history' | 'leave' | 'map' | 'profile' | 'class' | 'session';
 
@@ -82,18 +111,26 @@ function TabButton({ icon, label, path, isFocused: _isFocused, ref: _ref, ...pro
       // dan style berbentuk fungsi akan terbuang di proses itu.
       style={[styles.item, isFocused && styles.itemActive]}
     >
-      <TabIcon name={icon} color={isFocused ? INK : ON_INK} />
+      {FIGMA_TAB_ICON[icon] ? (
+        <FigmaIcon
+          name={isFocused ? FIGMA_TAB_ICON[icon]!.bold : FIGMA_TAB_ICON[icon]!.line}
+          size={24}
+          color={isFocused ? ACTIVE_ICON : ON_INK}
+        />
+      ) : (
+        <TabIcon name={icon} color={isFocused ? ACTIVE_ICON : ON_INK} />
+      )}
     </Pressable>
   );
 }
 
 function Pill({ children }: { children: ReactNode }) {
-  const insets = useSafeAreaInsets();
+  const bottom = useTabBarBottom();
   return (
     // Melayang di atas konten: area di sekitar pill transparan dan tidak menangkap sentuhan.
     <View
       pointerEvents="box-none"
-      style={[styles.barArea, { paddingBottom: Math.max(insets.bottom, 12) }]}
+      style={[styles.barArea, { paddingBottom: bottom }]}
     >
       <View style={styles.pill}>{children}</View>
     </View>
@@ -144,7 +181,7 @@ export default function AppTabs() {
 
 const styles = StyleSheet.create({
   root: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: PAGE_BG,
     flex: 1,
   },
   slot: {
@@ -153,16 +190,18 @@ const styles = StyleSheet.create({
   barArea: {
     bottom: 0,
     left: 0,
-    paddingHorizontal: 20,
+    paddingHorizontal: 26,
     position: 'absolute',
     right: 0,
   },
+  // 350 x 75 pada desain; lingkaran 62.5.
   pill: {
     alignItems: 'center',
     backgroundColor: INK,
-    borderRadius: 40,
+    borderRadius: 37.5,
     flexDirection: 'row',
-    padding: 6,
+    height: TAB_BAR_HEIGHT,
+    paddingHorizontal: 6,
   },
   // space-between + padding pill 6 -> jarak lingkaran ke tepi kiri/kanan sama dengan ke atas/bawah.
   tabList: {
@@ -172,10 +211,10 @@ const styles = StyleSheet.create({
   },
   item: {
     alignItems: 'center',
-    borderRadius: 30,
-    height: 60,
+    borderRadius: 31.25,
+    height: 62.5,
     justifyContent: 'center',
-    width: 60,
+    width: 62.5,
   },
   itemActive: {
     backgroundColor: ON_INK,

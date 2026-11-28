@@ -104,7 +104,7 @@ export function PushNotificationProvider({ children }: { children: ReactNode }) 
     if (result.status === 'permission_denied') {
       setStatus('permission_denied');
       setMessage(PERMISSION_DENIED_MESSAGE);
-      return;
+      return result;
     }
 
     if (result.status === 'unsupported') {
@@ -193,7 +193,13 @@ export function PushNotificationProvider({ children }: { children: ReactNode }) 
       status,
       message,
       retry: () => {
-        void register();
+        void register().then((result) => {
+          // Izin ditolak permanen: sistem tidak menampilkan dialog lagi, jadi arahkan
+          // pengguna ke pengaturan aplikasi supaya tombol "Coba Lagi" tetap berguna.
+          if (result?.status === 'permission_denied' && !result.canAskAgain) {
+            void Linking.openSettings();
+          }
+        });
       },
       openSettings: () => {
         void Linking.openSettings();

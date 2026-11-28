@@ -1,6 +1,6 @@
 /**
- * Banner penjelasan ketika notifikasi tidak aktif (izin ditolak, tidak didukung, atau error).
- * Tidak menampilkan apa pun saat notifikasi aktif atau sedang diproses.
+ * Banner singkat ketika notifikasi tidak aktif (izin ditolak atau gagal didaftarkan),
+ * dengan satu tombol "Coba Lagi". Tidak tampil saat notifikasi aktif atau diproses.
  */
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -8,75 +8,66 @@ import { FONT } from '@/constants/fonts';
 import { UI } from '@/features/praktikan/ui/praktikan-ui';
 
 import { usePushNotifications } from '../state/push-notification-context';
+import { BORDER_COLOR, CARD_BG } from '@/constants/colors';
 
 export function NotificationStatusBanner() {
-  const { status, message, retry, openSettings } = usePushNotifications();
+  const { status, retry } = usePushNotifications();
 
-  if (status !== 'permission_denied' && status !== 'unsupported' && status !== 'error') {
+  // Hanya saat izin ditolak atau pendaftaran gagal; "unsupported" (mis. web/Expo Go)
+  // tidak bisa diperbaiki pengguna, jadi tidak ditampilkan.
+  if (status !== 'permission_denied' && status !== 'error') {
     return null;
   }
 
   return (
     <View style={styles.box} accessibilityRole="alert">
-      <Text style={styles.title}>Notifikasi belum aktif</Text>
-      <Text style={styles.message}>{message}</Text>
+      <Text style={styles.title}>
+        {status === 'permission_denied'
+          ? 'Izin notifikasi belum diberikan'
+          : 'Notifikasi belum aktif'}
+      </Text>
 
-      {status === 'permission_denied' ? (
-        <Pressable
-          accessibilityRole="button"
-          onPress={openSettings}
-          style={({ pressed }) => [styles.button, pressed && styles.pressed]}
-        >
-          <Text style={styles.buttonText}>Buka Pengaturan</Text>
-        </Pressable>
-      ) : null}
-
-      {status === 'error' ? (
-        <Pressable
-          accessibilityRole="button"
-          onPress={retry}
-          style={({ pressed }) => [styles.button, pressed && styles.pressed]}
-        >
-          <Text style={styles.buttonText}>Coba lagi</Text>
-        </Pressable>
-      ) : null}
+      <Pressable
+        accessibilityRole="button"
+        onPress={retry}
+        style={({ pressed }) => [styles.button, pressed && styles.pressed]}
+      >
+        <Text style={styles.buttonText}>Coba Lagi</Text>
+      </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   box: {
-    backgroundColor: UI.soft,
-    borderColor: UI.line,
-    borderRadius: 18,
+    alignItems: 'center',
+    backgroundColor: CARD_BG,
+    borderColor: BORDER_COLOR,
+    borderRadius: 999,
     borderWidth: 1,
-    gap: 6,
-    marginBottom: 16,
-    padding: 16,
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'space-between',
+    paddingLeft: 18,
+    paddingRight: 8,
+    paddingVertical: 7,
   },
   title: {
     color: UI.ink,
+    flex: 1,
     fontFamily: FONT.bold,
-    fontSize: 14,
-  },
-  message: {
-    color: UI.muted,
-    fontFamily: FONT.regular,
     fontSize: 13,
-    lineHeight: 19,
   },
   button: {
-    alignSelf: 'flex-start',
-    backgroundColor: UI.ink,
+    backgroundColor: UI.accent,
     borderRadius: 999,
-    marginTop: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 9,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
   },
   buttonText: {
     color: UI.onColor,
     fontFamily: FONT.semibold,
-    fontSize: 13,
+    fontSize: 12,
   },
   pressed: {
     opacity: 0.8,

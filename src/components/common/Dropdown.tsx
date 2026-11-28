@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import { FONT } from '@/constants/fonts';
+import { BORDER_COLOR } from '@/constants/colors';
 
 export interface DropdownOption {
   value: string;
@@ -128,7 +129,7 @@ const styles = StyleSheet.create({
   field: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderRadius: 11,
     borderWidth: 1,
     flexDirection: 'row',
@@ -165,7 +166,7 @@ const styles = StyleSheet.create({
   },
   list: {
     backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderRadius: 11,
     borderWidth: 1,
     overflow: 'hidden',
@@ -178,7 +179,7 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
   },
   optionDivider: {
-    borderTopColor: '#E4E4E7',
+    borderTopColor: BORDER_COLOR,
     borderTopWidth: 1,
   },
   optionPressed: {

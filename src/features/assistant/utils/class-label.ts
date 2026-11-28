@@ -8,20 +8,34 @@ export function shortClassCode(kode?: string | null): string {
 }
 
 /**
- * Nama tampilan kelas praktikum: nama praktikum diikuti kode kelas singkat, dipisah
- * spasi, mis. "Praktikum Sistem Operasi E1". Kode kosong tidak ditambahkan.
+ * Nama praktikum tanpa kata "Praktikum" di depan: "Praktikum Sistem Operasi" menjadi
+ * "Sistem Operasi". Dipakai di semua tampilan supaya judul kartu lebih singkat; data lama
+ * di Firestore yang masih memakai "Praktikum …" ikut tampil singkat tanpa perlu diedit.
+ */
+export function shortPracticumName(practicumName: string): string;
+export function shortPracticumName(practicumName: string | undefined): string | undefined;
+export function shortPracticumName(practicumName: string | undefined): string | undefined {
+  if (practicumName === undefined) return undefined;
+  const name = practicumName.trim();
+  const short = name.replace(/^praktikum\s+/i, '');
+  return short.length > 0 ? short : name;
+}
+
+/**
+ * Nama tampilan kelas praktikum: nama praktikum (tanpa "Praktikum" di depan) diikuti kode
+ * kelas singkat, dipisah spasi, mis. "Sistem Operasi E1". Kode kosong tidak ditambahkan.
  */
 export function classLabel(item: { nama?: string | null; kode?: string | null }): string {
   return withClassCode(item.nama ?? '', item.kode) || 'Kelas praktikum';
 }
 
 /**
- * Nama praktikum lengkap dengan kode kelas singkat, mis. "Praktikum Sistem Operasi"
- * + "SO-E2" menjadi "Praktikum Sistem Operasi E2". Nama yang sudah diakhiri kode
+ * Nama praktikum singkat dengan kode kelas singkat, mis. "Praktikum Sistem Operasi"
+ * + "SO-E2" menjadi "Sistem Operasi E2". Nama yang sudah diakhiri kode
  * (singkat maupun penuh, mis. data lama "… SO-E2") dirapikan menjadi "… E2".
  */
 export function withClassCode(practicumName: string, kode?: string | null): string {
-  const name = practicumName.trim();
+  const name = shortPracticumName(practicumName);
   const fullCode = kode?.trim() ?? '';
   const code = shortClassCode(fullCode);
   if (!code || !name || name === '-') return name;

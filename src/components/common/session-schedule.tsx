@@ -13,6 +13,7 @@ import { FONT } from '@/constants/fonts';
 import { MetaLine } from '@/features/praktikan/ui/praktikan-ui';
 import { formatMeetingTitle } from '@/features/praktikan/utils/format';
 import { formatClock, formatSessionDate } from '@/utils/session-time';
+import { BORDER_COLOR } from '@/constants/colors';
 
 /**
  * Komponen jadwal yang dipakai bersama beranda Praktikan dan Asisten:
@@ -289,7 +290,7 @@ export function SessionTile({
   footer,
   children,
   showDate = false,
-  chipInCorner = false,
+  chipInCorner = true,
   onPress,
 }: {
   session: ScheduleSession;
@@ -303,7 +304,7 @@ export function SessionTile({
   children?: ReactNode;
   /** Tampilkan tanggal (untuk daftar yang tidak dikelompokkan per hari). */
   showDate?: boolean;
-  /** Letakkan chip status di pojok kanan atas, sejajar judul. */
+  /** Chip status di pojok kanan atas, sejajar judul (bawaan). */
   chipInCorner?: boolean;
   /** Tanpa onPress, kartu tidak bisa ditekan (hanya tombol di dalamnya). */
   onPress?: () => void;
@@ -482,8 +483,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: PAGE_PADDING,
   },
   day: {
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
-    borderColor: COLORS.line,
+    borderColor: BORDER_COLOR,
     borderRadius: 999,
     borderWidth: 1,
     gap: 3,
@@ -526,7 +528,8 @@ const styles = StyleSheet.create({
 
   // Daftar sesi
   dayEmpty: {
-    borderColor: COLORS.border,
+    backgroundColor: '#FFFFFF',
+    borderColor: BORDER_COLOR,
     borderRadius: 20,
     borderWidth: 1,
     padding: 20,
@@ -581,11 +584,12 @@ const styles = StyleSheet.create({
     color: COLORS.ink,
   },
   tileTitle: {
+    flex: 1,
     fontFamily: FONT.extrabold,
     color: COLORS.onColor,
-    fontSize: 18,
+    fontSize: 17,
     letterSpacing: -0.3,
-    lineHeight: 22,
+      lineHeight: 21,
   },
   tileModule: {
     fontFamily: FONT.semibold,

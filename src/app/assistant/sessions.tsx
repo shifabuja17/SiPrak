@@ -11,10 +11,9 @@ import {
   StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Svg, { Path } from 'react-native-svg';
 
@@ -62,6 +61,8 @@ import {
 import { withClassCode } from '@/features/assistant/utils/class-label';
 import { IconButton, IconButtonRow } from '@/components/common/IconButton';
 import { withNotificationNote } from '@/features/notifications/utils/dispatch-message';
+import FramedTextInput from '@/components/common/FramedTextInput';
+import { BORDER_COLOR, PAGE_BG } from '@/constants/colors';
 
 
 // ==========================================
@@ -166,6 +167,7 @@ const MODAL_SWAP_DELAY = 350;
 
 export default function AssistantSessionsScreen() {
   const bottomSpace = useTabBottomSpace(40);
+  const insets = useSafeAreaInsets();
   // uid praktikan dengan izin diterima, per sesi (untuk kolom "Izin" di rekap).
   const excusedBySession = useExcusedBySession(true);
   const classCodes = useClassCodes();
@@ -646,11 +648,8 @@ export default function AssistantSessionsScreen() {
       ? laboratories.find((lab) => lab.id === item.labId)
       : undefined;
     const baseLocation = linkedLab?.name || item.labName || item.classRoom || '-';
-    const locationDisplay = linkedLab
-      ? `${baseLocation} (Radius ${linkedLab.radius} m)`
-      : item.labId
-        ? baseLocation
-        : `${baseLocation} (Belum ditautkan ke titik lab)`;
+    const locationDisplay =
+      linkedLab || item.labId ? baseLocation : `${baseLocation} (Belum ditautkan ke titik lab)`;
 
     const chip =
       item.status === 'dibuka'
@@ -892,8 +891,12 @@ export default function AssistantSessionsScreen() {
             disabled={saving}
           />
 
-          <View style={styles.modalContainer}>
+          <View
+            style={[styles.modalContainer, { paddingBottom: Math.max(insets.bottom, 12) + 12 }]}
+          >
             <ScrollView
+              style={styles.modalScroll}
+              contentContainerStyle={styles.modalScrollContent}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
             >
@@ -980,10 +983,8 @@ export default function AssistantSessionsScreen() {
                 Modul / Materi
               </Text>
 
-              <TextInput
-                style={[styles.input, styles.inputSingle]}
+              <FramedTextInput
                 placeholder="Contoh: Modul 3: Regresi Linear"
-                placeholderTextColor="#8E8E93"
                 value={form.moduleTitle}
                 onChangeText={(value) => {
                   setForm((previous) => ({
@@ -1121,10 +1122,8 @@ export default function AssistantSessionsScreen() {
                 </Text>
               </Text>
 
-              <TextInput
-                style={styles.input}
+              <FramedTextInput
                 placeholder="Contoh: Praktikan wajib membawa laptop."
-                placeholderTextColor="#8E8E93"
                 value={form.sessionNote}
                 onChangeText={(value) => {
                   setForm((previous) => ({
@@ -1136,10 +1135,13 @@ export default function AssistantSessionsScreen() {
                 }}
                 multiline
                 numberOfLines={3}
-                textAlignVertical="top"
                 editable={!saving}
               />
 
+            </ScrollView>
+
+            {/* BAGIAN BAWAH TETAP: pesan error + Batal / Simpan */}
+            <View style={styles.modalFooter}>
               {/* ERROR FORM */}
               {modalError ? (
                 <Text style={styles.modalError}>
@@ -1176,8 +1178,7 @@ export default function AssistantSessionsScreen() {
                   )}
                 </Pressable>
               </View>
-
-            </ScrollView>
+            </View>
           </View>
         </KeyboardAvoidingView>
       </Modal>
@@ -1282,7 +1283,7 @@ const styles = StyleSheet.create({
   // HALAMAN UTAMA
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: PAGE_BG,
   },
 
   content: {
@@ -1311,7 +1312,7 @@ const styles = StyleSheet.create({
 
   centered: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: PAGE_BG,
     flex: 1,
     justifyContent: 'center',
     padding: 25,
@@ -1466,7 +1467,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     padding: 20,
     gap: 9,
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderWidth: 1,
   },
 
@@ -1500,18 +1501,18 @@ const styles = StyleSheet.create({
   // ==========================================
 
   modalOverlay: {
-    alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.55)',
     flex: 1,
-    justifyContent: 'center',
-    padding: 20,
+    justifyContent: 'flex-end',
   },
 
   modalContainer: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 23,
-    maxHeight: '90%',
-    padding: 21,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '92%',
+    paddingHorizontal: 21,
+    paddingTop: 12,
     width: '100%',
   },
 
@@ -1536,6 +1537,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   modalDeleteButton: {
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     borderColor: '#E00000',
     borderRadius: 10,
@@ -1604,7 +1606,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     padding: 14,
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderWidth: 1,
   },
 
@@ -1643,22 +1645,7 @@ const styles = StyleSheet.create({
   },
 
   // INPUT
-  input: {
-    fontFamily: FONT.regular,
-    backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
-    borderRadius: 11,
-    borderWidth: 1,
-    color: '#111014',
-    fontSize: 14,
-    minHeight: 90,
-    paddingHorizontal: 12,
-    paddingVertical: 13,
-  },
 
-  inputSingle: {
-    minHeight: 48,
-  },
 
   modalError: {
     fontFamily: FONT.regular,
@@ -1669,11 +1656,24 @@ const styles = StyleSheet.create({
   },
 
   // TOMBOL MODAL
+  modalScroll: {
+    // Bisa menyusut supaya bagian bawah (tombol) tetap terlihat.
+    flexShrink: 1,
+  },
+  modalScrollContent: {
+    paddingBottom: 16,
+  },
+  modalFooter: {
+    borderTopColor: BORDER_COLOR,
+    borderTopWidth: 1,
+    gap: 10,
+    marginHorizontal: -21,
+    paddingHorizontal: 21,
+    paddingTop: 12,
+  },
   modalActions: {
     flexDirection: 'row',
     gap: 10,
-    marginTop: 20,
-    marginBottom: 5,
   },
 
   cancelButton: {
@@ -1682,7 +1682,7 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     flex: 1,
     padding: 13,
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderWidth: 1,
   },
 
@@ -1746,7 +1746,7 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     gap: 5,
     padding: 13,
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderWidth: 1,
   },
 
@@ -1775,7 +1775,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     paddingVertical: 14,
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderWidth: 1,
   },
 

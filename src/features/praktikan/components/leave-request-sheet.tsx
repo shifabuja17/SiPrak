@@ -7,7 +7,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 
@@ -28,6 +27,8 @@ import {
   validateLeaveReason,
 } from '@/features/praktikan/utils/leave-validation';
 import { FONT } from '@/constants/fonts';
+import FramedTextInput from '@/components/common/FramedTextInput';
+import { BORDER_COLOR } from '@/constants/colors';
 
 export interface LeaveRequestSheetProps {
   visible: boolean;
@@ -410,7 +411,7 @@ export function LeaveRequestSheet({
                 </Text>
               </View>
 
-              <TextInput
+              <FramedTextInput
                 editable={!submitting && !isFormBlocked}
                 multiline
                 numberOfLines={4}
@@ -425,13 +426,9 @@ export function LeaveRequestSheet({
                   }
                 }}
                 placeholder="Contoh: Saya tidak dapat hadir karena sakit demam dan berobat ke klinik."
-                placeholderTextColor="#8C8C8C"
-                style={[
-                  styles.textArea,
-                  (visibleValidationError || displayedSubmitError) && styles.textAreaError,
-                  (submitting || isFormBlocked) && styles.textAreaDisabled,
-                ]}
-                textAlignVertical="top"
+                disabled={submitting || isFormBlocked}
+                frameStyle={(visibleValidationError || displayedSubmitError) && styles.textAreaError}
+                style={styles.textArea}
                 value={alasan}
               />
 
@@ -439,12 +436,6 @@ export function LeaveRequestSheet({
                 Minimal {LEAVE_REASON_MIN_LENGTH} karakter, maksimal {LEAVE_REASON_MAX_LENGTH}{' '}
                 karakter.
               </Text>
-
-              <View style={styles.aiNoticeBox}>
-                <Text style={styles.aiNoticeText}>
-                  Alasan izin akan diklasifikasikan oleh AI sebagai informasi pendukung bagi Asisten. Keputusan tetap ditentukan oleh Asisten.
-                </Text>
-              </View>
 
               {visibleValidationError ? (
                 <Text style={styles.inlineErrorText}>{visibleValidationError}</Text>
@@ -557,7 +548,7 @@ const styles = StyleSheet.create({
   },
   sessionInfoBox: {
     backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderWidth: 1,
     borderRadius: 12,
     gap: 4,
@@ -585,7 +576,7 @@ const styles = StyleSheet.create({
   },
   sessionOption: {
     backgroundColor: '#FFFFFF',
-    borderColor: '#D9D9D9',
+    borderColor: BORDER_COLOR,
     borderRadius: 12,
     borderWidth: 1,
     gap: 6,
@@ -598,7 +589,7 @@ const styles = StyleSheet.create({
   },
   sessionOptionBlocked: {
     backgroundColor: '#F5F5F5',
-    borderColor: '#E5E5E5',
+    borderColor: BORDER_COLOR,
     opacity: 0.72,
   },
   sessionOptionTop: {
@@ -632,7 +623,7 @@ const styles = StyleSheet.create({
   },
   radioOuter: {
     alignItems: 'center',
-    borderColor: '#A3A3A3',
+    borderColor: BORDER_COLOR,
     borderRadius: 999,
     borderWidth: 1.5,
     height: 18,
@@ -644,7 +635,7 @@ const styles = StyleSheet.create({
     borderColor: '#000000',
   },
   radioOuterDisabled: {
-    borderColor: '#D4D4D4',
+    borderColor: BORDER_COLOR,
   },
   radioInner: {
     backgroundColor: '#000000',
@@ -666,7 +657,7 @@ const styles = StyleSheet.create({
   },
   emptySessionsBox: {
     backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderWidth: 1,
     borderRadius: 12,
     padding: 14,
@@ -707,42 +698,15 @@ const styles = StyleSheet.create({
     color: '#E00000',
   },
   textArea: {
-    fontFamily: FONT.regular,
-    backgroundColor: '#FFFFFF',
-    borderColor: '#BFBFBF',
-    borderRadius: 12,
-    borderWidth: 1,
-    color: '#000000',
-    fontSize: 14,
-    lineHeight: 20,
     minHeight: 104,
-    padding: 12,
   },
   textAreaError: {
     borderColor: '#E00000',
-  },
-  textAreaDisabled: {
-    backgroundColor: '#F5F5F5',
-    color: '#737373',
   },
   helperText: {
     fontFamily: FONT.regular,
     color: '#666666',
     fontSize: 12,
-  },
-  aiNoticeBox: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
-  aiNoticeText: {
-    fontFamily: FONT.regular,
-    color: '#404040',
-    fontSize: 12,
-    lineHeight: 17,
   },
   inlineErrorText: {
     fontFamily: FONT.semibold,
@@ -769,8 +733,9 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   cancelButton: {
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
-    borderColor: '#BFBFBF',
+    borderColor: BORDER_COLOR,
     borderRadius: 12,
     borderWidth: 1,
     flex: 1,
@@ -784,7 +749,7 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     alignItems: 'center',
-    backgroundColor: '#000000',
+    backgroundColor: '#F47321',
     borderRadius: 12,
     flex: 1.5,
     justifyContent: 'center',

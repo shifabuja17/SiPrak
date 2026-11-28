@@ -28,6 +28,7 @@ import { useMyAttendanceMap } from '@/features/praktikan/hooks/use-session-atten
 import PraktikanHome from '@/features/praktikan/components/praktikan-home';
 import { formatMeetingTitle } from '@/features/praktikan/utils/format';
 import { FONT } from '@/constants/fonts';
+import { BORDER_COLOR, PAGE_BG } from '@/constants/colors';
 
 export default function ScheduleScreen() {
   const {
@@ -305,7 +306,7 @@ function ScheduleSessionCard({
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: PAGE_BG,
     flex: 1,
   },
   content: {
@@ -342,7 +343,7 @@ const styles = StyleSheet.create({
   mapShortcutCard: {
     alignItems: 'center',
     backgroundColor: '#F2F2F5',
-    borderColor: '#D9D9D9',
+    borderColor: BORDER_COLOR,
     borderRadius: 16,
     borderWidth: 1,
     flexDirection: 'row',
@@ -377,7 +378,7 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderColor: '#D9D9D9',
+    borderColor: BORDER_COLOR,
     borderRadius: 18,
     borderWidth: 1,
     gap: 12,
@@ -424,7 +425,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     alignItems: 'center',
-    borderTopColor: '#E5E5E5',
+    borderTopColor: BORDER_COLOR,
     borderTopWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',

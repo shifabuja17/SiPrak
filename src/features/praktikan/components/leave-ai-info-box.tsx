@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { FONT } from '@/constants/fonts';
+import { BORDER_COLOR } from '@/constants/colors';
 
 export interface LeaveAiInfoBoxProps {
   kategoriAI?: string | null;
@@ -40,7 +41,7 @@ export function LeaveAiInfoBox({ kategoriAI }: LeaveAiInfoBoxProps) {
 const styles = StyleSheet.create({
   aiBadgeBox: {
     backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderRadius: 14,
     borderWidth: 1,
     gap: 4,
@@ -61,7 +62,7 @@ const styles = StyleSheet.create({
   },
   aiUnavailableBox: {
     backgroundColor: '#FFFFFF',
-    borderColor: '#8E8E93',
+    borderColor: BORDER_COLOR,
     borderRadius: 14,
     borderWidth: 1,
     paddingHorizontal: 10,
