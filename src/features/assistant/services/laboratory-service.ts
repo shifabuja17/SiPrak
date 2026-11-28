@@ -6,12 +6,19 @@ import {
   onSnapshot,
   runTransaction,
   serverTimestamp,
+  writeBatch,
   type DocumentData,
   type QuerySnapshot,
   type Unsubscribe,
 } from 'firebase/firestore';
 
 import { authErrorMessage } from '@/context/AuthContext';
+import {
+  BULK_MAX_ROWS,
+  normalizeLabDuplicateKey,
+  type BulkLaboratoryItem,
+  type BulkReviewRow,
+} from '@/features/bulk';
 import { db } from '@/lib/firebase';
 
 // ==========================================
@@ -502,5 +509,293 @@ export async function updateLaboratory(
     });
   } catch (error) {
     throw mapLaboratoryError(error);
+  }
+}
+
+// ==========================================
+// BULK INSERT LABORATORIUM (FR-03, NFR-02)
+// ==========================================
+
+export type BulkCreateLaboratoryItemStatus = 'saved' | 'skipped' | 'failed';
+
+export interface BulkCreateLaboratoryItemResult {
+  rowIndex: number;
+  nama: string;
+  labId: string | null;
+  status: BulkCreateLaboratoryItemStatus;
+  reason: string;
+}
+
+export interface BulkCreateLaboratoriesResult {
+  mataKuliahId: string;
+  totalProcessed: number;
+  savedCount: number;
+  skippedCount: number;
+  failedCount: number;
+  createdLabIds: string[];
+  batchError: string | null;
+  items: BulkCreateLaboratoryItemResult[];
+}
+
+export interface CourseOptionItem {
+  value: string;
+  label: string;
+  detail?: string;
+}
+
+function readOptionalString(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+/**
+ * Mengambil kunci normalisasi (mataKuliahId::nama) laboratorium yang sudah terdaftar
+ * di Firestore untuk kebutuhan pengecekan duplikat sebelum bulk insert.
+ */
+export async function getExistingLaboratoryKeysByCourse(
+  mataKuliahId: string,
+): Promise<Set<string>> {
+  const courseId = mataKuliahId.trim();
+  if (!courseId) {
+    throw new Error('Kode mata kuliah wajib diisi untuk mengecek duplikat.');
+  }
+
+  try {
+    const snapshot = await getDocs(collection(db, LABORATORIES_COLLECTION));
+    const keys = new Set<string>();
+
+    for (const docSnap of snapshot.docs) {
+      const data = docSnap.data();
+      const rawName = readOptionalString(data.nama ?? data.name);
+      const docCourseId = readOptionalString(data.mataKuliahId);
+
+      // Cek laboratorium pada mata kuliah yang sama; untuk data legacy tanpa mataKuliahId,
+      // tidak menabrak mata kuliah baru kecuali nama + course memang cocok.
+      if (!rawName || !docCourseId) continue;
+
+      const key = normalizeLabDuplicateKey(rawName, docCourseId);
+      if (key && docCourseId.toLowerCase() === courseId.toLowerCase()) {
+        keys.add(key);
+      }
+    }
+
+    return keys;
+  } catch (error) {
+    throw mapLaboratoryError(error);
+  }
+}
+
+/**
+ * Mengambil daftar pilihan mata kuliah (`mataKuliahId`) yang tersedia dari koleksi
+ * `laboratories` dan `classes` di Firestore.
+ */
+export async function getAvailableCourseOptions(): Promise<CourseOptionItem[]> {
+  try {
+    const [labsSnap, classesSnap] = await Promise.all([
+      getDocs(collection(db, LABORATORIES_COLLECTION)),
+      getDocs(collection(db, 'classes')),
+    ]);
+
+    const optionByValue = new Map<string, CourseOptionItem>();
+
+    for (const docSnap of classesSnap.docs) {
+      const data = docSnap.data();
+      const value = readOptionalString(data.kode ?? docSnap.id);
+      if (!value) continue;
+      const title = readOptionalString(
+        data.nama ?? data.practicumName ?? data.className,
+      );
+      optionByValue.set(value.toLowerCase(), {
+        value,
+        label: title ? `${value} — ${title}` : value,
+        detail: 'Dari daftar kelas praktikum',
+      });
+    }
+
+    for (const docSnap of labsSnap.docs) {
+      const data = docSnap.data();
+      const value = readOptionalString(data.mataKuliahId);
+      if (!value) continue;
+      const key = value.toLowerCase();
+      if (!optionByValue.has(key)) {
+        optionByValue.set(key, {
+          value,
+          label: value,
+          detail: 'Sudah digunakan pada laboratorium',
+        });
+      }
+    }
+
+    return Array.from(optionByValue.values()).sort((a, b) =>
+      a.value.localeCompare(b.value),
+    );
+  } catch (error) {
+    throw mapLaboratoryError(error);
+  }
+}
+
+/**
+ * Menyimpan batch laboratorium tervalidasi untuk satu `mataKuliahId` secara atomik
+ * menggunakan Firestore `writeBatch` (maksimal 500 operasi batch per NFR-02).
+ */
+export async function bulkCreateLaboratories(
+  mataKuliahId: string,
+  rows: readonly BulkReviewRow<BulkLaboratoryItem>[],
+): Promise<BulkCreateLaboratoriesResult> {
+  const courseId = mataKuliahId.trim();
+  if (!courseId) {
+    throw new Error('Mata kuliah tujuan wajib dipilih sebelum menyimpan.');
+  }
+
+  const acceptedRows: {
+    row: BulkReviewRow<BulkLaboratoryItem>;
+    item: BulkLaboratoryItem;
+  }[] = [];
+  const skippedItems: BulkCreateLaboratoryItemResult[] = [];
+
+  for (const row of rows) {
+    const displayName = (row.raw.nama ?? row.data?.nama ?? '').trim() || `Baris #${row.rowIndex}`;
+
+    if (row.status !== 'accepted' || row.errors.length > 0 || !row.data) {
+      const reason =
+        row.errors.length > 0
+          ? row.errors.join('; ')
+          : 'Baris ditolak oleh pengguna (Denied).';
+      skippedItems.push({
+        rowIndex: row.rowIndex,
+        nama: displayName,
+        labId: null,
+        status: 'skipped',
+        reason,
+      });
+      continue;
+    }
+
+    acceptedRows.push({
+      row,
+      item: {
+        ...row.data,
+        mataKuliahId: courseId,
+      },
+    });
+  }
+
+  if (acceptedRows.length === 0) {
+    throw new Error('Tidak ada baris valid berstatus Accepted untuk disimpan.');
+  }
+
+  if (acceptedRows.length > BULK_MAX_ROWS) {
+    throw new Error(
+      `Jumlah baris terpilih (${acceptedRows.length}) melebihi batas atomik Firestore (${BULK_MAX_ROWS} operasi).`,
+    );
+  }
+
+  // Re-validasi akhir sebelum menulis ke batch atomik agar tidak ada data rusak lolos.
+  for (const { row, item } of acceptedRows) {
+    validateLaboratoryInput({
+      latitude: item.lat,
+      longitude: item.lng,
+      radius: item.radius,
+    });
+    if (!item.nama.trim()) {
+      throw new Error(`Baris #${row.rowIndex}: nama laboratorium wajib diisi.`);
+    }
+    if (!Number.isFinite(item.gracePeriodMenit) || item.gracePeriodMenit < 0) {
+      throw new Error(`Baris #${row.rowIndex}: gracePeriodMenit tidak valid.`);
+    }
+    if (!Number.isFinite(item.nominalDenda) || item.nominalDenda < 0) {
+      throw new Error(`Baris #${row.rowIndex}: nominalDenda tidak valid.`);
+    }
+  }
+
+  const batch = writeBatch(db);
+  const pendingWrites: {
+    rowIndex: number;
+    nama: string;
+    labId: string;
+  }[] = [];
+
+  for (const { row, item } of acceptedRows) {
+    const labRef = doc(collection(db, LABORATORIES_COLLECTION));
+    const cleanName = item.nama.trim();
+    const cleanLocation = item.lokasi.trim();
+
+    batch.set(labRef, {
+      id: labRef.id,
+      // Field kanonik Sprint 4
+      nama: cleanName,
+      mataKuliahId: courseId,
+      lokasi: cleanLocation,
+      lat: item.lat,
+      lng: item.lng,
+      radius: item.radius,
+      gracePeriodMenit: item.gracePeriodMenit,
+      nominalDenda: item.nominalDenda,
+      updatedAt: serverTimestamp(),
+      // Alias kompatibilitas Sprint 3
+      name: cleanName,
+      latitude: item.lat,
+      longitude: item.lng,
+    });
+
+    pendingWrites.push({
+      rowIndex: row.rowIndex,
+      nama: cleanName,
+      labId: labRef.id,
+    });
+  }
+
+  try {
+    await batch.commit();
+
+    const savedItems: BulkCreateLaboratoryItemResult[] = pendingWrites.map(
+      (entry) => ({
+        rowIndex: entry.rowIndex,
+        nama: entry.nama,
+        labId: entry.labId,
+        status: 'saved',
+        reason: 'Berhasil disimpan ke Firestore.',
+      }),
+    );
+
+    const items = [...savedItems, ...skippedItems].sort(
+      (a, b) => a.rowIndex - b.rowIndex,
+    );
+
+    return {
+      mataKuliahId: courseId,
+      totalProcessed: rows.length,
+      savedCount: savedItems.length,
+      skippedCount: skippedItems.length,
+      failedCount: 0,
+      createdLabIds: pendingWrites.map((entry) => entry.labId),
+      batchError: null,
+      items,
+    };
+  } catch (error) {
+    const mapped = mapLaboratoryError(error);
+    const failedItems: BulkCreateLaboratoryItemResult[] = pendingWrites.map(
+      (entry) => ({
+        rowIndex: entry.rowIndex,
+        nama: entry.nama,
+        labId: null,
+        status: 'failed',
+        reason: `Transaksi batch gagal (dibatalkan atomik): ${mapped.message}`,
+      }),
+    );
+
+    const items = [...failedItems, ...skippedItems].sort(
+      (a, b) => a.rowIndex - b.rowIndex,
+    );
+
+    return {
+      mataKuliahId: courseId,
+      totalProcessed: rows.length,
+      savedCount: 0,
+      skippedCount: skippedItems.length,
+      failedCount: failedItems.length,
+      createdLabIds: [],
+      batchError: mapped.message,
+      items,
+    };
   }
 }

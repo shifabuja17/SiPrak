@@ -58,3 +58,11 @@ export {
   type BulkToggleFeedback,
 } from './components/bulk-review-list';
 export { default as BulkRowEditModal } from './components/bulk-row-edit-modal';
+export {
+  createLabBulkValidationSchema,
+  LAB_BULK_FIELDS,
+  LAB_BULK_REQUIRED_HEADERS,
+  normalizeLabDuplicateKey,
+  parseLocaleNumber,
+  type BulkLaboratoryItem,
+} from './lab-bulk-schema';
