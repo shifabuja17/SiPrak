@@ -20,10 +20,13 @@ import type { Laboratory, LaboratoryPayload } from '@/types/laboratory';
 import {
   EMPTY_LABORATORY_FORM,
   laboratoryToFormValues,
+  parseNumericString,
   validateLaboratoryForm,
   type LaboratoryFormErrors,
   type LaboratoryFormValues,
 } from '../utils/laboratory-form';
+import LabLocationPickerModal from './lab-location-picker-modal';
+import type { LabLocationPickerResult } from './lab-location-picker-types';
 
 interface LaboratoryFormModalProps {
   visible: boolean;
@@ -52,10 +55,13 @@ export default function LaboratoryFormModal({
   const [values, setValues] = useState<LaboratoryFormValues>(EMPTY_LABORATORY_FORM);
   const [errors, setErrors] = useState<LaboratoryFormErrors>({});
   const [applyPolicyToCourse, setApplyPolicyToCourse] = useState(false);
-  const [mapPickerNoticeVisible, setMapPickerNoticeVisible] = useState(false);
+  const [mapPickerVisible, setMapPickerVisible] = useState(false);
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible) {
+      setMapPickerVisible(false);
+      return;
+    }
     setValues(
       mode === 'edit' && initialLab
         ? laboratoryToFormValues(initialLab)
@@ -63,8 +69,25 @@ export default function LaboratoryFormModal({
     );
     setErrors({});
     setApplyPolicyToCourse(false);
-    setMapPickerNoticeVisible(false);
+    setMapPickerVisible(false);
   }, [visible, mode, initialLab]);
+
+  function handleLocationPicked(result: LabLocationPickerResult) {
+    setValues((prev) => ({
+      ...prev,
+      lat: result.lat.toFixed(6),
+      lng: result.lng.toFixed(6),
+      radius: String(result.radius),
+    }));
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next.lat;
+      delete next.lng;
+      delete next.radius;
+      return next;
+    });
+    setMapPickerVisible(false);
+  }
 
   function updateField(field: keyof LaboratoryFormValues, nextValue: string) {
     setValues((prev) => ({ ...prev, [field]: nextValue }));
@@ -204,14 +227,13 @@ export default function LaboratoryFormModal({
               />
               <FieldError message={errors.lokasi} />
 
-              {/* KOORDINAT & PLACEHOLDER FR-11 */}
+              {/* KOORDINAT & PEMILIH PETA FR-11 */}
               <View style={styles.sectionHeaderRow}>
                 <Text style={styles.sectionLabel}>Titik Koordinat Presensi</Text>
-                {/* // TODO: FR-11 — Integrasi modal pemilih koordinat di peta */}
                 <Pressable
                   accessibilityRole="button"
                   disabled={saving}
-                  onPress={() => setMapPickerNoticeVisible((prev) => !prev)}
+                  onPress={() => setMapPickerVisible(true)}
                   style={({ pressed }) => [
                     styles.mapPlaceholderBtn,
                     pressed && !saving && styles.pressed,
@@ -220,15 +242,6 @@ export default function LaboratoryFormModal({
                   <Text style={styles.mapPlaceholderBtnText}>Pilih di Peta</Text>
                 </Pressable>
               </View>
-
-              {mapPickerNoticeVisible ? (
-                <View style={styles.infoBox}>
-                  <Text style={styles.infoText}>
-                    Pemilih koordinat langsung di peta akan tersedia pada tahap FR-11.
-                    Untuk sementara, masukkan nilai Latitude dan Longitude secara manual.
-                  </Text>
-                </View>
-              ) : null}
 
               <View style={styles.row}>
                 <View style={styles.col}>
@@ -377,6 +390,15 @@ export default function LaboratoryFormModal({
           </ScrollView>
         </View>
       </KeyboardAvoidingView>
+
+      <LabLocationPickerModal
+        visible={mapPickerVisible}
+        initialLat={parseNumericString(values.lat)}
+        initialLng={parseNumericString(values.lng)}
+        initialRadius={parseNumericString(values.radius)}
+        onClose={() => setMapPickerVisible(false)}
+        onConfirm={handleLocationPicked}
+      />
     </Modal>
   );
 }
