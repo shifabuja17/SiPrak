@@ -47,8 +47,7 @@ import LatePolicyModal from './late-policy-modal';
 
 function canManageLaboratories(rawRole: unknown): boolean {
   if (typeof rawRole !== 'string') return false;
-  const normalized = rawRole.trim().toUpperCase();
-  return normalized === 'ASLAB' || normalized === 'ASISTEN';
+  return rawRole.trim().toUpperCase() === 'ASLAB';
 }
 
 /**

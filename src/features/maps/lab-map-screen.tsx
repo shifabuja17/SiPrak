@@ -90,6 +90,10 @@ function isValidLabLocation(lab: LaboratoryLocation): boolean {
   );
 }
 
+function isAslabRole(rawRole: unknown): boolean {
+  return typeof rawRole === 'string' && rawRole.trim().toUpperCase() === 'ASLAB';
+}
+
 function getFocusDeltaForRadius(radiusMeters: number): number {
   return Math.max(0.002, (radiusMeters * 4.5) / 111000);
 }
@@ -513,6 +517,16 @@ function LabMap() {
     [validLaboratories, selectedLabId],
   );
 
+  useEffect(() => {
+    if (
+      !loading &&
+      selectedLabId !== null &&
+      !validLaboratories.some((lab) => lab.id === selectedLabId)
+    ) {
+      setSelectedLabId(null);
+    }
+  }, [loading, selectedLabId, validLaboratories]);
+
   const {
     ongoingActivity,
     nextActivity,
@@ -543,7 +557,7 @@ function LabMap() {
     }
 
     let active = true;
-    let seeding = role === 'asisten';
+    let seeding = isAslabRole(role);
     setLoading(true);
     setError(null);
 
@@ -563,7 +577,7 @@ function LabMap() {
       },
     );
 
-    if (role === 'asisten') {
+    if (isAslabRole(role)) {
       ensureDefaultLaboratories()
         .then(() => {
           if (!active) return;
@@ -796,12 +810,12 @@ function LabMap() {
         { bottom: FAB_BOTTOM + (selectedLab ? detailHeight + 10 : 0) },
       ]}
     >
-      {/* Asisten mengatur koordinat & radius 4 titik lokasi (FR-10, FR-11) dari peta. */}
-      {role === 'asisten' ? (
+      {/* Hanya Aslab yang dapat mengatur koordinat & radius lokasi lab dari peta. */}
+      {isAslabRole(role) ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Atur lokasi laboratorium"
-          onPress={() => router.push('/assistant/laboratories' as Href)}
+          onPress={() => router.push('/aslab/laboratories' as Href)}
           style={({ pressed }) => [styles.fab, pressed && styles.pressed]}
         >
           <SettingsIcon />
@@ -1072,7 +1086,7 @@ function LabMap() {
 
                 return (
                   <Circle
-                    key={`circle-${lab.id}`}
+                    key={`circle-${lab.id}-${lab.latitude}-${lab.longitude}-${lab.radius}`}
                     center={coordinate}
                     radius={lab.radius}
                     strokeWidth={isSelected ? 2 : 1.5}

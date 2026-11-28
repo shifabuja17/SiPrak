@@ -40,6 +40,10 @@ const EMPTY_FORM: LaboratoryFormState = {
 
 const NUMERIC_INPUT_PATTERN = /^[+-]?\d+(\.\d+)?$/;
 
+function isAslabRole(rawRole: unknown): boolean {
+  return typeof rawRole === 'string' && rawRole.trim().toUpperCase() === 'ASLAB';
+}
+
 function parseNumericField(rawValue: string, fieldLabel: string): number {
   const trimmed = rawValue.trim();
   if (!trimmed) {
@@ -144,7 +148,7 @@ export default function AssistantLaboratoriesScreen() {
   useEffect(() => {
     if (authLoading) return;
 
-    if (!profile || profile.role !== 'asisten') {
+    if (!profile || !isAslabRole(profile.role)) {
       setLaboratories([]);
       setLoading(false);
       setSeeding(false);
@@ -286,12 +290,12 @@ export default function AssistantLaboratoriesScreen() {
     );
   }
 
-  if (profile.role !== 'asisten') {
+  if (!isAslabRole(profile.role)) {
     return (
       <SafeAreaView style={styles.centered}>
         <Text style={styles.emptyTitle}>Akses Ditolak</Text>
         <Text style={styles.mutedText}>
-          Halaman ini hanya dapat diakses oleh Asisten.
+          Halaman ini hanya dapat diakses oleh Aslab.
         </Text>
       </SafeAreaView>
     );
