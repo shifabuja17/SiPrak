@@ -21,7 +21,7 @@ import Svg, { Path } from 'react-native-svg';
 import AssistantHeader from '@/components/common/AssistantHeader';
 
 import { useAuth } from '@/context/AuthContext';
-import { isAssistantRole } from '@/types/user';
+import { isAslabRole, isAssistantRole } from '@/types/user';
 
 import { SessionTile } from '@/components/common/session-schedule';
 import AttendanceStats from '@/features/assistant/components/attendance-stats';
@@ -265,7 +265,8 @@ export default function AssistantSessionsScreen() {
     }
 
     let active = true;
-    let seeding = true;
+    const canSeedLabs = isAslabRole(profile.role);
+    let seeding = canSeedLabs;
     setLabsLoading(true);
     setLabsError('');
 
@@ -284,22 +285,24 @@ export default function AssistantSessionsScreen() {
       },
     );
 
-    ensureDefaultLaboratories()
-      .then(() => {
-        if (!active) return;
-        seeding = false;
-        setLabsLoading(false);
-      })
-      .catch((seedError: unknown) => {
-        if (!active) return;
-        seeding = false;
-        setLabsLoading(false);
-        setLabsError(
-          seedError instanceof Error
-            ? seedError.message
-            : 'Gagal memuat daftar lokasi laboratorium.',
-        );
-      });
+    if (canSeedLabs) {
+      ensureDefaultLaboratories()
+        .then(() => {
+          if (!active) return;
+          seeding = false;
+          setLabsLoading(false);
+        })
+        .catch((seedError: unknown) => {
+          if (!active) return;
+          seeding = false;
+          setLabsLoading(false);
+          setLabsError(
+            seedError instanceof Error
+              ? seedError.message
+              : 'Gagal memuat daftar lokasi laboratorium.',
+          );
+        });
+    }
 
     return () => {
       active = false;

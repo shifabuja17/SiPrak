@@ -47,7 +47,7 @@ import { openAppLocationSettings } from '@/services/location-service';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 
 import MapsUnavailable from '@/features/maps/maps-unavailable';
-import { isAssistantRole } from '@/types/user';
+import { isAslabRole } from '@/types/user';
 
 const INITIAL_REGION: Region = {
   latitude: -7.0486375,
@@ -545,7 +545,7 @@ function LabMap() {
     }
 
     let active = true;
-    let seeding = isAssistantRole(role);
+    let seeding = isAslabRole(role);
     setLoading(true);
     setError(null);
 
@@ -565,7 +565,7 @@ function LabMap() {
       },
     );
 
-    if (isAssistantRole(role)) {
+    if (isAslabRole(role)) {
       ensureDefaultLaboratories()
         .then(() => {
           if (!active) return;
@@ -798,12 +798,12 @@ function LabMap() {
         { bottom: FAB_BOTTOM + (selectedLab ? detailHeight + 10 : 0) },
       ]}
     >
-      {/* Asisten mengatur koordinat & radius 4 titik lokasi (FR-10, FR-11) dari peta. */}
-      {isAssistantRole(role) ? (
+      {/* Aslab mengatur koordinat & radius titik lokasi laboratorium dari peta. */}
+      {isAslabRole(role) ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Atur lokasi laboratorium"
-          onPress={() => router.push('/assistant/laboratories' as Href)}
+          onPress={() => router.navigate('/aslab/laboratories' as Href)}
           style={({ pressed }) => [styles.fab, pressed && styles.pressed]}
         >
           <SettingsIcon />

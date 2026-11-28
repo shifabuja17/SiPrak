@@ -1,14 +1,14 @@
-import { Redirect, Stack } from 'expo-router';
+import { Redirect, Stack, type Href } from 'expo-router';
 
 import { useAuth } from '@/context/AuthContext';
 import { AssistantSessionsProvider } from '@/features/assistant/state/assistant-sessions-context';
-import { isAssistantRole } from '@/types/user';
+import { getHomeRouteForRole, isAsprakRole } from '@/types/user';
 
 export default function AssistantLayout() {
   const { loading, status, role } = useAuth();
 
-  if (!loading && status === 'authenticated' && !isAssistantRole(role)) {
-    return <Redirect href="/(tabs)/schedule" />;
+  if (!loading && status === 'authenticated' && !isAsprakRole(role)) {
+    return <Redirect href={getHomeRouteForRole(role) as Href} />;
   }
 
   return (

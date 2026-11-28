@@ -16,9 +16,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import AssistantHeader from '@/components/common/AssistantHeader';
+import AslabRoleGuard from '@/components/auth/aslab-role-guard';
 import { FONT } from '@/constants/fonts';
 import { useAuth } from '@/context/AuthContext';
-import { isAssistantRole } from '@/types/user';
+import { isAslabRole } from '@/types/user';
 import {
   ensureDefaultLaboratories,
   subscribeLaboratories,
@@ -122,6 +123,14 @@ function LocationIcon({
 }
 
 export default function AssistantLaboratoriesScreen() {
+  return (
+    <AslabRoleGuard featureName="Pengaturan Lokasi Laboratorium">
+      <AssistantLaboratoriesContent />
+    </AslabRoleGuard>
+  );
+}
+
+function AssistantLaboratoriesContent() {
   const { profile, loading: authLoading } = useAuth();
 
   const [laboratories, setLaboratories] = useState<LaboratoryLocation[]>([]);
@@ -145,7 +154,7 @@ export default function AssistantLaboratoriesScreen() {
   useEffect(() => {
     if (authLoading) return;
 
-    if (!profile || !isAssistantRole(profile.role)) {
+    if (!profile || !isAslabRole(profile.role)) {
       setLaboratories([]);
       setLoading(false);
       setSeeding(false);
@@ -287,12 +296,12 @@ export default function AssistantLaboratoriesScreen() {
     );
   }
 
-  if (!isAssistantRole(profile.role)) {
+  if (!isAslabRole(profile.role)) {
     return (
       <SafeAreaView style={styles.centered}>
         <Text style={styles.emptyTitle}>Akses Ditolak</Text>
         <Text style={styles.mutedText}>
-          Halaman ini hanya dapat diakses oleh Asisten.
+          Halaman ini hanya dapat diakses oleh Asisten Lab (Aslab).
         </Text>
       </SafeAreaView>
     );

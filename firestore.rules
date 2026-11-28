@@ -38,6 +38,12 @@ service cloud.firestore {
         || (isPraktikanRole(a) && isPraktikanRole(b));
     }
 
+    function isAslab() {
+      return signedIn()
+        && exists(userDoc(request.auth.uid))
+        && isAslabRole(userRole());
+    }
+
     function isAsisten() {
       return signedIn()
         && exists(userDoc(request.auth.uid))
@@ -106,11 +112,11 @@ service cloud.firestore {
       }
     }
 
-    // ---------- Titik lokasi praktikum (Sprint 3) ----------
-    // Dikelola Asisten (modul P2), dibaca modul presensi & Maps.
+    // ---------- Titik lokasi praktikum (Sprint 3 & 4) ----------
+    // Dikelola khusus Aslab (FR-02 s.d. FR-12), dibaca seluruh pengguna login untuk presensi & Maps.
     match /laboratories/{labId} {
       allow read: if signedIn();
-      allow write: if isAsisten();
+      allow write: if isAslab();
     }
 
     match /schedules/{scheduleId} {

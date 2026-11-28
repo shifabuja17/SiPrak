@@ -107,3 +107,16 @@ export function getRoleLabel(value: unknown): string {
       return 'Tidak diketahui';
   }
 }
+
+export function getHomeRouteForRole(value: unknown): string {
+  switch (normalizeRole(value)) {
+    case ROLES.ASLAB:
+      return '/aslab';
+    case ROLES.ASPRAK:
+      return '/assistant/(tabs)';
+    case ROLES.PRAKTIKAN:
+      return '/(tabs)/schedule';
+    default:
+      return '/login';
+  }
+}

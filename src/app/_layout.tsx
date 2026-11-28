@@ -6,6 +6,7 @@ import {
   useRootNavigationState,
   useRouter,
   useSegments,
+  type Href,
 } from 'expo-router';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
@@ -17,7 +18,12 @@ import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { PracticumProvider } from '@/context/PracticumContext';
 import { AssistantSessionsProvider } from '@/features/assistant/state/assistant-sessions-context';
 import { PushNotificationProvider } from '@/features/notifications/state/push-notification-context';
-import { isAssistantRole } from '@/types/user';
+import {
+  getHomeRouteForRole,
+  isAslabRole,
+  isAsprakRole,
+  isPraktikanRole,
+} from '@/types/user';
 
 // Tahan splash screen sampai status login selesai dipulihkan.
 // Dipanggil di global scope, tanpa await (sesuai dokumentasi Expo SDK 58).
@@ -42,7 +48,10 @@ function RootNavigator() {
   const segments = useSegments();
   const navigationState = useRootNavigationState();
   const isLoggedIn = status === 'authenticated';
-  const isAssistant = isLoggedIn && isAssistantRole(role);
+  const isAslab = isLoggedIn && isAslabRole(role);
+  const isAsprak = isLoggedIn && isAsprakRole(role);
+  const isPraktikan = isLoggedIn && isPraktikanRole(role);
+  const roleHomeRoute = (isLoggedIn ? getHomeRouteForRole(role) : '/login') as Href;
 
   useEffect(() => {
     if (!navigationState?.key || status === 'loading') {
@@ -70,25 +79,26 @@ function RootNavigator() {
         <Stack.Screen name="register" />
       </Stack.Protected>
 
-      {/* Hanya untuk pengguna yang sudah login */}
+      {/* Pintu masuk & detail sesi bersama untuk pengguna yang sudah login */}
       <Stack.Protected guard={isLoggedIn} redirectTo="/login">
-        {/* Pintu masuk: mengarahkan ke tab Jadwal */}
         <Stack.Screen name="index" />
-
-        {/* Navigasi utama aplikasi */}
-        <Stack.Screen name="(tabs)" />
-
-        {/* Halaman pendukung */}
         <Stack.Screen name="session/[id]" />
+      </Stack.Protected>
+
+      {/* Navigasi khusus Praktikan */}
+      <Stack.Protected guard={isPraktikan} redirectTo={roleHomeRoute}>
+        <Stack.Screen name="(tabs)" />
         <Stack.Screen name="attendance/[sessionId]" />
       </Stack.Protected>
 
-      {/* Navigasi khusus Asisten (Praktikan diarahkan kembali ke Jadwal) */}
-      <Stack.Protected
-        guard={isAssistant}
-        redirectTo={isLoggedIn ? '/(tabs)/schedule' : '/login'}
-      >
+      {/* Navigasi khusus Asprak (termasuk akun legacy ASISTEN) */}
+      <Stack.Protected guard={isAsprak} redirectTo={roleHomeRoute}>
         <Stack.Screen name="assistant" />
+      </Stack.Protected>
+
+      {/* Navigasi khusus Aslab */}
+      <Stack.Protected guard={isAslab} redirectTo={roleHomeRoute}>
+        <Stack.Screen name="aslab" />
       </Stack.Protected>
     </Stack>
   );

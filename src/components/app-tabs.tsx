@@ -8,7 +8,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 const INK = '#111014';
 const ON_INK = '#FFFFFF';
 
-type IconName = 'home' | 'history' | 'leave' | 'map' | 'profile' | 'class' | 'session';
+type IconName = 'home' | 'history' | 'leave' | 'map' | 'profile' | 'class' | 'session' | 'lab';
 
 function TabIcon({ name, color }: { name: IconName; color: string }) {
   const stroke = { stroke: color, strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
@@ -53,6 +53,12 @@ function TabIcon({ name, color }: { name: IconName; color: string }) {
         <>
           <Circle cx={12} cy={8.5} r={3.5} {...stroke} />
           <Path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5" {...stroke} />
+        </>
+      ) : null}
+      {name === 'lab' ? (
+        <>
+          <Path d="M9 3.5h6M10 3.5v5.2L5.2 17a2 2 0 0 0 1.7 3h10.2a2 2 0 0 0 1.7-3L14 8.7V3.5" {...stroke} />
+          <Path d="M7.5 14.5h9" {...stroke} />
         </>
       ) : null}
     </Svg>
