@@ -100,7 +100,54 @@ export interface BulkReviewSummary {
   total: number;
   accepted: number;
   denied: number;
+  withErrors: number;
   duplicateInFile: number;
   duplicateInDb: number;
   selectedForCommit: number;
+}
+
+export type BulkFieldKeyboardType =
+  | 'default'
+  | 'email-address'
+  | 'numeric'
+  | 'decimal-pad';
+
+export interface BulkFieldSpec {
+  key: string;
+  label: string;
+  required?: boolean;
+  placeholder?: string;
+  keyboardType?: BulkFieldKeyboardType;
+  multiline?: boolean;
+  validate?: (value: string, raw: Record<string, string>) => string | null;
+}
+
+export interface BulkRowParseOutput<T> {
+  data: T | null;
+  errors: string[];
+}
+
+export interface BulkValidationSchema<T> {
+  fields: readonly BulkFieldSpec[];
+  parseRow: (raw: Record<string, string>) => BulkRowParseOutput<T>;
+  getDuplicateKey: (
+    raw: Record<string, string>,
+    parsed: T | null,
+  ) => string | null;
+  duplicateInFileMessage?: (
+    rowIndex: number,
+    firstRowIndex: number,
+    duplicateKey: string,
+  ) => string;
+  duplicateInDbMessage?: (duplicateKey: string) => string;
+}
+
+export type BulkDbDuplicateChecker =
+  | ReadonlySet<string>
+  | ((keys: string[]) => Promise<ReadonlySet<string>> | ReadonlySet<string>);
+
+export interface BulkToggleStatusResult<T> {
+  rows: BulkReviewRow<T>[];
+  changed: boolean;
+  rejectedReason: string | null;
 }

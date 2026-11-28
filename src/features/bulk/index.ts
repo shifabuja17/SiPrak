@@ -1,6 +1,9 @@
 export {
   BULK_MAX_ROWS,
   BulkParseError,
+  type BulkDbDuplicateChecker,
+  type BulkFieldKeyboardType,
+  type BulkFieldSpec,
   type BulkFileFormat,
   type BulkParseErrorCode,
   type BulkParseErrorDetails,
@@ -8,9 +11,12 @@ export {
   type BulkParseResult,
   type BulkReviewRow,
   type BulkReviewSummary,
+  type BulkRowParseOutput,
   type BulkRowStatus,
   type BulkTemplateDefinition,
   type BulkTemplateKind,
+  type BulkToggleStatusResult,
+  type BulkValidationSchema,
   type ParseBulkFileOptions,
   type PickedBulkFile,
 } from './types';
@@ -38,3 +44,17 @@ export {
   parseXlsxMatrix,
 } from './parser-core';
 export { parseBulkFile, pickBulkDocument } from './file-parser';
+export {
+  acceptAllValidRows,
+  denyAllRows,
+  summarizeBulkRows,
+  toggleBulkRowStatus,
+  updateRowAndRevalidate,
+  validateBulkRows,
+} from './validation-engine';
+export {
+  default as BulkReviewList,
+  type BulkReviewFilter,
+  type BulkToggleFeedback,
+} from './components/bulk-review-list';
+export { default as BulkRowEditModal } from './components/bulk-row-edit-modal';
