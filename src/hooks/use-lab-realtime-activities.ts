@@ -2,15 +2,15 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useAuth } from '@/context/AuthContext';
 import {
-  isLaboratoryId,
-  type LaboratoryId,
-} from '@/features/assistant/services/laboratory-service';
-import {
   computeLabRealtimeActivities,
   subscribeLabActivitiesSnapshot,
   type LabActivitiesSnapshotData,
   type LabActivityItem,
 } from '@/services/lab-activities-service';
+
+function hasValidLabId(labId: string | null | undefined): labId is string {
+  return typeof labId === 'string' && labId.trim().length > 0;
+}
 
 export interface UseLabRealtimeActivitiesResult {
   ongoingActivity: LabActivityItem | null;
@@ -32,12 +32,12 @@ const CLOCK_REFRESH_INTERVAL_MS = 60_000;
  * berubah (termasuk menjadi `null`) atau saat komponen unmount (NFR-02).
  */
 export function useLabRealtimeActivities(
-  labId: LaboratoryId | string | null | undefined,
+  labId: string | null | undefined,
 ): UseLabRealtimeActivitiesResult {
   const { user, status: authStatus, loading: authLoading } = useAuth();
 
   const [snapshotState, setSnapshotState] = useState<{
-    labId: LaboratoryId;
+    labId: string;
     data: LabActivitiesSnapshotData;
   } | null>(null);
   const [loading, setLoading] = useState(Boolean(labId));
@@ -47,14 +47,14 @@ export function useLabRealtimeActivities(
 
   const retry = useCallback(() => {
     setError(null);
-    if (labId && isLaboratoryId(labId)) {
+    if (hasValidLabId(labId)) {
       setLoading(true);
     }
     setRetryNonce((previous) => previous + 1);
   }, [labId]);
 
   useEffect(() => {
-    if (!labId || !isLaboratoryId(labId)) {
+    if (!hasValidLabId(labId)) {
       return;
     }
 
@@ -77,7 +77,7 @@ export function useLabRealtimeActivities(
       return;
     }
 
-    if (!isLaboratoryId(labId)) {
+    if (!hasValidLabId(labId)) {
       setSnapshotState(null);
       setLoading(false);
       setError('ID laboratorium tidak valid.');
@@ -126,12 +126,11 @@ export function useLabRealtimeActivities(
   }, [authLoading, authStatus, user, labId, retryNonce]);
 
   const isMatchingLabSnapshot = Boolean(
-    labId && isLaboratoryId(labId) && snapshotState?.labId === labId,
+    hasValidLabId(labId) && snapshotState?.labId === labId,
   );
 
   const effectiveLoading = Boolean(
-    labId &&
-      isLaboratoryId(labId) &&
+    hasValidLabId(labId) &&
       !error &&
       (loading || !isMatchingLabSnapshot),
   );
@@ -139,8 +138,7 @@ export function useLabRealtimeActivities(
   const activities = useMemo(() => {
     if (
       !snapshotState ||
-      !labId ||
-      !isLaboratoryId(labId) ||
+      !hasValidLabId(labId) ||
       snapshotState.labId !== labId
     ) {
       return {

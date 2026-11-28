@@ -17,7 +17,6 @@ import {
 import {
   getLaboratoryPreset,
   isLaboratoryId,
-  type LaboratoryId,
 } from '@/features/assistant/services/laboratory-service';
 import { db } from '@/lib/firebase';
 import {
@@ -58,7 +57,7 @@ export interface SessionRecord {
 export interface SessionInput {
   scheduleId: string;
   classId: string;
-  labId: LaboratoryId;
+  labId: string;
   labName: string;
   practicumName: string;
   moduleTitle: string;
@@ -114,7 +113,7 @@ function mapSessionRecord(id: string, data: DocumentData): SessionRecord {
 }
 
 function validateSessionLabInput(input: SessionInput): SessionInput {
-  if (!isLaboratoryId(input.labId)) {
+  if (typeof input.labId !== 'string' || input.labId.trim().length === 0) {
     throw new Error('Pilih lokasi laboratorium yang valid.');
   }
 

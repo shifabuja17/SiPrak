@@ -55,7 +55,6 @@ import { FONT } from '@/constants/fonts';
 import { useClassCodes } from '@/features/assistant/hooks/use-class-codes';
 import {
   ensureDefaultLaboratories,
-  isLaboratoryId,
   subscribeLaboratories,
   type LaboratoryLocation,
 } from '@/features/assistant/services/laboratory-service';
@@ -402,7 +401,9 @@ export default function AssistantSessionsScreen() {
       return;
     }
 
-    const hasStoredLab = Boolean(item.labId && isLaboratoryId(item.labId));
+    const hasStoredLab = Boolean(
+      item.labId && laboratories.some((lab) => lab.id === item.labId),
+    );
     const resolvedLabId = hasStoredLab
       ? (item.labId as string)
       : findMatchingLaboratoryId(item.labName ?? item.classRoom, laboratories);
@@ -481,7 +482,7 @@ export default function AssistantSessionsScreen() {
     }
 
     const selectedLab = laboratories.find((lab) => lab.id === form.labId);
-    if (!selectedLab || !isLaboratoryId(selectedLab.id)) {
+    if (!selectedLab) {
       setModalError('Pilih lokasi laboratorium terlebih dahulu.');
       return;
     }

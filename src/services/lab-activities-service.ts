@@ -8,7 +8,6 @@ import {
 import {
   getLaboratoryPreset,
   isLaboratoryId,
-  type LaboratoryId,
 } from '@/features/assistant/services/laboratory-service';
 import type { SessionStatus } from '@/features/assistant/services/session-service';
 import {
@@ -24,7 +23,7 @@ export type LabActivitySessionStatus = SessionStatus | 'jadwal_rutin';
 export interface LabActivityItem {
   id: string;
   source: 'session' | 'schedule';
-  labId: LaboratoryId;
+  labId: string;
   labName: string;
   sessionId: string | null;
   scheduleId: string | null;
@@ -302,25 +301,24 @@ export function computeMinutesUntilNextSlot(
 
 function matchesLocationText(
   locationText: string | undefined,
-  labId: LaboratoryId,
+  labId: string,
 ): boolean {
   const normalized = locationText?.trim().toLowerCase() ?? '';
   if (!normalized) return false;
 
-  const preset = getLaboratoryPreset(labId);
-  const presetNameLower = preset.name.toLowerCase();
+  const preset = isLaboratoryId(labId) ? getLaboratoryPreset(labId) : null;
+  const presetNameLower = preset?.name.toLowerCase();
 
   return (
-    normalized === labId ||
-    normalized === presetNameLower ||
-    normalized.includes(presetNameLower)
+    normalized === labId.toLowerCase() ||
+    (presetNameLower ? normalized === presetNameLower || normalized.includes(presetNameLower) : false)
   );
 }
 
 function doesSessionBelongToLab(
   session: RawLabSessionRecord,
   schedule: RawLabScheduleRecord | undefined,
-  labId: LaboratoryId,
+  labId: string,
 ): boolean {
   if (session.labId) {
     return session.labId === labId;
@@ -475,10 +473,11 @@ function compareTimestampAsc(a: Date | null, b: Date | null): number {
  */
 export function computeLabRealtimeActivities(
   data: LabActivitiesSnapshotData,
-  labId: LaboratoryId,
+  labId: string,
   referenceDate: Date = new Date(),
 ): LabRealtimeActivitiesSummary {
-  const preset = getLaboratoryPreset(labId);
+  const preset = isLaboratoryId(labId) ? getLaboratoryPreset(labId) : null;
+  const fallbackLabName = preset?.name ?? labId;
 
   const ongoingEntries: {
     item: LabActivityItem;
@@ -537,7 +536,7 @@ export function computeLabRealtimeActivities(
       id: `session:${session.id}`,
       source: 'session',
       labId,
-      labName: session.labName ?? preset.name,
+      labName: session.labName ?? fallbackLabName,
       sessionId: session.id,
       scheduleId: session.scheduleId ?? null,
       classId: resolvedClassId,
@@ -601,7 +600,7 @@ export function computeLabRealtimeActivities(
         id: `schedule:${schedule.id}`,
         source: 'schedule',
         labId,
-        labName: preset.name,
+        labName: fallbackLabName,
         sessionId: null,
         scheduleId: schedule.id,
         classId: resolvedClassId,
@@ -672,11 +671,11 @@ export function computeLabRealtimeActivities(
  * Memanggil `cleanup()` secara otomatis akan menghentikan seluruh 3 listener `onSnapshot`.
  */
 export function subscribeLabActivitiesSnapshot(
-  labId: LaboratoryId,
+  labId: string,
   onData: (data: LabActivitiesSnapshotData) => void,
   onError: (error: Error) => void,
 ): Unsubscribe {
-  if (!isLaboratoryId(labId)) {
+  if (typeof labId !== 'string' || labId.trim().length === 0) {
     throw new Error(`ID laboratorium tidak valid: "${String(labId)}".`);
   }
 
