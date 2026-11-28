@@ -98,12 +98,20 @@ const LABORATORY_ORDER = new Map<LaboratoryId, number>(
 // ==========================================
 
 export interface LaboratoryLocation {
-  id: LaboratoryId;
+  id: string;
+  nama: string;
+  mataKuliahId: string;
+  lokasi: string;
+  lat: number;
+  lng: number;
+  radius: number;
+  gracePeriodMenit: number;
+  nominalDenda: number;
+  updatedAt: Date | null;
+  // Alias kompatibilitas Sprint 3
   name: string;
   latitude: number;
   longitude: number;
-  radius: number;
-  updatedAt: Date | null;
 }
 
 export interface UpdateLaboratoryInput {
@@ -131,6 +139,15 @@ export function getLaboratoryPreset(labId: LaboratoryId): LaboratoryPreset {
     throw new Error(`Preset laboratorium "${String(labId)}" tidak ditemukan.`);
   }
   return preset;
+}
+
+function assertNonEmptyLabId(labId: unknown): string {
+  if (typeof labId !== 'string' || labId.trim().length === 0) {
+    throw new Error(
+      `ID laboratorium tidak valid: "${String(labId ?? '')}".`,
+    );
+  }
+  return labId.trim();
 }
 
 function assertValidLaboratoryId(labId: unknown): LaboratoryId {
@@ -207,11 +224,19 @@ function toDateOrNull(value: unknown): Date | null {
   return null;
 }
 
+function readOptionalNonNegativeNumber(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0
+    ? value === 0
+      ? 0
+      : value
+    : 0;
+}
+
 function mapLaboratoryDoc(
   docId: string,
   data: DocumentData,
 ): LaboratoryLocation {
-  const labId = assertValidLaboratoryId(docId);
+  const labId = assertNonEmptyLabId(docId);
 
   if (data.id !== undefined && data.id !== labId) {
     throw new Error(
@@ -219,17 +244,24 @@ function mapLaboratoryDoc(
     );
   }
 
-  if (typeof data.name !== 'string' || data.name.trim().length === 0) {
+  const resolvedName =
+    typeof data.nama === 'string' && data.nama.trim().length > 0
+      ? data.nama.trim()
+      : typeof data.name === 'string' && data.name.trim().length > 0
+        ? data.name.trim()
+        : '';
+
+  if (!resolvedName) {
     throw new Error(
-      `Dokumen laboratorium "${labId}" tidak memiliki field "name" yang valid.`,
+      `Dokumen laboratorium "${labId}" tidak memiliki field "nama"/"name" yang valid.`,
     );
   }
 
   let validatedCoords: UpdateLaboratoryInput;
   try {
     validatedCoords = validateLaboratoryInput({
-      latitude: data.latitude as number,
-      longitude: data.longitude as number,
+      latitude: (data.lat ?? data.latitude) as number,
+      longitude: (data.lng ?? data.longitude) as number,
       radius: data.radius as number,
     });
   } catch (err) {
@@ -239,22 +271,34 @@ function mapLaboratoryDoc(
 
   return {
     id: labId,
-    name: data.name.trim(),
+    nama: resolvedName,
+    mataKuliahId: typeof data.mataKuliahId === 'string' ? data.mataKuliahId.trim() : '',
+    lokasi: typeof data.lokasi === 'string' ? data.lokasi.trim() : '',
+    lat: validatedCoords.latitude,
+    lng: validatedCoords.longitude,
+    radius: validatedCoords.radius,
+    gracePeriodMenit: readOptionalNonNegativeNumber(data.gracePeriodMenit),
+    nominalDenda: readOptionalNonNegativeNumber(data.nominalDenda),
+    updatedAt: toDateOrNull(data.updatedAt),
+    name: resolvedName,
     latitude: validatedCoords.latitude,
     longitude: validatedCoords.longitude,
-    radius: validatedCoords.radius,
-    updatedAt: toDateOrNull(data.updatedAt),
   };
 }
 
 function sortLaboratories(
   laboratories: LaboratoryLocation[],
 ): LaboratoryLocation[] {
-  return [...laboratories].sort(
-    (a, b) =>
-      (LABORATORY_ORDER.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
-      (LABORATORY_ORDER.get(b.id) ?? Number.MAX_SAFE_INTEGER),
-  );
+  return [...laboratories].sort((a, b) => {
+    const orderA = LABORATORY_ORDER.get(a.id as LaboratoryId);
+    const orderB = LABORATORY_ORDER.get(b.id as LaboratoryId);
+    if (orderA !== undefined && orderB !== undefined) {
+      return orderA - orderB;
+    }
+    if (orderA !== undefined) return -1;
+    if (orderB !== undefined) return 1;
+    return a.nama.localeCompare(b.nama, 'id');
+  });
 }
 
 function mapLaboratoriesSnapshot(
@@ -263,9 +307,6 @@ function mapLaboratoriesSnapshot(
   const laboratories: LaboratoryLocation[] = [];
 
   for (const docSnap of snapshot.docs) {
-    if (!isLaboratoryId(docSnap.id)) {
-      continue;
-    }
     laboratories.push(mapLaboratoryDoc(docSnap.id, docSnap.data()));
   }
 
@@ -405,7 +446,7 @@ export function subscribeLaboratoryById(
   onData: (laboratory: LaboratoryLocation | null) => void,
   onError: (error: Error) => void,
 ): Unsubscribe {
-  const validLabId = assertValidLaboratoryId(labId);
+  const validLabId = assertNonEmptyLabId(labId);
   let active = true;
 
   const unsubscribe = onSnapshot(
@@ -454,7 +495,7 @@ export async function getLaboratories(): Promise<LaboratoryLocation[]> {
 export async function getLaboratoryById(
   labId: string,
 ): Promise<LaboratoryLocation | null> {
-  const validLabId = assertValidLaboratoryId(labId);
+  const validLabId = assertNonEmptyLabId(labId);
 
   try {
     const snapshot = await getDoc(doc(db, LABORATORIES_COLLECTION, validLabId));
@@ -628,6 +669,74 @@ export async function getAvailableCourseOptions(): Promise<CourseOptionItem[]> {
     return Array.from(optionByValue.values()).sort((a, b) =>
       a.value.localeCompare(b.value),
     );
+  } catch (error) {
+    throw mapLaboratoryError(error);
+  }
+}
+
+export interface CreateSingleLaboratoryInput {
+  nama: string;
+  mataKuliahId: string;
+  lokasi?: string;
+  lat: number;
+  lng: number;
+  radius: number;
+  gracePeriodMenit: number;
+  nominalDenda: number;
+}
+
+/**
+ * Membuat 1 dokumen laboratorium baru dengan skema Sprint 4 + alias Sprint 3.
+ */
+export async function createLaboratory(
+  input: CreateSingleLaboratoryInput,
+): Promise<string> {
+  const cleanName = input.nama.trim();
+  const cleanCourseId = input.mataKuliahId.trim();
+  const cleanLocation = (input.lokasi ?? '').trim();
+
+  if (cleanName.length < 2) {
+    throw new Error('Nama laboratorium minimal 2 karakter.');
+  }
+  if (!cleanCourseId) {
+    throw new Error('Kode mata kuliah (mataKuliahId) wajib diisi.');
+  }
+
+  const coords = validateLaboratoryInput({
+    latitude: input.lat,
+    longitude: input.lng,
+    radius: input.radius,
+  });
+
+  if (!Number.isFinite(input.gracePeriodMenit) || input.gracePeriodMenit < 0) {
+    throw new Error('Grace period harus berupa angka minimal 0 menit.');
+  }
+  if (!Number.isFinite(input.nominalDenda) || input.nominalDenda < 0) {
+    throw new Error('Nominal denda harus berupa angka minimal 0.');
+  }
+
+  const labRef = doc(collection(db, LABORATORIES_COLLECTION));
+
+  try {
+    await runTransaction(db, async (transaction) => {
+      transaction.set(labRef, {
+        id: labRef.id,
+        nama: cleanName,
+        mataKuliahId: cleanCourseId,
+        lokasi: cleanLocation,
+        lat: coords.latitude,
+        lng: coords.longitude,
+        radius: Math.round(coords.radius),
+        gracePeriodMenit: Math.round(input.gracePeriodMenit),
+        nominalDenda: Math.round(input.nominalDenda),
+        updatedAt: serverTimestamp(),
+        name: cleanName,
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+      });
+    });
+
+    return labRef.id;
   } catch (error) {
     throw mapLaboratoryError(error);
   }
