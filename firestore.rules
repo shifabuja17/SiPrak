@@ -67,9 +67,15 @@ service cloud.firestore {
     // (sedikit di bawah nilai sebenarnya ~110.500 m di lintang Semarang), sehingga kotak
     // ini selalu memuat lingkaran radius. Pemeriksaan jarak yang presisi (haversine)
     // dilakukan aplikasi dan hasilnya dicek lagi lewat field 'jarak'.
+    function hasLabCoords(lab) {
+      return (lab.keys().hasAll(['lat', 'lng']) && lab.lat is number && lab.lng is number)
+        || (lab.keys().hasAll(['latitude', 'longitude']) && lab.latitude is number && lab.longitude is number);
+    }
+
     function withinLabBox(lat, lng, lab, radius) {
-      return math.abs(lat - lab.latitude) * 110000 <= radius
-        && math.abs(lng - lab.longitude) * 110000 <= radius;
+      return hasLabCoords(lab)
+        && math.abs(lat - lab.get('lat', lab.get('latitude', 0))) * 110000 <= radius
+        && math.abs(lng - lab.get('lng', lab.get('longitude', 0))) * 110000 <= radius;
     }
 
     // ---------- users/{uid} ----------
@@ -117,6 +123,28 @@ service cloud.firestore {
     match /laboratories/{labId} {
       allow read: if signedIn();
       allow write: if isAslab();
+    }
+
+    // ---------- Keanggotaan laboratorium (Sprint 4) ----------
+    // ID dokumen deterministik '{labId}_{userId}' -> mencegah duplikasi dan memudahkan Rules.
+    match /labMembers/{memberId} {
+      allow read: if isAsisten()
+        || (signedIn() && resource.data.userId == request.auth.uid);
+
+      allow create, update: if isAslab()
+        && request.resource.data.keys().hasOnly(
+             ['labId', 'userId', 'peran', 'aktif', 'createdAt', 'updatedAt'])
+        && request.resource.data.keys().hasAll(
+             ['labId', 'userId', 'peran', 'aktif'])
+        && request.resource.data.labId is string
+        && request.resource.data.userId is string
+        && memberId == request.resource.data.labId + '_' + request.resource.data.userId
+        && exists(/databases/$(database)/documents/laboratories/$(request.resource.data.labId))
+        && exists(/databases/$(database)/documents/users/$(request.resource.data.userId))
+        && request.resource.data.peran in ['praktikan', 'asprak']
+        && request.resource.data.aktif is bool;
+
+      allow delete: if false;
     }
 
     match /schedules/{scheduleId} {

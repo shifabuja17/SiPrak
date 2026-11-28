@@ -33,7 +33,6 @@ import { useAuth } from '@/context/AuthContext';
 import {
   ensureDefaultLaboratories,
   subscribeLaboratories,
-  type LaboratoryId,
   type LaboratoryLocation,
 } from '@/features/assistant/services/laboratory-service';
 import { TAB_BAR_SPACE } from '@/features/praktikan/ui/praktikan-ui';
@@ -103,7 +102,7 @@ function LabChipStrip({
   elevated = false,
 }: {
   laboratories: LaboratoryLocation[];
-  selectedLabId: LaboratoryId | null;
+  selectedLabId: string | null;
   onSelect: (lab: LaboratoryLocation) => void;
   elevated?: boolean;
 }) {
@@ -464,7 +463,7 @@ function LabMap() {
   const [error, setError] = useState<string | null>(null);
   const [retryNonce, setRetryNonce] = useState(0);
 
-  const [selectedLabId, setSelectedLabId] = useState<LaboratoryId | null>(null);
+  const [selectedLabId, setSelectedLabId] = useState<string | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [mapLayoutReady, setMapLayoutReady] = useState(false);
   const [locationFeedback, setLocationFeedback] = useState<string | null>(null);
