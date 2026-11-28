@@ -566,16 +566,11 @@ export function createAsprakBulkSchema(
   };
 }
 
-/**
- * Validator khusus alur Bulk Asprak (kompatibel dengan `validateBulkRows`).
- */
-export async function validateAsprakRows(
-  rows: readonly BulkParsedRow[],
+function buildAsprakValidationContext(
   labId: string,
   existingMembers: ExistingMembersInput,
   usersMap: UsersLookupMap,
-  options: ValidateAsprakRowsOptions = {},
-): Promise<BulkReviewRow<BulkAsprakItem>[]> {
+) {
   const validLabId = assertValidLabId(labId);
   const targetIndex = indexActiveMembers(existingMembers);
 
@@ -590,5 +585,45 @@ export async function validateAsprakRows(
     targetIndex.memberByUserId,
   );
 
+  return { dbDuplicateKeys, schema };
+}
+
+/**
+ * Validator khusus alur Bulk Asprak (kompatibel dengan `validateBulkRows`).
+ */
+export async function validateAsprakRows(
+  rows: readonly BulkParsedRow[],
+  labId: string,
+  existingMembers: ExistingMembersInput,
+  usersMap: UsersLookupMap,
+  options: ValidateAsprakRowsOptions = {},
+): Promise<BulkReviewRow<BulkAsprakItem>[]> {
+  const { schema, dbDuplicateKeys } = buildAsprakValidationContext(
+    labId,
+    existingMembers,
+    usersMap,
+  );
+
   return validateBulkRows(rows, schema, dbDuplicateKeys, options.previousRows);
+}
+
+/**
+ * Memperbarui 1 baris review Asprak setelah diedit dan menjalankan validasi ulang
+ * seluruh tabel beserta pengecekan duplikat file & Firestore.
+ */
+export async function updateAsprakRowAndRevalidate(
+  rows: readonly BulkReviewRow<BulkAsprakItem>[],
+  rowId: string,
+  updatedRaw: Record<string, string>,
+  labId: string,
+  existingMembers: ExistingMembersInput,
+  usersMap: UsersLookupMap,
+): Promise<BulkReviewRow<BulkAsprakItem>[]> {
+  const { schema, dbDuplicateKeys } = buildAsprakValidationContext(
+    labId,
+    existingMembers,
+    usersMap,
+  );
+
+  return updateRowAndRevalidate(rows, rowId, updatedRaw, schema, dbDuplicateKeys);
 }

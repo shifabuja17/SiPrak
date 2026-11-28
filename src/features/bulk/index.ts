@@ -68,6 +68,7 @@ export {
   normalizeCanonicalUserRole,
   PRAKTIKAN_BULK_FIELDS,
   PRAKTIKAN_BULK_REQUIRED_HEADERS,
+  updateAsprakRowAndRevalidate,
   updatePraktikanRowAndRevalidate,
   validateAsprakRows,
   validatePraktikanRows,
