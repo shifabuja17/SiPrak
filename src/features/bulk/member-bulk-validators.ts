@@ -6,7 +6,10 @@ import type {
   BulkRowParseOutput,
   BulkValidationSchema,
 } from './types';
-import { validateBulkRows } from './validation-engine';
+import {
+  updateRowAndRevalidate,
+  validateBulkRows,
+} from './validation-engine';
 
 export type CanonicalUserRole = 'ASLAB' | 'ASPRAK' | 'PRAKTIKAN';
 
@@ -376,19 +379,15 @@ export function createPraktikanBulkSchema(
   };
 }
 
-/**
- * Validator khusus alur Bulk Praktikan (kompatibel dengan `validateBulkRows`).
- */
-export async function validatePraktikanRows(
-  rows: readonly BulkParsedRow[],
+function buildPraktikanValidationContext(
   labId: string,
   existingMembers: ExistingMembersInput,
   usersMap: UsersLookupMap,
-  options: ValidatePraktikanRowsOptions = {},
-): Promise<BulkReviewRow<BulkPraktikanItem>[]> {
+  courseLabMembers: ExistingMembersInput = [],
+) {
   const validLabId = assertValidLabId(labId);
   const targetIndex = indexActiveMembers(existingMembers);
-  const courseIndex = indexActiveMembers(options.courseLabMembers ?? []);
+  const courseIndex = indexActiveMembers(courseLabMembers);
 
   const dbDuplicateKeys = new Set<string>();
   for (const uid of targetIndex.activeUserIds) {
@@ -405,7 +404,50 @@ export async function validatePraktikanRows(
     courseIndex.memberByUserId,
   );
 
+  return { dbDuplicateKeys, schema };
+}
+
+/**
+ * Validator khusus alur Bulk Praktikan (kompatibel dengan `validateBulkRows`).
+ */
+export async function validatePraktikanRows(
+  rows: readonly BulkParsedRow[],
+  labId: string,
+  existingMembers: ExistingMembersInput,
+  usersMap: UsersLookupMap,
+  options: ValidatePraktikanRowsOptions = {},
+): Promise<BulkReviewRow<BulkPraktikanItem>[]> {
+  const { schema, dbDuplicateKeys } = buildPraktikanValidationContext(
+    labId,
+    existingMembers,
+    usersMap,
+    options.courseLabMembers,
+  );
+
   return validateBulkRows(rows, schema, dbDuplicateKeys, options.previousRows);
+}
+
+/**
+ * Memperbarui 1 baris review Praktikan setelah diedit dan menjalankan validasi ulang
+ * seluruh tabel beserta pengecekan duplikat file & Firestore.
+ */
+export async function updatePraktikanRowAndRevalidate(
+  rows: readonly BulkReviewRow<BulkPraktikanItem>[],
+  rowId: string,
+  updatedRaw: Record<string, string>,
+  labId: string,
+  existingMembers: ExistingMembersInput,
+  usersMap: UsersLookupMap,
+  options: Omit<ValidatePraktikanRowsOptions, 'previousRows'> = {},
+): Promise<BulkReviewRow<BulkPraktikanItem>[]> {
+  const { schema, dbDuplicateKeys } = buildPraktikanValidationContext(
+    labId,
+    existingMembers,
+    usersMap,
+    options.courseLabMembers,
+  );
+
+  return updateRowAndRevalidate(rows, rowId, updatedRaw, schema, dbDuplicateKeys);
 }
 
 // ==========================================

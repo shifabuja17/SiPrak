@@ -380,6 +380,19 @@ export async function isActiveLabMember(
   return roleFilter ? member.peran === roleFilter : true;
 }
 
+export async function getAllLaboratories(): Promise<Laboratory[]> {
+  try {
+    const snapshot = await getDocs(collection(db, LABORATORIES_COLLECTION));
+    const labs: Laboratory[] = [];
+    for (const docSnap of snapshot.docs) {
+      labs.push(mapLaboratoryDocSummary(docSnap.id, docSnap.data()));
+    }
+    return labs.sort((a, b) => a.nama.localeCompare(b.nama, 'id'));
+  } catch (error) {
+    throw mapLabMemberError(error);
+  }
+}
+
 /**
  * Mengambil seluruh dokumen keanggotaan (`aktif: true` dan `false`) pada `labId`.
  */

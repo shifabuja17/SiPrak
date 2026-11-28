@@ -38,6 +38,7 @@
       ],
       "expo-status-bar",
       "expo-web-browser",
+      "expo-sharing",
       "react-native-maps",
       [
         "expo-location",
