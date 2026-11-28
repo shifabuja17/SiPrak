@@ -394,6 +394,77 @@ export async function getAllLaboratories(): Promise<Laboratory[]> {
 }
 
 /**
+ * Mendengarkan daftar seluruh laboratorium secara real-time melalui `onSnapshot`.
+ */
+export function subscribeAllLaboratories(
+  onData: (laboratories: Laboratory[]) => void,
+  onError: (error: Error) => void,
+): Unsubscribe {
+  let active = true;
+
+  const unsubscribe = onSnapshot(
+    collection(db, LABORATORIES_COLLECTION),
+    (snapshot) => {
+      if (!active) return;
+
+      try {
+        const labs = snapshot.docs
+          .map((docSnap) => mapLaboratoryDocSummary(docSnap.id, docSnap.data()))
+          .sort((a, b) => a.nama.localeCompare(b.nama, 'id'));
+        onData(labs);
+      } catch (error) {
+        onError(mapLabMemberError(error));
+      }
+    },
+    (error) => {
+      if (!active) return;
+      onError(mapLabMemberError(error));
+    },
+  );
+
+  return () => {
+    active = false;
+    unsubscribe();
+  };
+}
+
+/**
+ * Mendengarkan seluruh anggota berstatus aktif (`aktif === true`) di koleksi `labMembers`
+ * secara real-time untuk menampilkan ringkasan per laboratorium.
+ */
+export function subscribeAllActiveLabMembers(
+  onData: (members: LabMember[]) => void,
+  onError: (error: Error) => void,
+): Unsubscribe {
+  let active = true;
+
+  const unsubscribe = onSnapshot(
+    query(collection(db, LAB_MEMBERS_COLLECTION), where('aktif', '==', true)),
+    (snapshot) => {
+      if (!active) return;
+
+      try {
+        const members = snapshot.docs.map((docSnap) =>
+          mapLabMemberDoc(docSnap.id, docSnap.data()),
+        );
+        onData(sortMembers(members));
+      } catch (error) {
+        onError(mapLabMemberError(error));
+      }
+    },
+    (error) => {
+      if (!active) return;
+      onError(mapLabMemberError(error));
+    },
+  );
+
+  return () => {
+    active = false;
+    unsubscribe();
+  };
+}
+
+/**
  * Mengambil seluruh dokumen keanggotaan (`aktif: true` dan `false`) pada `labId`.
  */
 export async function getLabMembersForLab(labId: string): Promise<LabMember[]> {

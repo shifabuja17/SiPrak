@@ -10,6 +10,13 @@ import { useAuth } from '@/context/AuthContext';
 export default function Index() {
   const { profile } = useAuth();
 
+  if (
+    typeof profile?.role === 'string' &&
+    profile.role.trim().toUpperCase() === 'ASLAB'
+  ) {
+    return <Redirect href={'/aslab/(tabs)' as Href} />;
+  }
+
   if (profile?.role === 'asisten') {
     return <Redirect href={'/assistant/(tabs)' as Href} />;
   }

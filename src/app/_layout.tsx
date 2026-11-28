@@ -41,6 +41,10 @@ function RootNavigator() {
   const segments = useSegments();
   const navigationState = useRootNavigationState();
   const isLoggedIn = status === 'authenticated';
+  const isAslab =
+    isLoggedIn &&
+    typeof role === 'string' &&
+    role.trim().toUpperCase() === 'ASLAB';
   const isAssistant = isLoggedIn && role === 'asisten';
 
   useEffect(() => {
@@ -80,6 +84,14 @@ function RootNavigator() {
         {/* Halaman pendukung */}
         <Stack.Screen name="session/[id]" />
         <Stack.Screen name="attendance/[sessionId]" />
+      </Stack.Protected>
+
+      {/* Navigasi khusus Aslab (FR-01, FR-05, FR-06) */}
+      <Stack.Protected
+        guard={isAslab}
+        redirectTo={isLoggedIn ? '/(tabs)/schedule' : '/login'}
+      >
+        <Stack.Screen name="aslab" />
       </Stack.Protected>
 
       {/* Navigasi khusus Asisten (Praktikan diarahkan kembali ke Jadwal) */}
