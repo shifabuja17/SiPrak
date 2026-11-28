@@ -44,6 +44,7 @@ import { showLeaveSubmitSuccessAlert } from '@/features/praktikan/utils/leave-fe
 import { BackLink, Chip, classColor, MetaLine, Tile, UI } from '@/features/praktikan/ui/praktikan-ui';
 import { formatClock, formatSessionDate } from '@/utils/session-time';
 import { FONT } from '@/constants/fonts';
+import { isAssistantRole, isPraktikanRole } from '@/types/user';
 
 export default function SessionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -72,13 +73,13 @@ export default function SessionDetailScreen() {
     );
   }
 
-  if (authRole === 'praktikan') {
+  if (isPraktikanRole(authRole)) {
     return <PraktikanSessionDetail sessionId={sessionIdParam} />;
   }
 
   if (
-    authRole === 'asisten' ||
-    (authRole === null && currentUser.role === 'asisten')
+    isAssistantRole(authRole) ||
+    (authRole === null && isAssistantRole(currentUser.role))
   ) {
     return <AssistantSessionDetail sessionId={sessionIdParam} />;
   }

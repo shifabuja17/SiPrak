@@ -10,6 +10,7 @@ import {
   type SubmitPraktikanAttendanceResult,
 } from '@/features/praktikan/services/praktikan-attendance';
 import type { SessionAttendanceDoc } from '@/features/praktikan/types';
+import { isPraktikanRole } from '@/types/user';
 
 export interface UseSessionAttendanceResult {
   attendance: SessionAttendanceDoc | null;
@@ -97,7 +98,7 @@ export function useSessionAttendance(
       return;
     }
 
-    if (role !== 'praktikan') {
+    if (!isPraktikanRole(role)) {
       setAttendance(null);
       setLoading(false);
       setError(null);
@@ -144,7 +145,7 @@ export function useSessionAttendance(
       return null;
     }
 
-    if (role !== 'praktikan') {
+    if (!isPraktikanRole(role)) {
       setError('Hanya Praktikan yang dapat melakukan presensi.');
       return null;
     }
@@ -238,7 +239,7 @@ export function useMyAttendanceMap(
       return;
     }
 
-    if (authStatus !== 'authenticated' || !uid || role !== 'praktikan') {
+    if (authStatus !== 'authenticated' || !uid || !isPraktikanRole(role)) {
       setAttendanceBySessionId({});
       setLoading(false);
       setError(uid && profileError ? profileError : null);

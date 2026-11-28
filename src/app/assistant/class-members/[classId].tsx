@@ -18,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AssistantHeader from '@/components/common/AssistantHeader';
 
 import { useAuth } from '@/context/AuthContext';
+import { isAssistantRole } from '@/types/user';
 
 import {
   addMember,
@@ -115,7 +116,7 @@ export default function ClassMembersScreen() {
   useEffect(() => {
     if (authLoading) return;
 
-    if (!profile || profile.role !== 'asisten' || !classId) {
+    if (!profile || !isAssistantRole(profile.role) || !classId) {
       setClassLoading(false);
       setMemberLoading(false);
       setUserLoading(false);
@@ -392,7 +393,7 @@ export default function ClassMembersScreen() {
     );
   }
 
-  if (profile.role !== 'asisten') {
+  if (!isAssistantRole(profile.role)) {
     return (
       <SafeAreaView style={styles.centered} edges={['top']}>
         <Text style={styles.emptyTitle}>

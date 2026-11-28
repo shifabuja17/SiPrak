@@ -12,6 +12,7 @@ import { useAuth } from '@/context/AuthContext';
 import { usePracticum } from '@/context/PracticumContext';
 import { FONT } from '@/constants/fonts';
 import PersonIcon from '@/components/common/person-icon';
+import { getRoleLabel } from '@/types/user';
 
 export default function HeaderProfileBar() {
   const { user, profile, logout } = useAuth();
@@ -20,13 +21,7 @@ export default function HeaderProfileBar() {
 
   const isFirebaseAuthenticated = Boolean(user || profile);
   const displayName = profile ? profile.nama : currentUser.nama;
-  const roleLabel = profile
-    ? profile.role === 'asisten'
-      ? 'Asisten Praktikum'
-      : 'Praktikan'
-    : currentUser.role === 'asisten'
-      ? 'Asisten Praktikum'
-      : 'Praktikan';
+  const roleLabel = getRoleLabel(profile ? profile.role : currentUser.role);
   const displayNim = (profile ? profile.nim : currentUser.nim) ?? '-';
 
   function confirmLogout() {

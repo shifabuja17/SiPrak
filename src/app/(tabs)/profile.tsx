@@ -18,6 +18,7 @@ import {
   UI,
 } from '@/features/praktikan/ui/praktikan-ui';
 import { FONT } from '@/constants/fonts';
+import { getRoleLabel } from '@/types/user';
 
 /** Profil Praktikan: identitas akun, kelas yang diikuti, dan tombol keluar. */
 export default function ProfileScreen() {
@@ -41,7 +42,7 @@ export default function ProfileScreen() {
         </View>
         <Text style={styles.name}>{nama}</Text>
         <View>
-          <Chip label={profile?.role === 'asisten' ? 'Asisten' : 'Praktikan'} tone="accent" />
+          <Chip label={profile?.role ? getRoleLabel(profile.role) : 'Praktikan'} tone="accent" />
         </View>
       </View>
 

@@ -29,6 +29,7 @@ import {
 } from '@/features/praktikan/ui/praktikan-ui';
 import { formatClock, formatSessionDate } from '@/utils/session-time';
 import { FONT } from '@/constants/fonts';
+import { isPraktikanRole } from '@/types/user';
 
 /**
  * Riwayat Kehadiran Praktikan: hanya sesi yang sudah dihadiri atau izinnya diterima.
@@ -49,7 +50,7 @@ export default function AttendanceHistoryScreen() {
     );
   }
 
-  if (role !== 'praktikan') {
+  if (!isPraktikanRole(role)) {
     return (
       <Screen>
         <ScreenTitle title="Riwayat Kehadiran" />

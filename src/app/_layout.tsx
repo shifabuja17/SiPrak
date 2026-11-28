@@ -17,6 +17,7 @@ import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { PracticumProvider } from '@/context/PracticumContext';
 import { AssistantSessionsProvider } from '@/features/assistant/state/assistant-sessions-context';
 import { PushNotificationProvider } from '@/features/notifications/state/push-notification-context';
+import { isAssistantRole } from '@/types/user';
 
 // Tahan splash screen sampai status login selesai dipulihkan.
 // Dipanggil di global scope, tanpa await (sesuai dokumentasi Expo SDK 58).
@@ -41,7 +42,7 @@ function RootNavigator() {
   const segments = useSegments();
   const navigationState = useRootNavigationState();
   const isLoggedIn = status === 'authenticated';
-  const isAssistant = isLoggedIn && role === 'asisten';
+  const isAssistant = isLoggedIn && isAssistantRole(role);
 
   useEffect(() => {
     if (!navigationState?.key || status === 'loading') {

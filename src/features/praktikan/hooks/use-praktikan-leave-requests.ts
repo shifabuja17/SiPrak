@@ -13,6 +13,7 @@ import type {
   SubmitLeaveRequestOutcome,
 } from '@/features/praktikan/types';
 import { validateLeaveReason } from '@/features/praktikan/utils/leave-validation';
+import { isPraktikanRole } from '@/types/user';
 
 export type LeaveSubmittingStep = 'idle' | 'classifying_ai' | 'saving_firestore';
 
@@ -89,7 +90,7 @@ export function usePraktikanLeaveRequests(): UsePraktikanLeaveRequestsResult {
 
   const isAuthResolving = authLoading || status === 'loading';
   const activeKey =
-    !isAuthResolving && status === 'authenticated' && uid && role === 'praktikan'
+    !isAuthResolving && status === 'authenticated' && uid && isPraktikanRole(role)
       ? `${uid}:${retryNonce}`
       : null;
 
@@ -160,7 +161,7 @@ export function usePraktikanLeaveRequests(): UsePraktikanLeaveRequestsResult {
     if (!profile) {
       return 'Profil pengguna tidak tersedia. Silakan muat ulang atau login kembali.';
     }
-    if (profile.role !== 'praktikan') {
+    if (!isPraktikanRole(profile.role)) {
       return 'Fitur pengajuan izin hanya tersedia untuk akun Praktikan.';
     }
     return null;
@@ -198,7 +199,7 @@ export function usePraktikanLeaveRequests(): UsePraktikanLeaveRequestsResult {
         return buildRejectedOutcome();
       }
 
-      if (role !== 'praktikan') {
+      if (!isPraktikanRole(role)) {
         setSubmitError('Hanya akun Praktikan yang dapat mengajukan izin.');
         return buildRejectedOutcome();
       }

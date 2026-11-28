@@ -28,6 +28,7 @@ import { useMyAttendanceMap } from '@/features/praktikan/hooks/use-session-atten
 import PraktikanHome from '@/features/praktikan/components/praktikan-home';
 import { formatMeetingTitle } from '@/features/praktikan/utils/format';
 import { FONT } from '@/constants/fonts';
+import { isPraktikanRole } from '@/types/user';
 
 export default function ScheduleScreen() {
   const {
@@ -52,7 +53,7 @@ export default function ScheduleScreen() {
     );
   }
 
-  if (authRole === 'praktikan') {
+  if (isPraktikanRole(authRole)) {
     return <PraktikanScheduleList />;
   }
 

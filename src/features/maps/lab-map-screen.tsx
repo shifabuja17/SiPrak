@@ -47,6 +47,7 @@ import { openAppLocationSettings } from '@/services/location-service';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 
 import MapsUnavailable from '@/features/maps/maps-unavailable';
+import { isAssistantRole } from '@/types/user';
 
 const INITIAL_REGION: Region = {
   latitude: -7.0486375,
@@ -544,7 +545,7 @@ function LabMap() {
     }
 
     let active = true;
-    let seeding = role === 'asisten';
+    let seeding = isAssistantRole(role);
     setLoading(true);
     setError(null);
 
@@ -564,7 +565,7 @@ function LabMap() {
       },
     );
 
-    if (role === 'asisten') {
+    if (isAssistantRole(role)) {
       ensureDefaultLaboratories()
         .then(() => {
           if (!active) return;
@@ -798,7 +799,7 @@ function LabMap() {
       ]}
     >
       {/* Asisten mengatur koordinat & radius 4 titik lokasi (FR-10, FR-11) dari peta. */}
-      {role === 'asisten' ? (
+      {isAssistantRole(role) ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Atur lokasi laboratorium"

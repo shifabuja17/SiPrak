@@ -18,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AssistantHeader from '@/components/common/AssistantHeader';
 
 import { useAuth } from '@/context/AuthContext';
+import { isAssistantRole } from '@/types/user';
 
 import DateTimeField from '@/components/common/DateTimeField';
 import Dropdown from '@/components/common/Dropdown';
@@ -146,7 +147,7 @@ export default function AssistantClassesScreen() {
   useEffect(() => {
     if (authLoading) return;
 
-    if (!profile || profile.role !== 'asisten') {
+    if (!profile || !isAssistantRole(profile.role)) {
       setClasses([]);
       setLoading(false);
       return;
@@ -374,7 +375,7 @@ export default function AssistantClassesScreen() {
     );
   }
 
-  if (profile.role !== 'asisten') {
+  if (!isAssistantRole(profile.role)) {
     return (
       <SafeAreaView style={styles.centered} edges={['top']}>
         <Text style={styles.emptyTitle}>

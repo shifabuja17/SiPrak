@@ -10,6 +10,7 @@ import type {
   PraktikanSchedule,
   PraktikanSession,
 } from '@/features/praktikan/types';
+import { isPraktikanRole } from '@/types/user';
 
 export interface UsePraktikanSessionsResult {
   classes: PraktikanClass[];
@@ -69,7 +70,7 @@ export function usePraktikanSessions(): UsePraktikanSessionsResult {
       return;
     }
 
-    if (role !== 'praktikan') {
+    if (!isPraktikanRole(role)) {
       setPayload(EMPTY_PAYLOAD);
       setLoading(false);
       setError('Data jadwal ini hanya tersedia untuk akun Praktikan.');

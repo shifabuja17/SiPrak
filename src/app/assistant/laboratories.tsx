@@ -18,6 +18,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import AssistantHeader from '@/components/common/AssistantHeader';
 import { FONT } from '@/constants/fonts';
 import { useAuth } from '@/context/AuthContext';
+import { isAssistantRole } from '@/types/user';
 import {
   ensureDefaultLaboratories,
   subscribeLaboratories,
@@ -144,7 +145,7 @@ export default function AssistantLaboratoriesScreen() {
   useEffect(() => {
     if (authLoading) return;
 
-    if (!profile || profile.role !== 'asisten') {
+    if (!profile || !isAssistantRole(profile.role)) {
       setLaboratories([]);
       setLoading(false);
       setSeeding(false);
@@ -286,7 +287,7 @@ export default function AssistantLaboratoriesScreen() {
     );
   }
 
-  if (profile.role !== 'asisten') {
+  if (!isAssistantRole(profile.role)) {
     return (
       <SafeAreaView style={styles.centered}>
         <Text style={styles.emptyTitle}>Akses Ditolak</Text>

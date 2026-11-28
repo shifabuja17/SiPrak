@@ -16,10 +16,32 @@ service cloud.firestore {
       return /databases/$(database)/documents/users/$(uid);
     }
 
+    function userRole() {
+      return get(userDoc(request.auth.uid)).data.role;
+    }
+
+    function isAslabRole(role) {
+      return role in ['ASLAB', 'aslab'];
+    }
+
+    function isAsprakRole(role) {
+      return role in ['ASPRAK', 'asprak', 'ASISTEN', 'asisten'];
+    }
+
+    function isPraktikanRole(role) {
+      return role in ['PRAKTIKAN', 'praktikan'];
+    }
+
+    function isSameNormalizedRole(a, b) {
+      return (isAslabRole(a) && isAslabRole(b))
+        || (isAsprakRole(a) && isAsprakRole(b))
+        || (isPraktikanRole(a) && isPraktikanRole(b));
+    }
+
     function isAsisten() {
       return signedIn()
         && exists(userDoc(request.auth.uid))
-        && get(userDoc(request.auth.uid)).data.role == 'asisten';
+        && (isAslabRole(userRole()) || isAsprakRole(userRole()));
     }
 
     function validStatusSesi() {
@@ -45,15 +67,15 @@ service cloud.firestore {
     }
 
     // ---------- users/{uid} ----------
-    // Registrasi mandiri hanya boleh jadi 'praktikan'.
-    // Akun asisten: ubah field role secara manual di Firebase Console.
+    // Registrasi mandiri mendukung pilihan role 'ASLAB', 'ASPRAK', atau 'PRAKTIKAN'
+    // (tetap menerima 'praktikan' untuk kompatibilitas backward).
     match /users/{uid} {
       allow read: if isOwner(uid) || isAsisten();
 
       allow create: if isOwner(uid)
         && request.resource.data.keys().hasOnly(['nama', 'email', 'nim', 'role', 'createdAt'])
         && request.resource.data.keys().hasAll(['nama', 'email', 'role', 'createdAt'])
-        && request.resource.data.role == 'praktikan'
+        && request.resource.data.role in ['ASLAB', 'ASPRAK', 'PRAKTIKAN', 'praktikan']
         && request.resource.data.email == request.auth.token.email.lower()
         && request.resource.data.nama is string
         && request.resource.data.nama.size() > 0
@@ -152,14 +174,14 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['uid', 'role', 'tokens', 'platform', 'updatedAt'])
         && request.resource.data.keys().hasAll(['uid', 'role', 'tokens'])
         && request.resource.data.uid == uid
-        && request.resource.data.role == get(userDoc(uid)).data.role
+        && isSameNormalizedRole(request.resource.data.role, get(userDoc(uid)).data.role)
         && request.resource.data.tokens is list
         && request.resource.data.tokens.size() <= 20;
 
       allow update: if (isOwner(uid)
           && request.resource.data.diff(resource.data).affectedKeys()
                .hasOnly(['role', 'tokens', 'platform', 'updatedAt'])
-          && request.resource.data.role == get(userDoc(uid)).data.role
+          && isSameNormalizedRole(request.resource.data.role, get(userDoc(uid)).data.role)
           && request.resource.data.tokens is list
           && request.resource.data.tokens.size() <= 20)
         || (isAsisten()

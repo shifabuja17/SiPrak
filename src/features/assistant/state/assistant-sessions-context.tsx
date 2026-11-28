@@ -11,6 +11,7 @@ import {
 import { formatSessionTimeRange } from '@/utils/session-time';
 import { useAuth } from '@/context/AuthContext';
 import type { NotificationDispatchResult } from '@/features/notifications/types';
+import { isAssistantRole } from '@/types/user';
 
 import type {
   AttendanceRecord,
@@ -71,7 +72,7 @@ export function AssistantSessionsProvider({
   } = useAuth();
 
   const userId = user?.uid ?? null;
-  const isAssistant = profile?.role === 'asisten';
+  const isAssistant = isAssistantRole(profile?.role);
   const classCodes = useClassCodes(isAssistant && !authLoading);
 
   // DATA SESI DARI FIRESTORE

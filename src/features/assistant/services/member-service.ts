@@ -11,6 +11,7 @@ import {
 } from 'firebase/firestore';
 
 import { db } from '@/lib/firebase';
+import { ROLES, isPraktikanRole } from '@/types/user';
 
 // Data peserta yang sudah menjadi anggota kelas.
 export interface PracticumMember {
@@ -35,7 +36,7 @@ export function subscribeAvailablePraktikan(
 ): Unsubscribe {
   const usersQuery = query(
     collection(db, 'users'),
-    where('role', '==', 'praktikan')
+    where('role', 'in', ['praktikan', ROLES.PRAKTIKAN])
   );
 
   return onSnapshot(
@@ -144,7 +145,7 @@ export async function addMember(
 
     const userData = userSnapshot.data();
 
-    if (userData.role !== 'praktikan') {
+    if (!isPraktikanRole(userData.role)) {
       throw new Error('Akun yang dipilih bukan praktikan.');
     }
 
@@ -227,7 +228,7 @@ export async function moveMemberToClass(
       throw new Error('Akun praktikan tidak ditemukan.');
     }
 
-    if (userSnapshot.data().role !== 'praktikan') {
+    if (!isPraktikanRole(userSnapshot.data().role)) {
       throw new Error('Akun tersebut bukan praktikan.');
     }
 

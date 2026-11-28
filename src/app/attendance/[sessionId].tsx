@@ -39,6 +39,7 @@ import {
 } from '@/features/praktikan/utils/format';
 import { formatClock, formatSessionDate } from '@/utils/session-time';
 import { FONT } from '@/constants/fonts';
+import { isPraktikanRole } from '@/types/user';
 
 /** Lokasi yang lebih tua dari ini diambil ulang sebelum presensi dikirim. */
 const LOCATION_MAX_AGE_MS = 60_000;
@@ -55,7 +56,7 @@ export default function AttendanceScreen() {
     return <PraktikanLoadingState fullScreen message="Memeriksa akun..." />;
   }
 
-  if (role !== 'praktikan') {
+  if (!isPraktikanRole(role)) {
     return (
       <ScreenShell>
         <PraktikanEmptyState

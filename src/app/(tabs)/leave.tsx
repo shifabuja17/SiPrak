@@ -30,6 +30,7 @@ import {
 } from '@/features/praktikan/ui/praktikan-ui';
 import { formatClock, formatSessionDate } from '@/utils/session-time';
 import { FONT } from '@/constants/fonts';
+import { isPraktikanRole } from '@/types/user';
 
 const STATUS_CHIP: Record<LeaveRequestStatus, { label: string; tone: ChipTone }> = {
   menunggu: { label: 'Menunggu keputusan', tone: 'neutral' },
@@ -57,7 +58,7 @@ export default function LeaveScreen() {
     );
   }
 
-  if (role !== 'praktikan') {
+  if (!isPraktikanRole(role)) {
     return (
       <Screen>
         <ScreenTitle title="Pengajuan Izin" />

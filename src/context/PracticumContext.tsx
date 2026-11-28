@@ -1,4 +1,9 @@
-import type { Role } from '@/types/user';
+import {
+  ROLES,
+  isAssistantRole,
+  isPraktikanRole,
+  type Role,
+} from '@/types/user';
 
 import {
   createContext,
@@ -57,7 +62,7 @@ const SIGNED_OUT_USER: PracticumUser = {
   uid: '',
   nama: '',
   nim: null,
-  role: 'praktikan',
+  role: ROLES.PRAKTIKAN,
 };
 
 const INITIAL_SESSIONS: PracticumSession[] = [
@@ -145,7 +150,7 @@ export function PracticumProvider({
     sessionId: string,
     note: string,
   ): void {
-    if (currentUser.role !== 'asisten') {
+    if (!isAssistantRole(currentUser.role)) {
       throw new Error(
         'Hanya Asisten yang dapat membuka sesi.',
       );
@@ -177,7 +182,7 @@ export function PracticumProvider({
   }
 
   function closeSession(sessionId: string): void {
-    if (currentUser.role !== 'asisten') {
+    if (!isAssistantRole(currentUser.role)) {
       throw new Error(
         'Hanya Asisten yang dapat menutup sesi.',
       );
@@ -210,7 +215,7 @@ export function PracticumProvider({
     sessionId: string,
     user: PracticumUser,
   ): void {
-    if (currentUser.role !== 'praktikan') {
+    if (!isPraktikanRole(currentUser.role)) {
       throw new Error(
         'Hanya Praktikan yang dapat melakukan presensi.',
       );
@@ -218,7 +223,7 @@ export function PracticumProvider({
 
     if (
       user.uid !== currentUser.uid ||
-      user.role !== 'praktikan'
+      !isPraktikanRole(user.role)
     ) {
       throw new Error(
         'Identitas praktikan tidak sesuai dengan akun aktif.',

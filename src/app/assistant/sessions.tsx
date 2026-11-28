@@ -21,6 +21,7 @@ import Svg, { Path } from 'react-native-svg';
 import AssistantHeader from '@/components/common/AssistantHeader';
 
 import { useAuth } from '@/context/AuthContext';
+import { isAssistantRole } from '@/types/user';
 
 import { SessionTile } from '@/components/common/session-schedule';
 import AttendanceStats from '@/features/assistant/components/attendance-stats';
@@ -211,7 +212,7 @@ export default function AssistantSessionsScreen() {
   useEffect(() => {
     if (authLoading) return;
 
-    if (!profile || profile.role !== 'asisten') {
+    if (!profile || !isAssistantRole(profile.role)) {
       setLoading(false);
       setError('Halaman ini hanya dapat diakses oleh Asisten.');
       return;
@@ -257,7 +258,7 @@ export default function AssistantSessionsScreen() {
   useEffect(() => {
     if (authLoading) return;
 
-    if (!profile || profile.role !== 'asisten') {
+    if (!profile || !isAssistantRole(profile.role)) {
       setLaboratories([]);
       setLabsLoading(false);
       return;
@@ -741,7 +742,7 @@ export default function AssistantSessionsScreen() {
     );
   }
 
-  if (!profile || profile.role !== 'asisten') {
+  if (!profile || !isAssistantRole(profile.role)) {
     return (
       <SafeAreaView style={styles.centered} edges={['top']}>
         <Text style={styles.emptyTitle}>

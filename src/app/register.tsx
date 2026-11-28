@@ -6,15 +6,18 @@ import {
   AuthError,
   AuthField,
   AuthLink,
+  AuthRoleSelector,
   AuthShell,
 } from '@/components/auth/auth-form';
 import { useAuth } from '@/context/AuthContext';
+import { ROLES, type Role } from '@/types/user';
 
 const NIM_PATTERN = /^\d{6,20}$/;
 
 export default function RegisterScreen() {
   const { register } = useAuth();
 
+  const [role, setRole] = useState<Role>(ROLES.PRAKTIKAN);
   const [nama, setNama] = useState('');
   const [nim, setNim] = useState('');
   const [email, setEmail] = useState('');
@@ -23,11 +26,16 @@ export default function RegisterScreen() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  /** Validasi sisi klien; validasi email & password dasar ada juga di AuthContext. */
+  const isNimOptional = role === ROLES.ASLAB;
+
+  /** Validasi sisi klien; validasi email, password, & role dasar ada juga di AuthContext. */
   function validate(): string {
     if (!nama.trim()) return 'Nama lengkap wajib diisi.';
-    if (!NIM_PATTERN.test(nim.trim())) {
-      return 'NIM harus berupa angka (6-20 digit).';
+    const trimmedNim = nim.trim();
+    if (!isNimOptional || trimmedNim.length > 0) {
+      if (!NIM_PATTERN.test(trimmedNim)) {
+        return 'NIM harus berupa angka (6-20 digit).';
+      }
     }
     if (password !== confirmPassword) {
       return 'Konfirmasi password tidak sama.';
@@ -45,7 +53,7 @@ export default function RegisterScreen() {
     setError('');
     setSubmitting(true);
     try {
-      await register({ nama, nim, email, password });
+      await register({ nama, nim, email, password, role });
       // Berhasil: pengguna otomatis login, guard di _layout memindahkan ke aplikasi.
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Gagal mendaftar.');
@@ -57,8 +65,15 @@ export default function RegisterScreen() {
   return (
     <AuthShell
       title="Daftar Akun"
-      subtitle="Daftar sebagai praktikan untuk mengikuti kegiatan praktikum."
+      subtitle="Buat akun SiPrak sesuai peranmu untuk mengikuti atau mengelola kegiatan praktikum."
     >
+      <AuthRoleSelector
+        label="Peran Akun"
+        value={role}
+        onChange={setRole}
+        disabled={submitting}
+      />
+
       <AuthField
         label="Nama Lengkap"
         value={nama}
@@ -70,7 +85,7 @@ export default function RegisterScreen() {
       />
 
       <AuthField
-        label="NIM"
+        label={isNimOptional ? 'NIM (Opsional untuk Aslab)' : 'NIM'}
         value={nim}
         onChangeText={setNim}
         placeholder="Contoh: 24060123120001"

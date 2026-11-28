@@ -7,6 +7,7 @@ import PersonIcon from '@/components/common/person-icon';
 import { FONT } from '@/constants/fonts';
 import { useAuth } from '@/context/AuthContext';
 import { ScreenTitle, TAB_BAR_SPACE } from '@/features/praktikan/ui/praktikan-ui';
+import { getRoleLabel } from '@/types/user';
 
 // ==========================================
 // HALAMAN PROFIL ASISTEN
@@ -17,10 +18,7 @@ export default function AssistantProfileScreen() {
 
   const displayName = profile?.nama?.trim() || 'Nama belum tersedia';
 
-  const roleLabel =
-    profile?.role === 'asisten'
-      ? 'Asisten Praktikum'
-      : profile?.role || 'Tidak diketahui';
+  const roleLabel = profile?.role ? getRoleLabel(profile.role) : 'Tidak diketahui';
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>

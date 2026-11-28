@@ -3,6 +3,7 @@ import { router, type Href } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { PraktikanEmptyState } from '@/features/praktikan/components/praktikan-state-view';
 import { PillButton, Screen, ScreenTitle } from '@/features/praktikan/ui/praktikan-ui';
+import { isAssistantRole } from '@/types/user';
 
 /**
  * Pengganti tab Peta saat peta tidak bisa dimuat (web, atau build Android tanpa API key
@@ -15,7 +16,7 @@ export default function MapsUnavailable({ title, message }: { title: string; mes
     <Screen>
       <ScreenTitle title="Peta Laboratorium" subtitle="4 titik lokasi praktikum" />
       <PraktikanEmptyState title={title} message={message} />
-      {role === 'asisten' ? (
+      {isAssistantRole(role) ? (
         <PillButton
           label="Atur Lokasi Laboratorium"
           variant="outline"

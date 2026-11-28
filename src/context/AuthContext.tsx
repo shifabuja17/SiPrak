@@ -4,6 +4,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
@@ -25,7 +26,11 @@ import {
 
 import { unregisterDeviceForUser } from '../features/notifications/services/push-token-service';
 import { auth, db } from '../lib/firebase';
-import type { Role, UserProfile } from '../types/user';
+import {
+  normalizeRole,
+  type Role,
+  type UserProfile,
+} from '../types/user';
 
 // ==========================================
 // TIPE AUTENTIKASI
@@ -54,6 +59,7 @@ export interface RegisterInput {
   email: string;
   password: string;
   nim?: string;
+  role: Role;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(
@@ -61,14 +67,6 @@ const AuthContext = createContext<AuthContextValue | undefined>(
 );
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-// ==========================================
-// VALIDASI ROLE
-// ==========================================
-
-function isValidRole(value: unknown): value is Role {
-  return value === 'asisten' || value === 'praktikan';
-}
 
 // ==========================================
 // PESAN ERROR FIREBASE
@@ -134,6 +132,7 @@ export function AuthProvider({
   const [profileError, setProfileError] = useState<string | null>(null);
 
   const [registering, setRegistering] = useState(false);
+  const registeringRef = useRef(false);
 
   // ========================================
   // 1. MEMANTAU STATUS LOGIN FIREBASE
@@ -175,6 +174,7 @@ export function AuthProvider({
       return;
     }
 
+    let active = true;
     setProfileLoading(true);
     setProfileError(null);
 
@@ -183,7 +183,14 @@ export function AuthProvider({
     const unsubscribe = onSnapshot(
       profileRef,
       (snapshot) => {
+        if (!active) return;
+
         if (!snapshot.exists()) {
+          // Saat proses registrasi sedang menulis dokumen users/{uid}, tunggu setDoc selesai.
+          if (registeringRef.current) {
+            return;
+          }
+
           setProfile(null);
           setProfileError(
             'Profil pengguna belum tersedia di Firestore.',
@@ -193,9 +200,14 @@ export function AuthProvider({
         }
 
         const data = snapshot.data();
+        const rawRole =
+          typeof data.role === 'string' && data.role.trim().length > 0
+            ? data.role.trim()
+            : undefined;
+        const normalizedRole = normalizeRole(data.role);
 
-        // Pastikan role sesuai dengan tipe aplikasi.
-        if (!isValidRole(data.role)) {
+        // Pastikan role sesuai dengan konstanta aplikasi (termasuk mapping legacy ASISTEN -> ASPRAK).
+        if (!normalizedRole) {
           setProfile(null);
           setProfileError(
             'Role akun tidak valid. Periksa field role pada dokumen Firestore.',
@@ -234,19 +246,22 @@ export function AuthProvider({
             ? data.nim.trim()
             : null;
 
-        // Menyimpan profil terbaru ke Context.
+        // Menyimpan profil terbaru beserta role ter-normalisasi ke Context.
         setProfile({
           uid: user.uid,
           nama,
           email,
           nim,
-          role: data.role,
+          role: normalizedRole,
+          ...(rawRole ? { rawRole } : {}),
         });
 
         setProfileError(null);
         setProfileLoading(false);
       },
       (error) => {
+        if (!active) return;
+
         console.error(
           'Gagal mengambil profil pengguna:',
           error,
@@ -258,11 +273,14 @@ export function AuthProvider({
       },
     );
 
-    return unsubscribe;
+    return () => {
+      active = false;
+      unsubscribe();
+    };
   }, [user]);
 
   // ========================================
-  // 3. REGISTRASI PRAKTIKAN
+  // 3. REGISTRASI PENGGUNA
   // ========================================
 
   const register = useCallback(
@@ -270,6 +288,7 @@ export function AuthProvider({
       const nama = input.nama.trim();
       const email = input.email.trim().toLowerCase();
       const nim = input.nim?.trim() || null;
+      const selectedRole = normalizeRole(input.role);
 
       if (!nama) {
         throw new Error('Nama wajib diisi.');
@@ -283,6 +302,11 @@ export function AuthProvider({
         throw new Error('Password minimal 6 karakter.');
       }
 
+      if (!selectedRole) {
+        throw new Error('Role pengguna wajib dipilih (Aslab, Asprak, atau Praktikan).');
+      }
+
+      registeringRef.current = true;
       setRegistering(true);
 
       try {
@@ -295,26 +319,30 @@ export function AuthProvider({
           );
 
         try {
-          // Membuat profil pengguna di Firestore.
-          // Registrasi mandiri selalu menjadi Praktikan.
+          // Membuat profil pengguna di Firestore sesuai role yang dipilih.
           await setDoc(
             doc(db, 'users', credential.user.uid),
             {
               nama,
               email,
               nim,
-              role: 'praktikan',
+              role: selectedRole,
               createdAt: serverTimestamp(),
             },
           );
         } catch (error) {
           // Menghapus akun Auth jika profil gagal dibuat.
           await deleteUser(credential.user).catch(() => {});
+          if (auth.currentUser) {
+            setProfileError('Gagal menyimpan profil pengguna di Firestore.');
+            setProfileLoading(false);
+          }
           throw error;
         }
       } catch (error) {
         throw new Error(authErrorMessage(error));
       } finally {
+        registeringRef.current = false;
         setRegistering(false);
       }
     },
